@@ -80,6 +80,15 @@ router.put('/users/:id', async (req, res) => {
   }
 });
 
+router.delete('/users/:id', async (req, res) => {
+  try {
+    await User.findOneAndDelete({ id: req.params.id });
+    res.json({ success: true });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
 // --- SYSTEM DATA ---
 router.put('/system-data', async (req, res) => {
   try {
