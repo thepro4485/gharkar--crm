@@ -9,12 +9,12 @@ router.get('/data', async (req, res) => {
   try {
     const users = await User.find();
     const leads = await Lead.find();
-    
+
     let sysData = await SystemData.findOne({ type: 'global' });
     if (!sysData) {
       sysData = await SystemData.create({ type: 'global' });
     }
-    
+
     res.json({
       users: users,
       leads: leads,
@@ -46,8 +46,8 @@ router.post('/leads', async (req, res) => {
 router.put('/leads/:id', async (req, res) => {
   try {
     const updatedLead = await Lead.findOneAndUpdate(
-      { id: req.params.id }, 
-      { $set: req.body }, 
+      { id: req.params.id },
+      { $set: req.body },
       { new: true, upsert: true } // upsert true just in case
     );
     res.json(updatedLead);
