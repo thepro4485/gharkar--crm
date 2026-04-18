@@ -99,7 +99,7 @@ function td(){return new Date().toISOString().slice(0,10);}
 function gid(){return Date.now().toString(36)+Math.random().toString(36).slice(2,6);}
 function tsNow(){return new Date().toISOString();}
 
-const API_BASE = 'http://localhost:5000/api';
+const API_BASE = 'https://gharkar-crm.onrender.com/api';
 
 // ─── REMINDER ENGINE ─────────────────────────────────────────────────────────
 function useReminders(session, store, persist){
@@ -205,15 +205,29 @@ export default function App(){
           ...defaultStore,
           users: data.users && data.users.length > 0 ? data.users : defaultStore.users,
           leads: data.leads || [],
-          // Assuming other collections are added later, keep defaults for now
+          dailyLogs: data.dailyLogs || defaultStore.dailyLogs,
+          escalations: data.escalations || defaultStore.escalations,
+          portalCheckLog: data.portalCheckLog || defaultStore.portalCheckLog,
+          externalFollowups: data.externalFollowups || defaultStore.externalFollowups,
+          commLogs: data.commLogs || defaultStore.commLogs,
+          notifications: data.notifications || defaultStore.notifications
         });
         setLoading(false);
       })
       .catch(err => {
         console.error("Error fetching DB:", err);
+        alert("Failed to connect to the database! Please check your internet connection or contact support. Working in offline mode.");
         setLoading(false); // Fallback to initial state if server is down
       });
   }, []);
+
+  const handleFetch = (url, options) => {
+    fetch(url, options).then(res => {
+      if (!res.ok) alert(`Failed to save data. Server returned ${res.status}. Data may be lost on refresh.`);
+    }).catch(err => {
+      alert(`Network error: Failed to save data. ${err.message}`);
+    });
+  };
 
   const persist=useCallback((newStore)=>{
     setStore(oldStore => {
@@ -221,18 +235,37 @@ export default function App(){
       if (newStore.leads !== oldStore.leads) {
         newStore.leads.forEach(l => {
           const oldL = oldStore.leads.find(x => x.id === l.id);
-          if (!oldL) fetch(`${API_BASE}/leads`, { method: 'POST', body: JSON.stringify(l), headers: {'Content-Type':'application/json'} });
-          else if (JSON.stringify(l) !== JSON.stringify(oldL)) fetch(`${API_BASE}/leads/${l.id}`, { method: 'PUT', body: JSON.stringify(l), headers: {'Content-Type':'application/json'} });
+          if (!oldL) handleFetch(`${API_BASE}/leads`, { method: 'POST', body: JSON.stringify(l), headers: {'Content-Type':'application/json'} });
+          else if (JSON.stringify(l) !== JSON.stringify(oldL)) handleFetch(`${API_BASE}/leads/${l.id}`, { method: 'PUT', body: JSON.stringify(l), headers: {'Content-Type':'application/json'} });
         });
       }
       // Diff Users
       if (newStore.users !== oldStore.users) {
         newStore.users.forEach(u => {
           const oldU = oldStore.users.find(x => x.id === u.id);
-          if (!oldU) fetch(`${API_BASE}/users`, { method: 'POST', body: JSON.stringify(u), headers: {'Content-Type':'application/json'} });
-          else if (JSON.stringify(u) !== JSON.stringify(oldU)) fetch(`${API_BASE}/users/${u.id}`, { method: 'PUT', body: JSON.stringify(u), headers: {'Content-Type':'application/json'} });
+          if (!oldU) handleFetch(`${API_BASE}/users`, { method: 'POST', body: JSON.stringify(u), headers: {'Content-Type':'application/json'} });
+          else if (JSON.stringify(u) !== JSON.stringify(oldU)) handleFetch(`${API_BASE}/users/${u.id}`, { method: 'PUT', body: JSON.stringify(u), headers: {'Content-Type':'application/json'} });
         });
       }
+      
+      // Diff System Data
+      const sysFields = ['dailyLogs', 'escalations', 'portalCheckLog', 'externalFollowups', 'commLogs', 'notifications'];
+      let sysChanged = false;
+      const sysPayload = {};
+      sysFields.forEach(f => {
+        if (newStore[f] !== oldStore[f]) {
+          sysChanged = true;
+          sysPayload[f] = newStore[f];
+        }
+      });
+      if (sysChanged) {
+        handleFetch(`${API_BASE}/system-data`, {
+          method: 'PUT',
+          body: JSON.stringify(sysPayload),
+          headers: {'Content-Type':'application/json'}
+        });
+      }
+
       return newStore;
     });
   }, []);
@@ -256,8 +289,8 @@ function LoginPage({onLogin}){
     <div style={{minHeight:"100vh",background:`linear-gradient(135deg,${T.navy} 0%,${T.navyMid} 55%,${T.navyLight} 100%)`,display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",padding:"2rem 1rem"}}>
       <style>{STYLE}</style>
       <div style={{marginBottom:32,textAlign:"center"}}>
-        <div style={{fontFamily:"'Playfair Display',serif",fontSize:30,fontWeight:700,color:T.gold,letterSpacing:1}}>GharKar CRM</div>
-        <div style={{color:"rgba(255,255,255,0.45)",fontSize:12,marginTop:4,letterSpacing:3,textTransform:"uppercase"}}>GharKar CRM A Loan Processing software</div>
+        <div style={{fontFamily:"'Playfair Display',serif",fontSize:30,fontWeight:700,color:T.gold,letterSpacing:1}}>GharKar CDM</div>
+        <div style={{color:"rgba(255,255,255,0.45)",fontSize:12,marginTop:4,letterSpacing:3,textTransform:"uppercase"}}>GharKar CDM A Loan Processing software</div>
       </div>
       {!mode?(
         <div style={{display:"flex",flexDirection:"column",gap:14,width:"100%",maxWidth:380}} className="fade">
