@@ -247,6 +247,11 @@ export default function App() {
       }
       // Diff Users
       if (newStore.users !== oldStore.users) {
+        oldStore.users.forEach(oldU => {
+          if (oldU.id !== 'admin' && !newStore.users.find(u => u.id === oldU.id)) {
+            handleFetch(`${API_BASE}/users/${oldU.id}`, { method: 'DELETE' });
+          }
+        });
         newStore.users.forEach(u => {
           const oldU = oldStore.users.find(x => x.id === u.id);
           if (!oldU) handleFetch(`${API_BASE}/users`, { method: 'POST', body: JSON.stringify(u), headers: { 'Content-Type': 'application/json' } });
