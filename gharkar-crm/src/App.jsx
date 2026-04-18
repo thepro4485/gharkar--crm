@@ -451,7 +451,7 @@ function AdminDash({ store, onSel }) {
   return (<div className="fade">
     <ST>Admin Dashboard</ST>
     <Grid cols="repeat(auto-fit,minmax(120px,1fr))" gap={10} mb={20}>
-      {[{ l: "Total Leads", v: leads.length, c: T.navy }, { l: "Active", v: active.length, c: T.blue }, { l: "Disbursed", v: done.length, c: T.green }, { l: "Today's Calls", v: todayCalls.length, c: T.amber }, { l: "Overdue", v: overdue.length, c: overdue.length > 0 ? T.red : T.textLight }, { l: "Escalations", v: newEscs, c: newEscs > 0 ? T.red : T.textLight }, { l: "Staff", v: users.length, c: T.navy }].map(m => (
+      {[{ l: "Total Leads", v: leads.length, c: T.navy }, { l: "Active", v: active.length, c: T.blue }, { l: "Sanction", v: leads.filter(l => STEPS.find(s => s.id === l.currentStep)?.cat === "sanction").length, c: T.purple }, { l: "Disbursed", v: done.length, c: T.green }, { l: "Today's Calls", v: todayCalls.length, c: T.amber }, { l: "Overdue", v: overdue.length, c: overdue.length > 0 ? T.red : T.textLight }, { l: "Escalations", v: newEscs, c: newEscs > 0 ? T.red : T.textLight }, { l: "Staff", v: users.length, c: T.navy }].map(m => (
         <div key={m.l} style={{ background: T.white, borderRadius: 12, padding: "12px 14px", border: `1px solid ${T.border}` }}>
           <div style={{ fontSize: 11, color: T.textLight }}>{m.l}</div>
           <div style={{ fontSize: 24, fontWeight: 600, color: m.c, marginTop: 2 }}>{m.v}</div>
@@ -860,7 +860,7 @@ function TodayView({ leads, session, onSel }) {
     )}
 
     <Grid cols="repeat(auto-fit,minmax(110px,1fr))" gap={10} mb={18}>
-      {[{ l: "Total", v: leads.length, c: T.navy }, { l: "Active", v: active.length, c: T.blue }, { l: "Today's Calls", v: todayCalls.length, c: T.green }, { l: "Overdue", v: overdue.length, c: overdue.length > 0 ? T.red : T.textLight }].map(m => (
+      {[{ l: "Total", v: leads.length, c: T.navy }, { l: "Active", v: active.length, c: T.blue }, { l: "Sanction", v: leads.filter(l => STEPS.find(s => s.id === l.currentStep)?.cat === "sanction").length, c: T.purple }, { l: "Today's Calls", v: todayCalls.length, c: T.green }, { l: "Overdue", v: overdue.length, c: overdue.length > 0 ? T.red : T.textLight }].map(m => (
         <div key={m.l} style={{ background: T.white, borderRadius: 12, padding: "12px 14px", border: `1px solid ${T.border}` }}>
           <div style={{ fontSize: 11, color: T.textLight }}>{m.l}</div>
           <div style={{ fontSize: 22, fontWeight: 600, color: m.c, marginTop: 2 }}>{m.v}</div>
