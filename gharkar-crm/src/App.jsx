@@ -68,6 +68,7 @@ const STEPS = [
   { id: 36, cat: "disbursement", label: "Disbursement Appointment & Disbursement", desc: "Fix the disbursement appointment at the bank and ensure client, seller/builder, and all parties are present.", actions: ["Book disbursement appointment at branch", "Inform client of date, time, branch address, and documents to carry", "Inform seller or builder of disbursement schedule", "Confirm with bank RM one day before", "Attend disbursement with client"], portalCheck: false },
   { id: 37, cat: "disbursement", label: "Update MIS – Final File Status", desc: "Update MIS with final disbursement status immediately after disbursement is complete.", actions: ["Mark file status as Disbursed in MIS", "Update disbursement amount in MIS", "Update disbursement date in MIS", "Update mode of payment in MIS", "Update any balance pending (in case of part disbursement)"], portalCheck: false },
   { id: 38, cat: "closing", label: "Ask for Google Review & Video Testimonial", desc: "Request a Google review and video testimonial from the client immediately after disbursement.", actions: ["Send Google review link to client via WhatsApp immediately after disbursement", "Request a short video testimonial (30–60 seconds)", "Thank client personally for their trust", "Ask for referrals from their network", "Log Google review received in MIS"], portalCheck: false },
+  { id: 39, cat: "closing", label: "Completed", desc: "This lead process is 100% complete.", actions: [], portalCheck: false }
 ];
 
 const CAT_META = {
@@ -239,6 +240,11 @@ export default function App() {
     setStore(oldStore => {
       // Diff Leads
       if (newStore.leads !== oldStore.leads) {
+        oldStore.leads.forEach(oldL => {
+          if (!newStore.leads.find(l => l.id === oldL.id)) {
+            handleFetch(`${API_BASE}/leads/${oldL.id}`, { method: 'DELETE' });
+          }
+        });
         newStore.leads.forEach(l => {
           const oldL = oldStore.leads.find(x => x.id === l.id);
           if (!oldL) handleFetch(`${API_BASE}/leads`, { method: 'POST', body: JSON.stringify(l), headers: { 'Content-Type': 'application/json' } });
@@ -418,10 +424,11 @@ function AdminApp({ store, persist, session, onLogout }) {
   const [nav, setNav] = useState("dashboard");
   const [sel, setSel] = useState(null);
   function updLead(id, upd) { persist({ ...store, leads: (store.leads || []).map(l => l.id === id ? { ...l, ...upd } : l) }); }
+  function delLead(id) { if (!window.confirm("Delete this lead permanently?")) return; persist({ ...store, leads: (store.leads || []).filter(l => l.id !== id) }); setSel(null); }
   if (sel) {
     const lead = (store.leads || []).find(l => l.id === sel); if (!lead) { setSel(null); return null; }
     return (<Shell session={session} onLogout={onLogout} navItems={AN} activeNav={nav} setActiveNav={v => { setSel(null); setNav(v); }} store={store} persist={persist}>
-      <LeadDetail lead={lead} store={store} onBack={() => setSel(null)} onUpdate={updLead} isAdmin fieldOnly={false} />
+      <LeadDetail lead={lead} store={store} onBack={() => setSel(null)} onUpdate={updLead} onDelete={delLead} isAdmin fieldOnly={false} />
     </Shell>);
   }
   return (<Shell session={session} onLogout={onLogout} navItems={AN} activeNav={nav} setActiveNav={setNav} store={store} persist={persist}>
@@ -717,6 +724,7 @@ function ExecutiveApp({ store, persist, session, onLogout }) {
   const [nav, setNav] = useState("today"); const [sel, setSel] = useState(null);
   const myLeads = (store.leads || []).filter(l => l.assignedTo === session.id);
   function updLead(id, upd) { persist({ ...store, leads: (store.leads || []).map(l => l.id === id ? { ...l, ...upd } : l) }); }
+  function delLead(id) { if (!window.confirm("Delete this lead permanently?")) return; persist({ ...store, leads: (store.leads || []).filter(l => l.id !== id) }); setSel(null); }
   function addLead(lead) {
     const nl = { ...lead, id: gid(), assignedTo: session.id, currentStep: 1, stepsCompleted: {}, notes: [], followUp: "", stageHistory: [{ step: 1, date: td() }], createdAt: td(), commLog: [] };
     // Auto welcome notification log
@@ -729,7 +737,7 @@ function ExecutiveApp({ store, persist, session, onLogout }) {
   if (sel) {
     const lead = myLeads.find(l => l.id === sel); if (!lead) { setSel(null); return null; }
     return (<Shell session={session} onLogout={onLogout} navItems={EN} activeNav={nav} setActiveNav={v => { setSel(null); setNav(v); }} store={store} persist={persist}>
-      <LeadDetail lead={lead} store={store} onBack={() => setSel(null)} onUpdate={updLead} isAdmin={false} fieldOnly={false} />
+      <LeadDetail lead={lead} store={store} onBack={() => setSel(null)} onUpdate={updLead} onDelete={delLead} isAdmin={false} fieldOnly={false} />
     </Shell>);
   }
   return (<Shell session={session} onLogout={onLogout} navItems={EN} activeNav={nav} setActiveNav={setNav} store={store} persist={persist}>
@@ -793,11 +801,12 @@ function FieldApp({ store, persist, session, onLogout }) {
   const myLeads = (store.leads || []).filter(l => l.assignedTo === session.id);
   function addLead(lead) { const nl = { ...lead, id: gid(), assignedTo: session.id, currentStep: 1, stepsCompleted: {}, notes: [], followUp: "", stageHistory: [{ step: 1, date: td() }], createdAt: td(), commLog: [] }; persist({ ...store, leads: [nl, ...(store.leads || [])] }); setNav("leads"); }
   function updLead(id, upd) { persist({ ...store, leads: (store.leads || []).map(l => l.id === id ? { ...l, ...upd } : l) }); }
+  function delLead(id) { if (!window.confirm("Delete this lead permanently?")) return; persist({ ...store, leads: (store.leads || []).filter(l => l.id !== id) }); setSel(null); }
   function saveLog(text) { const logs = { ...(store.dailyLogs || {}) }; if (!logs[session.id]) logs[session.id] = {}; logs[session.id][td()] = text; persist({ ...store, dailyLogs: logs }); }
   if (sel) {
     const lead = myLeads.find(l => l.id === sel); if (!lead) { setSel(null); return null; }
     return (<Shell session={session} onLogout={onLogout} navItems={FN} activeNav={nav} setActiveNav={v => { setSel(null); setNav(v); }} store={store} persist={persist}>
-      <LeadDetail lead={lead} store={store} onBack={() => setSel(null)} onUpdate={updLead} isAdmin={false} fieldOnly={true} />
+      <LeadDetail lead={lead} store={store} onBack={() => setSel(null)} onUpdate={updLead} onDelete={delLead} isAdmin={false} fieldOnly={true} />
     </Shell>);
   }
   return (<Shell session={session} onLogout={onLogout} navItems={FN} activeNav={nav} setActiveNav={setNav} store={store} persist={persist}>
@@ -883,7 +892,7 @@ function CC({ lead, onSel, urgent }) {
 }
 
 // ─── LEAD DETAIL ──────────────────────────────────────────────────────────────
-function LeadDetail({ lead, store, onBack, onUpdate, isAdmin, fieldOnly }) {
+function LeadDetail({ lead, store, onBack, onUpdate, onDelete, isAdmin, fieldOnly }) {
   const [tab, setTab] = useState("current");
   const [note, setNote] = useState("");
   const [commNote, setCommNote] = useState("");
@@ -894,7 +903,7 @@ function LeadDetail({ lead, store, onBack, onUpdate, isAdmin, fieldOnly }) {
   const done = lead.stepsCompleted?.[step.id] || {};
   const allDone = step.actions.every(a => !!done[a]);
   const asgn = store.users.find(u => u.id === lead.assignedTo);
-  const maxStep = fieldOnly ? Math.max(...LEAD_STEP_IDS) : 38;
+  const maxStep = fieldOnly ? Math.max(...LEAD_STEP_IDS) : 39;
   const tabs = fieldOnly ? ["current", "notes", "history"] : ["current", "allsteps", "comm", "docs", "notes", "history"];
 
   // FIX: use functional update to avoid stale closure mutation
@@ -930,7 +939,10 @@ function LeadDetail({ lead, store, onBack, onUpdate, isAdmin, fieldOnly }) {
   const curDocStage = step.docStage;
 
   return (<div className="fade">
-    <button onClick={onBack} style={{ background: "none", border: "none", color: T.textMid, fontSize: 13, marginBottom: 12, cursor: "pointer", padding: 0 }}>← Back</button>
+    <div style={{ display: "flex", justifyContent: "space-between" }}>
+      <button onClick={onBack} style={{ background: "none", border: "none", color: T.textMid, fontSize: 13, marginBottom: 12, cursor: "pointer", padding: 0 }}>← Back</button>
+      {onDelete && <button onClick={() => onDelete(lead.id)} style={{ background: "none", border: "none", color: T.red, fontSize: 13, marginBottom: 12, cursor: "pointer", padding: 0 }}>Delete Lead</button>}
+    </div>
     <div style={{ background: T.white, border: `1px solid ${T.border}`, borderRadius: 14, padding: "16px 20px", marginBottom: 14 }}>
       <div style={{ display: "flex", justifyContent: "space-between", flexWrap: "wrap", gap: 8 }}>
         <div>
@@ -1193,7 +1205,12 @@ function AddLeadForm({ onAdd }) {
       </Grid>
       <F l="Initial Remarks / FIR Notes"><textarea value={f.notes} onChange={e => s("notes", e.target.value)} placeholder={"FIR notes from first call:\n• Purpose: Home purchase\n• Property: 2BHK flat in Pune\n• Timeline: 3 months"} rows={3} style={{ resize: "vertical" }} /></F>
       <div>
-        <Btn onClick={() => { if (!f.name || !f.phone) return alert("Name and phone required."); onAdd(f); }} c={T.navy}>Add Lead → Start Step 1</Btn>
+        <Btn onClick={() => { 
+          if (!f.name || !f.phone) return alert("Name and phone required."); 
+          if (!/^\d{10}$/.test(f.phone)) return alert("Invalid number. Please enter exactly 10 digits.");
+          if (f.email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(f.email)) return alert("Invalid email. Please enter a valid email address.");
+          onAdd(f); 
+        }} c={T.navy}>Add Lead → Start Step 1</Btn>
         <div style={{ fontSize: 12, color: T.textLight, marginTop: 8 }}>A welcome communication log will be auto-created when this lead is saved.</div>
       </div>
     </div>
