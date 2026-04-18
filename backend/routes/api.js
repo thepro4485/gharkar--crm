@@ -2,6 +2,7 @@ const express = require('express');
 const router = express.Router();
 const User = require('../models/User');
 const Lead = require('../models/Lead');
+const SystemData = require('../models/SystemData');
 
 // Get all data (initial load for the frontend)
 router.get('/data', async (req, res) => {
@@ -9,16 +10,20 @@ router.get('/data', async (req, res) => {
     const users = await User.find();
     const leads = await Lead.find();
     
-    // We can add DailyLogs, Escalations, etc. later if needed
+    let sysData = await SystemData.findOne({ type: 'global' });
+    if (!sysData) {
+      sysData = await SystemData.create({ type: 'global' });
+    }
+    
     res.json({
       users: users,
       leads: leads,
-      dailyLogs: {},
-      escalations: [],
-      portalCheckLog: {},
-      externalFollowups: [],
-      commLogs: {},
-      notifications: []
+      dailyLogs: sysData.dailyLogs || {},
+      escalations: sysData.escalations || [],
+      portalCheckLog: sysData.portalCheckLog || {},
+      externalFollowups: sysData.externalFollowups || [],
+      commLogs: sysData.commLogs || {},
+      notifications: sysData.notifications || []
     });
   } catch (err) {
     res.status(500).json({ error: err.message });
@@ -70,6 +75,20 @@ router.put('/users/:id', async (req, res) => {
       { new: true, upsert: true }
     );
     res.json(updatedUser);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// --- SYSTEM DATA ---
+router.put('/system-data', async (req, res) => {
+  try {
+    const updatedSystemData = await SystemData.findOneAndUpdate(
+      { type: 'global' },
+      { $set: req.body },
+      { new: true, upsert: true }
+    );
+    res.json(updatedSystemData);
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
