@@ -86,6 +86,46 @@ const DOC_STAGE_LABELS = { round1: "Round 1 – Loan Approval Docs", round2: "Ro
 const LEAD_STEP_IDS = STEPS.filter(s => s.cat === "lead").map(s => s.id);
 const LEAD_SOURCES = ["Existing Customer", "Channel Partner", "Developer/Builder", "Referral", "Online Portal", "Walk-In", "DSA", "Social Media", "Other"];
 
+const DOC_REQUIREMENTS = {
+  "Salaried": {
+    "KYC": ["Aadhaar Card (Front & Back)", "PAN Card", "Passport photos x2", "Address proof (if diff from Aadhaar)"],
+    "Income": ["3 months salary slips", "Form 16 (last 2 years)", "6 months bank statements (salary a/c)", "Offer / Appointment letter", "IT Returns last 2 years"],
+    "Obligations": ["All existing loan statements", "Credit card statements (if any)"],
+    "Property": ["Sale Agreement / Allotment Letter", "Title Deed / Index II", "Encumbrance Certificate (13/30 yrs)", "Building & Layout Plan", "Property tax receipts", "NOC from builder/society", "Chain of title documents"],
+    "Disbursement": ["Demand letter from builder", "Own contribution receipts", "Bank signed formats", "NACH mandate", "Stamp duty / Registration challan"],
+  },
+  "Self-Employed": {
+    "KYC": ["Aadhaar Card (Front & Back)", "PAN Card", "Passport photos x2", "Business address proof"],
+    "Income": ["IT Returns last 3 years (personal)", "P&L Statement last 3 years", "Balance Sheet last 3 years", "12 months personal bank statements", "12 months business bank statements", "GST Certificate", "Business continuity proof"],
+    "Obligations": ["All existing loan statements", "OD / CC account statements"],
+    "Property": ["Sale Agreement / Allotment Letter", "Title Deed / Index II", "Encumbrance Certificate (13/30 yrs)", "Building & Layout Plan", "Property tax receipts", "NOC from builder/society", "Chain of title documents"],
+    "Disbursement": ["Demand letter from builder", "Own contribution receipts", "Bank signed formats", "NACH mandate", "Stamp duty / Registration challan"],
+  },
+  "Pvt Ltd Company": {
+    "Director KYC": ["Aadhaar of all directors", "PAN of all directors", "Company PAN", "Directors address proofs", "Passport photos of directors"],
+    "Company Docs": ["Certificate of Incorporation (COI)", "Memorandum of Association (MOA)", "Articles of Association (AOA)", "Board Resolution for loan", "Shareholding pattern", "Latest MCA/ROC filings"],
+    "Income": ["Company ITR last 3 years", "Company P&L last 3 years", "Company Balance Sheet last 3 years", "12 months company bank statements", "Directors personal ITR last 2 years", "Directors bank statements 6 months", "GST Certificate & Returns"],
+    "Obligations": ["Company loan statements", "OD/CC statements", "Directors personal loan statements"],
+    "Property": ["Sale Agreement / Allotment Letter", "Title Deed / Index II", "Encumbrance Certificate", "Building & Layout Plan", "Property tax receipts", "NOC from builder/society"],
+    "Disbursement": ["Demand letter", "Own contribution receipts", "Board resolution for disbursement", "Bank signed formats", "NACH mandate", "Stamp duty / Registration challan"],
+  },
+  "Partnership Firm": {
+    "Partner KYC": ["Aadhaar of all partners", "PAN of all partners", "Firm PAN", "Partners address proofs", "Passport photos of all partners"],
+    "Firm Docs": ["Partnership Deed (registered)", "Firm registration certificate", "Authority letter from all partners"],
+    "Income": ["Firm ITR last 3 years", "Firm P&L last 3 years", "Firm Balance Sheet last 3 years", "12 months firm bank statements", "Partners capital account statements 3 years", "Partners personal ITR last 2 years", "GST Certificate (if applicable)"],
+    "Obligations": ["Firm loan statements", "OD/CC statements", "Partners personal loan statements"],
+    "Property": ["Sale Agreement / Allotment Letter", "Title Deed / Index II", "Encumbrance Certificate", "Building & Layout Plan", "Property tax receipts", "NOC from builder/society"],
+    "Disbursement": ["Demand letter", "Own contribution receipts", "Authority letter by all partners", "Bank signed formats", "NACH mandate", "Stamp duty / Registration challan"],
+  },
+  "NRI": {
+    "KYC": ["Passport (all pages)", "OCI / PIO Card", "Valid Visa copy", "PAN Card", "Aadhaar (if available)", "India address proof", "Overseas address proof", "Passport photos x2"],
+    "Income": ["Overseas employment contract", "3 months overseas salary slips", "6 months NRE/NRO bank statements", "6 months overseas bank statements", "IT Returns 2 years (India, if filed)", "Work permit / Labour card", "Latest employer salary certificate"],
+    "Obligations": ["India loan statements (if any)", "Overseas loan statements (if any)"],
+    "Property": ["Sale Agreement / Allotment Letter", "Title Deed / Index II", "Encumbrance Certificate", "Building & Layout Plan", "Property tax receipts", "NOC from builder/society"],
+    "Disbursement": ["Demand letter", "Own contribution receipts", "Power of Attorney (notarised)", "Bank signed formats", "NACH mandate", "FEMA declaration", "Stamp duty / Registration challan"],
+  },
+};
+
 const SK = "hlcrm_v7";
 function init() {
   return {
@@ -103,6 +143,64 @@ function gid() { return Date.now().toString(36) + Math.random().toString(36).sli
 function tsNow() { return new Date().toISOString(); }
 
 const API_BASE = 'https://gharkar-crm.onrender.com/api';
+const GEMINI_KEY = "AIzaSyC93b-mQ3Q8VC3V3kvfFtOngns3AH2Y2gc";
+
+async function analyseDocumentsAI(employmentType, currentStep, receivedText, loanDetails) {
+  const docSet = DOC_REQUIREMENTS[employmentType] || DOC_REQUIREMENTS["Salaried"];
+  const allDocs = Object.entries(docSet).flatMap(([cat, docs]) => docs.map(d => `[${cat}] ${d}`));
+  const prompt = `You are an expert home loan processor in India. Analyse the documents received and identify what is present, missing, and any concerns.\nBORROWER: ${loanDetails.name || "Client"}, Employment: ${employmentType}, Loan: ${loanDetails.loanType || "Home Loan"}, Amount: Rs.${Number(loanDetails.loanAmount||0).toLocaleString("en-IN")}\nPROCESS STEP: ${currentStep}\nREQUIRED DOCUMENTS:\n${allDocs.map((d,i)=>`${i+1}. ${d}`).join("\n")}\nDOCUMENTS RECEIVED (described by loan officer):\n${receivedText}\nRespond ONLY in this exact JSON format:{"confirmed":["names of docs clearly present"],"missing":["names of docs not mentioned"],"concerns":["any red flags or issues"],"nextAction":"specific next step the officer should take now","score":0}`;
+  try {
+    const res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${GEMINI_KEY}`,{
+      method:"POST", headers:{"Content-Type":"application/json"},
+      body:JSON.stringify({contents:[{parts:[{text:prompt}]}],generationConfig:{temperature:0.1,maxOutputTokens:1024}})
+    });
+    if(!res.ok) throw new Error("API error");
+    const data = await res.json();
+    const text = data.candidates?.[0]?.content?.parts?.[0]?.text||"";
+    const match = text.match(/\{[\s\S]*\}/);
+    if(!match) throw new Error("No JSON");
+    return {source:"gemini",...JSON.parse(match[0])};
+  } catch(e) {
+    console.warn("Gemini fallback:",e.message);
+    return ruleBasedDocAnalysis(employmentType,receivedText);
+  }
+}
+
+function ruleBasedDocAnalysis(employmentType, receivedText) {
+  const docSet = DOC_REQUIREMENTS[employmentType]||DOC_REQUIREMENTS["Salaried"];
+  const allDocs = Object.values(docSet).flat();
+  const txt = receivedText.toLowerCase();
+  const KW = {
+    "aadhaar":["aadhaar","aadhar","uid"],"pan":["pan card"," pan ","pan-"],
+    "salary slip":["salary slip","payslip","pay slip"],"form 16":["form 16","form16"],
+    "bank statement":["bank statement","bank stmt","account statement"],
+    "it return":["itr","it return","income tax return"],"offer":["offer letter","appointment letter"],
+    "p&l":["p&l","profit and loss","profit & loss"],"balance sheet":["balance sheet"],
+    "gst":["gst certificate","gstin"],"passport":["passport"],"oci":["oci card","pio card"],
+    "work permit":["work permit","labour card"],"moa":["moa","memorandum"],
+    "aoa":["aoa","articles of association"],"partnership deed":["partnership deed"],
+    "board resolution":["board resolution"],"encumbrance":["encumbrance","ec "],
+    "noc":["noc ","no objection"],"nach":["nach","ecs mandate"],
+    "demand letter":["demand letter"],"title deed":["title deed","index ii"],
+    "sale agreement":["sale agreement","allotment letter"],"coi":["certificate of incorporation","coi"],
+  };
+  const confirmed=[],missing=[];
+  allDocs.forEach(doc=>{
+    const dl=doc.toLowerCase();
+    let found=txt.includes(dl.slice(0,12));
+    if(!found){for(const[key,pats]of Object.entries(KW)){if(dl.includes(key)&&pats.some(p=>txt.includes(p))){found=true;break;}}}
+    if(found)confirmed.push(doc);else missing.push(doc);
+  });
+  const concerns=[];
+  if(missing.length>allDocs.length*0.6)concerns.push("Over 60% of required documents not yet received — do not proceed to bank login.");
+  if(!txt.includes("pan")&&!txt.includes("aadhaar")&&!txt.includes("aadhar"))concerns.push("Basic KYC (PAN + Aadhaar) not confirmed — mandatory for all cases.");
+  if(txt.includes("expired")||txt.includes("expiry"))concerns.push("Document expiry mentioned — verify all validity dates.");
+  const score=Math.round((confirmed.length/allDocs.length)*100);
+  let nextAction="Share complete document list with client and follow up within 2 days.";
+  if(score>=80)nextAction="Most documents collected. Prepare OCR sheet and initiate bank login.";
+  else if(score>=50)nextAction="Send query file for pending documents. Follow up every 2 days.";
+  return{source:"rule-engine",confirmed,missing,concerns,nextAction,score};
+}
 
 // ─── REMINDER ENGINE ─────────────────────────────────────────────────────────
 function useReminders(session, store, persist) {
@@ -319,8 +417,8 @@ function LoginPage({ onLogin }) {
     <div style={{ minHeight: "100vh", background: `linear-gradient(135deg,${T.navy} 0%,${T.navyMid} 55%,${T.navyLight} 100%)`, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", padding: "2rem 1rem" }}>
       <style>{STYLE}</style>
       <div style={{ marginBottom: 32, textAlign: "center" }}>
-        <div style={{ fontFamily: "'Playfair Display',serif", fontSize: 30, fontWeight: 700, color: T.gold, letterSpacing: 1 }}>GharKar CRM</div>
-        <div style={{ color: "rgba(255,255,255,0.45)", fontSize: 12, marginTop: 4, letterSpacing: 3, textTransform: "uppercase" }}>GharKar CRM A Loan Processing software</div>
+        <div style={{ fontFamily: "'Playfair Display',serif", fontSize: 30, fontWeight: 700, color: T.gold, letterSpacing: 1 }}>GharKar CDM</div>
+        <div style={{ color: "rgba(255,255,255,0.45)", fontSize: 12, marginTop: 4, letterSpacing: 3, textTransform: "uppercase" }}>GharKar CDM A Loan Processing software</div>
       </div>
       {!mode ? (
         <div style={{ display: "flex", flexDirection: "column", gap: 14, width: "100%", maxWidth: 380 }} className="fade">
@@ -398,7 +496,7 @@ function Shell({ session, onLogout, navItems, children, activeNav, setActiveNav,
         </div>
       )}
       <header style={{ background: T.navy, padding: "0 16px", display: "flex", alignItems: "center", gap: 8, height: 52, boxShadow: "0 2px 14px rgba(0,0,0,0.22)", position: "sticky", top: 0, zIndex: 100 }}>
-        <div style={{ fontFamily: "'Playfair Display',serif", fontSize: 17, fontWeight: 700, color: T.gold, marginRight: 8, whiteSpace: "nowrap" }}>GharKar CRM</div>
+        <div style={{ fontFamily: "'Playfair Display',serif", fontSize: 17, fontWeight: 700, color: T.gold, marginRight: 8, whiteSpace: "nowrap" }}>GharKar CDM</div>
         <div style={{ flex: 1, display: "flex", gap: 1, overflowX: "auto" }}>
           {navItems.map(n => (
             <button key={n.id} onClick={() => setActiveNav(n.id)} style={{ padding: "6px 12px", borderRadius: 7, border: "none", background: activeNav === n.id ? "rgba(212,168,83,0.16)" : "transparent", color: activeNav === n.id ? T.gold : T.goldDim, fontSize: 13, fontWeight: activeNav === n.id ? 600 : 400, whiteSpace: "nowrap", cursor: "pointer" }}>{n.label}</button>
@@ -904,7 +1002,7 @@ function LeadDetail({ lead, store, onBack, onUpdate, onDelete, isAdmin, fieldOnl
   const allDone = step.actions.every(a => !!done[a]);
   const asgn = store.users.find(u => u.id === lead.assignedTo);
   const maxStep = fieldOnly ? Math.max(...LEAD_STEP_IDS) : 39;
-  const tabs = fieldOnly ? ["current", "notes", "history"] : ["current", "allsteps", "comm", "docs", "notes", "history"];
+  const tabs = fieldOnly ? ["current", "notes", "history"] : ["current", "allsteps", "comm", "docchecklist", "aidocs", "notes", "history"];
 
   // FIX: use functional update to avoid stale closure mutation
   function toggleA(action) {
@@ -971,7 +1069,7 @@ function LeadDetail({ lead, store, onBack, onUpdate, onDelete, isAdmin, fieldOnl
     </div>
     <div style={{ display: "flex", gap: 1, marginBottom: 14, borderBottom: `1px solid ${T.border}`, overflowX: "auto" }}>
       {tabs.map(t => <button key={t} onClick={() => setTab(t)} style={{ padding: "9px 14px", border: "none", background: "none", color: tab === t ? cm.color : T.textLight, fontWeight: tab === t ? 600 : 400, borderBottom: tab === t ? `2px solid ${cm.color}` : "2px solid transparent", cursor: "pointer", textTransform: "capitalize", whiteSpace: "nowrap", fontSize: 13 }}>
-        {t === "current" ? "Current Step" : t === "allsteps" ? "All 38 Steps" : t === "comm" ? "Communication" : t === "docs" ? "Doc Stages" : t}
+        {t === "current" ? "Current Step" : t === "allsteps" ? "All 39 Steps" : t === "comm" ? "Communication" : t === "docchecklist" ? "📋 Doc Checklist" : t === "aidocs" ? "🤖 AI Docs" : t}
       </button>)}
     </div>
 
@@ -1070,30 +1168,8 @@ function LeadDetail({ lead, store, onBack, onUpdate, onDelete, isAdmin, fieldOnl
       </div>
     )}
 
-    {tab === "docs" && !fieldOnly && (
-      <div className="fade">
-        <div style={{ fontSize: 13, color: T.textLight, marginBottom: 14 }}>Three rounds of document collection for each loan file.</div>
-        {["round1", "round2", "round3"].map(ds => {
-          const dsSteps = STEPS.filter(s => s.docStage === ds);
-          const isCurrent = dsSteps.some(s => s.id === lead.currentStep);
-          const isPast = dsSteps.every(s => s.id < lead.currentStep);
-          const stageColor = isCurrent ? T.blue : isPast ? T.green : T.textLight;
-          const stageBg = isCurrent ? T.blueBg : isPast ? T.greenBg : T.white;
-          return (<div key={ds} style={{ background: stageBg, border: `1px solid ${stageColor}40`, borderRadius: 12, padding: "14px 16px", marginBottom: 12 }}>
-            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 8 }}>
-              <div style={{ fontWeight: 600, fontSize: 14, color: stageColor }}>{DOC_STAGE_LABELS[ds]}</div>
-              <Tg c={stageColor}>{isCurrent ? "In Progress" : isPast ? "Complete" : "Upcoming"}</Tg>
-            </div>
-            {dsSteps.map(s => (
-              <div key={s.id} style={{ fontSize: 13, color: s.id === lead.currentStep ? stageColor : s.id < lead.currentStep ? T.green : T.textMid, padding: "4px 0", borderTop: `0.5px solid ${stageColor}30`, display: "flex", gap: 8, alignItems: "center" }}>
-                <span>{s.id < lead.currentStep ? "✓" : s.id === lead.currentStep ? "→" : "○"}</span>
-                <span>{s.label}</span>
-              </div>
-            ))}
-          </div>);
-        })}
-      </div>
-    )}
+    {tab === "docchecklist" && !fieldOnly && <DocChecklistTab lead={lead} onUpdate={onUpdate} />}
+    {tab === "aidocs" && !fieldOnly && <AiDocsTab lead={lead} />}
 
     {tab === "notes" && (
       <div className="fade">
@@ -1129,6 +1205,121 @@ function LeadDetail({ lead, store, onBack, onUpdate, onDelete, isAdmin, fieldOnl
       </Card>
     )}
   </div>);
+}
+
+// ─── AI DOCS TAB ─────────────────────────────────────────────────────────────
+function AiDocsTab({ lead }) {
+  const [text, setText] = useState("");
+  const [result, setResult] = useState(null);
+  const [loading, setLoading] = useState(false);
+  const empType = lead.employmentType || "Salaried";
+  const docSet = DOC_REQUIREMENTS[empType] || DOC_REQUIREMENTS["Salaried"];
+  const allDocs = Object.values(docSet).flat();
+
+  async function analyse() {
+    if (!text.trim()) return;
+    setLoading(true);
+    const res = await analyseDocumentsAI(empType, lead.currentStep, text, lead);
+    setResult(res);
+    setLoading(false);
+  }
+
+  return (
+    <div className="fade">
+      <div style={{ fontSize: 13, color: T.textLight, marginBottom: 12 }}>
+        Paste or type what documents you have received. AI will identify what is present, missing, and what to do next.
+        <span style={{ marginLeft: 8, fontSize: 11, color: T.blue, background: T.blueBg, padding: "2px 8px", borderRadius: 10 }}>{empType}</span>
+      </div>
+      <div style={{ background: T.white, border: `1px solid ${T.border}`, borderRadius: 12, padding: 16, marginBottom: 12 }}>
+        <div style={{ fontSize: 12, color: T.textLight, marginBottom: 8 }}>Example: "Received Aadhaar and PAN. Got 3 months salary slips and 6 months bank statements. Form 16 pending. Property agreement received but EC not available yet."</div>
+        <textarea value={text} onChange={e => setText(e.target.value)} rows={5} placeholder={`Describe received documents for ${lead.name || "this client"}...`} style={{ marginBottom: 10, resize: "vertical" }} />
+        <button onClick={analyse} disabled={loading || !text.trim()} style={{ padding: "10px 22px", background: loading ? T.textLight : T.navy, color: "#fff", border: "none", borderRadius: 10, fontWeight: 600, fontSize: 14, cursor: loading ? "not-allowed" : "pointer" }}>
+          {loading ? "Analysing..." : "🤖 Analyse Documents"}
+        </button>
+        {result && <span style={{ marginLeft: 10, fontSize: 11, color: T.textLight }}>{result.source === "gemini" ? "✨ Powered by Gemini AI" : "⚙️ Rule Engine (Gemini unavailable)"}</span>}
+      </div>
+      {result && (
+        <div className="fade">
+          <div style={{ background: T.white, border: `1px solid ${T.border}`, borderRadius: 12, padding: 16, marginBottom: 10 }}>
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 8 }}>
+              <div style={{ fontWeight: 600, fontSize: 14, color: T.text }}>Document Readiness Score</div>
+              <div style={{ fontSize: 26, fontWeight: 700, color: result.score >= 80 ? T.green : result.score >= 50 ? T.amber : T.red }}>{result.score}%</div>
+            </div>
+            <div style={{ background: T.creamDark, borderRadius: 4, height: 8, overflow: "hidden" }}>
+              <div style={{ width: `${result.score}%`, height: "100%", background: result.score >= 80 ? T.green : result.score >= 50 ? T.amber : T.red, borderRadius: 4, transition: "width 0.5s" }} />
+            </div>
+          </div>
+          <div style={{ background: T.blueBg, border: "1px solid #90CAF9", borderRadius: 10, padding: "12px 16px", marginBottom: 10 }}>
+            <div style={{ fontWeight: 600, fontSize: 13, color: T.blue, marginBottom: 4 }}>📋 Next Recommended Action</div>
+            <div style={{ fontSize: 13, color: T.text }}>{result.nextAction}</div>
+          </div>
+          {result.confirmed?.length > 0 && (
+            <div style={{ background: T.greenBg, border: "1px solid #A5D6A7", borderRadius: 10, padding: "12px 16px", marginBottom: 10 }}>
+              <div style={{ fontWeight: 600, fontSize: 13, color: T.green, marginBottom: 8 }}>✅ Confirmed ({result.confirmed.length} of {allDocs.length})</div>
+              {result.confirmed.map((d, i) => <div key={i} style={{ fontSize: 13, color: T.green, padding: "3px 0", borderTop: `0.5px solid #A5D6A7` }}>• {d}</div>)}
+            </div>
+          )}
+          {result.missing?.length > 0 && (
+            <div style={{ background: T.redBg, border: "1px solid #EF9A9A", borderRadius: 10, padding: "12px 16px", marginBottom: 10 }}>
+              <div style={{ fontWeight: 600, fontSize: 13, color: T.red, marginBottom: 8 }}>❌ Missing ({result.missing.length})</div>
+              {result.missing.map((d, i) => <div key={i} style={{ fontSize: 13, color: T.red, padding: "3px 0", borderTop: `0.5px solid #EF9A9A` }}>• {d}</div>)}
+            </div>
+          )}
+          {result.concerns?.length > 0 && (
+            <div style={{ background: T.amberBg, border: "1px solid #FFD54F", borderRadius: 10, padding: "12px 16px", marginBottom: 10 }}>
+              <div style={{ fontWeight: 600, fontSize: 13, color: T.amber, marginBottom: 8 }}>⚠️ Concerns</div>
+              {result.concerns.map((c, i) => <div key={i} style={{ fontSize: 13, color: T.amber, padding: "3px 0", borderTop: `0.5px solid #FFD54F` }}>• {c}</div>)}
+            </div>
+          )}
+        </div>
+      )}
+    </div>
+  );
+}
+
+// ─── DOC CHECKLIST TAB ────────────────────────────────────────────────────────
+function DocChecklistTab({ lead, onUpdate }) {
+  const empType = lead.employmentType || "Salaried";
+  const docSet = DOC_REQUIREMENTS[empType] || DOC_REQUIREMENTS["Salaried"];
+  const received = lead.docsReceived || {};
+  const allDocs = Object.values(docSet).flat();
+  const checkedCount = allDocs.filter(d => received[d]).length;
+
+  function toggleDoc(doc) {
+    onUpdate(lead.id, { docsReceived: { ...received, [doc]: !received[doc] } });
+  }
+
+  return (
+    <div className="fade">
+      <div style={{ background: T.white, border: `1px solid ${T.border}`, borderRadius: 12, padding: 16, marginBottom: 14 }}>
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 8 }}>
+          <div style={{ fontWeight: 600, fontSize: 14, color: T.text }}>Documents — {empType}</div>
+          <div style={{ fontSize: 13, fontWeight: 700, color: checkedCount === allDocs.length ? T.green : T.amber }}>{checkedCount} / {allDocs.length} collected</div>
+        </div>
+        <div style={{ background: T.creamDark, borderRadius: 4, height: 7, overflow: "hidden", marginBottom: 4 }}>
+          <div style={{ width: `${Math.round((checkedCount / allDocs.length) * 100)}%`, height: "100%", background: checkedCount === allDocs.length ? T.green : T.amber, borderRadius: 4, transition: "width 0.4s" }} />
+        </div>
+        <div style={{ fontSize: 11, color: T.textLight }}>{Math.round((checkedCount / allDocs.length) * 100)}% complete — tick each document as you receive it</div>
+      </div>
+      {Object.entries(docSet).map(([cat, docs]) => (
+        <div key={cat} style={{ background: T.white, border: `1px solid ${T.border}`, borderRadius: 12, padding: "14px 16px", marginBottom: 10 }}>
+          <div style={{ fontWeight: 600, fontSize: 12, color: T.navy, marginBottom: 10, textTransform: "uppercase", letterSpacing: 0.8 }}>{cat} ({docs.filter(d => received[d]).length}/{docs.length})</div>
+          {docs.map((doc, i) => {
+            const done = !!received[doc];
+            return (
+              <div key={i} onClick={() => toggleDoc(doc)} style={{ display: "flex", gap: 10, alignItems: "center", padding: "8px 0", borderTop: `0.5px solid ${T.border}`, cursor: "pointer" }}>
+                <div style={{ minWidth: 20, height: 20, borderRadius: 5, border: `1.5px solid ${done ? T.green : T.border}`, background: done ? T.green : "transparent", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0, transition: "all 0.15s" }}>
+                  {done && <svg width="11" height="9"><path d="M1 4.5l3 3 6-6" stroke="#fff" strokeWidth="2" fill="none" strokeLinecap="round" /></svg>}
+                </div>
+                <span style={{ fontSize: 13, color: done ? T.textLight : T.text, textDecoration: done ? "line-through" : "none", flex: 1 }}>{doc}</span>
+                {done && <span style={{ fontSize: 11, color: T.green, flexShrink: 0 }}>✓ Received</span>}
+              </div>
+            );
+          })}
+        </div>
+      ))}
+    </div>
+  );
 }
 
 // ─── SHARED COMPONENTS ────────────────────────────────────────────────────────
@@ -1221,7 +1412,7 @@ function AddLeadForm({ onAdd }) {
         <F l="Property Type"><select value={f.propertyType} onChange={e => s("propertyType", e.target.value)}>{["Flat", "Independent House", "Plot", "Commercial", "Under Construction"].map(t => <option key={t}>{t}</option>)}</select></F>
       </Grid>
       <Grid cols="1fr 1fr" gap={10}>
-        <F l="Employment Type"><select value={f.employmentType} onChange={e => s("employmentType", e.target.value)}>{["Salaried", "Self-Employed", "Business Owner", "NRI"].map(t => <option key={t}>{t}</option>)}</select></F>
+        <F l="Employment Type"><select value={f.employmentType} onChange={e => s("employmentType", e.target.value)}>{["Salaried", "Self-Employed", "Pvt Ltd Company", "Partnership Firm", "NRI"].map(t => <option key={t}>{t}</option>)}</select></F>
         <div><F l="Co-Applicant *"><input value={f.coApplicant} onChange={e => s("coApplicant", e.target.value)} placeholder="Name (if any)" style={{ borderColor: errs.coApplicant ? T.red : undefined }} /></F><Err field="coApplicant" /></div>
       </Grid>
       <Grid cols="1fr 1fr" gap={10}>
