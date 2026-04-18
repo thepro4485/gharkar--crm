@@ -256,8 +256,8 @@ function LoginPage({onLogin}){
     <div style={{minHeight:"100vh",background:`linear-gradient(135deg,${T.navy} 0%,${T.navyMid} 55%,${T.navyLight} 100%)`,display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",padding:"2rem 1rem"}}>
       <style>{STYLE}</style>
       <div style={{marginBottom:32,textAlign:"center"}}>
-        <div style={{fontFamily:"'Playfair Display',serif",fontSize:30,fontWeight:700,color:T.gold,letterSpacing:1}}>GharKar CDM</div>
-        <div style={{color:"rgba(255,255,255,0.45)",fontSize:12,marginTop:4,letterSpacing:3,textTransform:"uppercase"}}>GharKar CDM A Loan Processing software</div>
+        <div style={{fontFamily:"'Playfair Display',serif",fontSize:30,fontWeight:700,color:T.gold,letterSpacing:1}}>GharKar CRM</div>
+        <div style={{color:"rgba(255,255,255,0.45)",fontSize:12,marginTop:4,letterSpacing:3,textTransform:"uppercase"}}>GharKar CRM A Loan Processing software</div>
       </div>
       {!mode?(
         <div style={{display:"flex",flexDirection:"column",gap:14,width:"100%",maxWidth:380}} className="fade">
