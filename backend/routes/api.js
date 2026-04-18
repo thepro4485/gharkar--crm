@@ -56,6 +56,15 @@ router.put('/leads/:id', async (req, res) => {
   }
 });
 
+router.delete('/leads/:id', async (req, res) => {
+  try {
+    await Lead.findOneAndDelete({ id: req.params.id });
+    res.json({ success: true });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
 // --- USERS ---
 router.post('/users', async (req, res) => {
   try {
