@@ -434,7 +434,7 @@ function AdminApp({ store, persist, session, onLogout }) {
   return (<Shell session={session} onLogout={onLogout} navItems={AN} activeNav={nav} setActiveNav={setNav} store={store} persist={persist}>
     {nav === "dashboard" && <AdminDash store={store} onSel={setSel} />}
     {nav === "users" && <ManageUsers store={store} persist={persist} />}
-    {nav === "leads" && <div className="fade"><ST>All Leads ({(store.leads || []).length})</ST><LeadTable leads={store.leads || []} users={store.users} onSelect={setSel} /></div>}
+    {nav === "leads" && <div className="fade"><ST>All Leads ({(store.leads || []).length})</ST><LeadTable leads={store.leads || []} users={store.users} onSelect={setSel} onDelete={delLead} /></div>}
     {nav === "logs" && <AdminLogs store={store} />}
     {nav === "pipeline" && <AdminPipeline store={store} onSel={setSel} />}
     {nav === "escalations" && <EscalationView store={store} persist={persist} />}
@@ -742,7 +742,7 @@ function ExecutiveApp({ store, persist, session, onLogout }) {
   }
   return (<Shell session={session} onLogout={onLogout} navItems={EN} activeNav={nav} setActiveNav={setNav} store={store} persist={persist}>
     {nav === "today" && <TodayView leads={myLeads} session={session} onSel={setSel} />}
-    {nav === "leads" && <div className="fade"><ST>My Leads</ST><LeadTable leads={myLeads} users={store.users} onSelect={setSel} /></div>}
+    {nav === "leads" && <div className="fade"><ST>My Leads</ST><LeadTable leads={myLeads} users={store.users} onSelect={setSel} onDelete={delLead} /></div>}
     {nav === "add" && <AddLeadForm onAdd={addLead} />}
     {nav === "followups" && <FollowUps leads={myLeads} onSel={setSel} onUpdate={updLead} />}
     {nav === "guide" && <StepGuide />}
@@ -811,7 +811,7 @@ function FieldApp({ store, persist, session, onLogout }) {
   }
   return (<Shell session={session} onLogout={onLogout} navItems={FN} activeNav={nav} setActiveNav={setNav} store={store} persist={persist}>
     {nav === "today" && <TodayView leads={myLeads} session={session} onSel={setSel} />}
-    {nav === "leads" && <div className="fade"><ST>My Leads</ST><LeadTable leads={myLeads} users={store.users} onSelect={setSel} /></div>}
+    {nav === "leads" && <div className="fade"><ST>My Leads</ST><LeadTable leads={myLeads} users={store.users} onSelect={setSel} onDelete={delLead} /></div>}
     {nav === "add" && <AddLeadForm onAdd={addLead} />}
     {nav === "log" && <DailyLog session={session} dailyLogs={store.dailyLogs || {}} onSave={saveLog} />}
   </Shell>);
@@ -1132,7 +1132,7 @@ function LeadDetail({ lead, store, onBack, onUpdate, onDelete, isAdmin, fieldOnl
 }
 
 // ─── SHARED COMPONENTS ────────────────────────────────────────────────────────
-function LeadTable({ leads, users, onSelect }) {
+function LeadTable({ leads, users, onSelect, onDelete }) {
   const [q, setQ] = useState(""); const [fs, setFs] = useState("all"); const [src, setSrc] = useState("all");
   const fl = leads.filter(l => {
     const ms = l.name.toLowerCase().includes(q.toLowerCase()) || (l.phone || "").includes(q);
@@ -1166,6 +1166,7 @@ function LeadTable({ leads, users, onSelect }) {
             <Tg c={cm.color || T.textLight}>Step {l.currentStep}</Tg>
             <div style={{ fontSize: 11, color: T.textLight, marginTop: 3, maxWidth: 130, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{step?.label}</div>
             {l.followUp && <div style={{ fontSize: 11, color: l.followUp < td() ? T.red : T.textLight, marginTop: 2 }}>↻ {l.followUp}</div>}
+            {onDelete && <button onClick={(e) => { e.stopPropagation(); onDelete(l.id); }} style={{ marginTop: 6, background: T.redBg, border: `1px solid ${T.red}`, color: T.red, fontSize: 10, borderRadius: 4, padding: "3px 8px", cursor: "pointer", fontWeight: 600 }}>Delete</button>}
           </div>
         </div>);
       })}
@@ -1173,49 +1174,69 @@ function LeadTable({ leads, users, onSelect }) {
   </div>);
 }
 
+
 function AddLeadForm({ onAdd }) {
   const [f, setF] = useState({ name: "", phone: "", email: "", loanType: "Home Purchase", loanAmount: "", income: "", city: "", propertyType: "Flat", employmentType: "Salaried", coApplicant: "", source: "Referral", partnerRef: "", notes: "" });
-  const s = (k, v) => setF(p => ({ ...p, [k]: v }));
+  const [errs, setErrs] = useState({});
+  const s = (k, v) => { setF(p => ({ ...p, [k]: v })); setErrs(e => ({ ...e, [k]: "" })); };
+
+  function validate() {
+    const e = {};
+    if (!f.name.trim()) e.name = "Full name is required";
+    if (!f.phone.trim()) e.phone = "Mobile number is required";
+    else if (!/^\d{10}$/.test(f.phone.trim())) e.phone = "Invalid mobile number — must be exactly 10 digits";
+    if (!f.email.trim()) e.email = "Email is required";
+    else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(f.email.trim())) e.email = "Invalid email — enter a valid email address";
+    if (!f.loanAmount) e.loanAmount = "Loan amount is required";
+    if (!f.income) e.income = "Monthly income is required";
+    if (!f.city.trim()) e.city = "City is required";
+    if (!f.coApplicant.trim()) e.coApplicant = "Co-applicant name is required";
+    if (!f.partnerRef.trim()) e.partnerRef = "Partner / referral name is required";
+    if (!f.notes.trim()) e.notes = "Initial remarks are required";
+    setErrs(e);
+    return Object.keys(e).length === 0;
+  }
+
+  function Err({ field }) {
+    return errs[field] ? <div style={{ color: T.red, fontSize: 11, marginTop: 3 }}>{errs[field]}</div> : null;
+  }
+
   return (<div className="fade">
     <ST>Add New Lead</ST>
     <div style={{ background: T.white, border: `1px solid ${T.border}`, borderRadius: 14, padding: 20, display: "flex", flexDirection: "column", gap: 12 }}>
       <Grid cols="1fr 1fr" gap={10}>
-        <F l="Full Name *"><input value={f.name} onChange={e => s("name", e.target.value)} placeholder="Client full name" /></F>
-        <F l="Phone *"><input value={f.phone} onChange={e => s("phone", e.target.value)} placeholder="10-digit mobile" /></F>
+        <div><F l="Full Name *"><input value={f.name} onChange={e => s("name", e.target.value)} placeholder="Client full name" style={{ borderColor: errs.name ? T.red : undefined }} /></F><Err field="name" /></div>
+        <div><F l="Mobile Number *"><input value={f.phone} onChange={e => s("phone", e.target.value)} placeholder="10-digit mobile number" maxLength={10} style={{ borderColor: errs.phone ? T.red : undefined }} /></F><Err field="phone" /></div>
       </Grid>
       <Grid cols="1fr 1fr" gap={10}>
-        <F l="Email"><input value={f.email} onChange={e => s("email", e.target.value)} placeholder="email@example.com" /></F>
+        <div><F l="Email *"><input value={f.email} onChange={e => s("email", e.target.value)} placeholder="email@example.com" style={{ borderColor: errs.email ? T.red : undefined }} /></F><Err field="email" /></div>
         <F l="Loan Type"><select value={f.loanType} onChange={e => s("loanType", e.target.value)}>{["Home Purchase", "Balance Transfer", "Top-Up Loan", "Construction Loan", "Plot + Construction", "LAP"].map(t => <option key={t}>{t}</option>)}</select></F>
       </Grid>
       <Grid cols="1fr 1fr" gap={10}>
-        <F l="Loan Amount (₹)"><input type="number" value={f.loanAmount} onChange={e => s("loanAmount", e.target.value)} placeholder="e.g. 5000000" /></F>
-        <F l="Monthly Income (₹)"><input type="number" value={f.income} onChange={e => s("income", e.target.value)} placeholder="e.g. 80000" /></F>
+        <div><F l="Loan Amount (₹) *"><input type="number" value={f.loanAmount} onChange={e => s("loanAmount", e.target.value)} placeholder="e.g. 5000000" style={{ borderColor: errs.loanAmount ? T.red : undefined }} /></F><Err field="loanAmount" /></div>
+        <div><F l="Monthly Income (₹) *"><input type="number" value={f.income} onChange={e => s("income", e.target.value)} placeholder="e.g. 80000" style={{ borderColor: errs.income ? T.red : undefined }} /></F><Err field="income" /></div>
       </Grid>
       <Grid cols="1fr 1fr" gap={10}>
-        <F l="City"><input value={f.city} onChange={e => s("city", e.target.value)} placeholder="Property city" /></F>
+        <div><F l="City *"><input value={f.city} onChange={e => s("city", e.target.value)} placeholder="Property city" style={{ borderColor: errs.city ? T.red : undefined }} /></F><Err field="city" /></div>
         <F l="Property Type"><select value={f.propertyType} onChange={e => s("propertyType", e.target.value)}>{["Flat", "Independent House", "Plot", "Commercial", "Under Construction"].map(t => <option key={t}>{t}</option>)}</select></F>
       </Grid>
       <Grid cols="1fr 1fr" gap={10}>
         <F l="Employment Type"><select value={f.employmentType} onChange={e => s("employmentType", e.target.value)}>{["Salaried", "Self-Employed", "Business Owner", "NRI"].map(t => <option key={t}>{t}</option>)}</select></F>
-        <F l="Co-Applicant"><input value={f.coApplicant} onChange={e => s("coApplicant", e.target.value)} placeholder="Name (if any)" /></F>
+        <div><F l="Co-Applicant *"><input value={f.coApplicant} onChange={e => s("coApplicant", e.target.value)} placeholder="Name (if any)" style={{ borderColor: errs.coApplicant ? T.red : undefined }} /></F><Err field="coApplicant" /></div>
       </Grid>
       <Grid cols="1fr 1fr" gap={10}>
         <F l="Lead Source"><select value={f.source} onChange={e => s("source", e.target.value)}>{LEAD_SOURCES.map(t => <option key={t}>{t}</option>)}</select></F>
-        <F l="Partner / Referral Name"><input value={f.partnerRef} onChange={e => s("partnerRef", e.target.value)} placeholder="Channel partner / referrer name" /></F>
+        <div><F l="Partner / Referral Name *"><input value={f.partnerRef} onChange={e => s("partnerRef", e.target.value)} placeholder="Channel partner / referrer name" style={{ borderColor: errs.partnerRef ? T.red : undefined }} /></F><Err field="partnerRef" /></div>
       </Grid>
-      <F l="Initial Remarks / FIR Notes"><textarea value={f.notes} onChange={e => s("notes", e.target.value)} placeholder={"FIR notes from first call:\n• Purpose: Home purchase\n• Property: 2BHK flat in Pune\n• Timeline: 3 months"} rows={3} style={{ resize: "vertical" }} /></F>
+      <div><F l="Initial Remarks / FIR Notes *"><textarea value={f.notes} onChange={e => s("notes", e.target.value)} placeholder={"FIR notes from first call:\n• Purpose: Home purchase\n• Property: 2BHK flat in Pune\n• Timeline: 3 months"} rows={3} style={{ resize: "vertical", borderColor: errs.notes ? T.red : undefined }} /></F><Err field="notes" /></div>
       <div>
-        <Btn onClick={() => { 
-          if (!f.name || !f.phone) return alert("Name and phone required."); 
-          if (!/^\d{10}$/.test(f.phone)) return alert("Invalid number. Please enter exactly 10 digits.");
-          if (f.email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(f.email)) return alert("Invalid email. Please enter a valid email address.");
-          onAdd(f); 
-        }} c={T.navy}>Add Lead → Start Step 1</Btn>
+        <Btn onClick={() => { if (validate()) onAdd(f); }} c={T.navy}>Add Lead → Start Step 1</Btn>
         <div style={{ fontSize: 12, color: T.textLight, marginTop: 8 }}>A welcome communication log will be auto-created when this lead is saved.</div>
       </div>
     </div>
   </div>);
 }
+
 
 function FollowUps({ leads, onSel, onUpdate }) {
   const secs = [
