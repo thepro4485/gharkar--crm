@@ -276,7 +276,20 @@ export default function App() {
     });
   }, []);
 
-  function login(u, p) { const user = store.users.find(x => x.username === u && x.password === p && x.active !== false); if (user) { setSession(user); return true; } return false; }
+  function login(u, p) {
+    const cleanU = (u || '').trim().toLowerCase();
+    const cleanP = (p || '').trim();
+    const user = store.users.find(x => 
+      (x.username || '').trim().toLowerCase() === cleanU && 
+      (x.password || '').trim() === cleanP && 
+      x.active !== false
+    );
+    if (user) {
+      setSession(user);
+      return true;
+    }
+    return false;
+  }
   function logout() { setSession(null); }
 
   if (loading) return <div style={{ height: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', background: T.navy, color: T.gold, fontFamily: "'Playfair Display',serif", fontSize: 24 }}>Connecting to Database...</div>;
