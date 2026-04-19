@@ -1823,12 +1823,16 @@ function DetailSheetTab({ lead, onUpdate }) {
   const hasCoApp = lead.coApplicant && lead.coApplicant.trim().toLowerCase() !== "none" && lead.coApplicant.trim() !== "";
   const [form, setForm] = useState({
     address: lead.address || "",
+    fatherName: lead.fatherName || "",
+    motherName: lead.motherName || "",
     marital: lead.marital || "Unmarried",
     spouseName: lead.spouseName || "",
     children: lead.children || "0",
     existingLoans: lead.existingLoans || "0",
     existingLoanDetails: lead.existingLoanDetails || "",
     coAddress: lead.coAddress || "",
+    coFatherName: lead.coFatherName || "",
+    coMotherName: lead.coMotherName || "",
     coMarital: lead.coMarital || "Unmarried",
     coSpouseName: lead.coSpouseName || "",
     coChildren: lead.coChildren || "0",
@@ -1900,6 +1904,10 @@ function DetailSheetTab({ lead, onUpdate }) {
         </div>
         <F l="Current Residential Address"><textarea value={form.address} onChange={e => upd("address", e.target.value)} rows={2} placeholder="Full current address..." /></F>
         <div style={{ marginTop: 14 }} />
+        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10, marginBottom: 14 }}>
+          <F l="Father's Full Name"><input value={form.fatherName} onChange={e => upd("fatherName", e.target.value)} placeholder="Father's name" /></F>
+          <F l="Mother's Full Name"><input value={form.motherName} onChange={e => upd("motherName", e.target.value)} placeholder="Mother's name" /></F>
+        </div>
         <Radio label="Marital Status" field="marital" options={["Unmarried", "Married"]} />
         {form.marital === "Married" && (
           <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10, marginBottom: 14 }}>
@@ -1924,6 +1932,10 @@ function DetailSheetTab({ lead, onUpdate }) {
           </div>
           <F l="Co-Applicant Current Residential Address"><textarea value={form.coAddress} onChange={e => upd("coAddress", e.target.value)} rows={2} placeholder="Full current address..." /></F>
           <div style={{ marginTop: 14 }} />
+          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10, marginBottom: 14 }}>
+            <F l="Father's Full Name"><input value={form.coFatherName} onChange={e => upd("coFatherName", e.target.value)} placeholder="Father's name" /></F>
+            <F l="Mother's Full Name"><input value={form.coMotherName} onChange={e => upd("coMotherName", e.target.value)} placeholder="Mother's name" /></F>
+          </div>
           <Radio label="Marital Status" field="coMarital" options={["Unmarried", "Married"]} />
           {form.coMarital === "Married" && (
             <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10, marginBottom: 14 }}>
