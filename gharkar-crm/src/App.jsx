@@ -127,14 +127,14 @@ const DOC_REQUIREMENTS = {
 };
 
 const WA_TEMPLATES = [
-  { id:"welcome",  icon:"👋", label:"Welcome",       msg: l => `Dear ${l.name},\n\nThank you for reaching out to GharKar for your ${l.loanType||"home loan"} requirement.\n\nOur team will connect with you shortly to understand your requirements and guide you through the entire loan process.\n\nBest regards,\nGharKar Home Loans Team` },
-  { id:"doclist",  icon:"📋", label:"Doc List",      msg: l => `Dear ${l.name},\n\nKindly arrange the following documents for your ${l.loanType||"home loan"} application:\n\n📁 *KYC:* Aadhaar (front & back), PAN Card, Passport photos x2\n💰 *Income:* ${l.employmentType==="Salaried"?"3 months salary slips, Form 16, 6 months bank statements":"ITR last 3 years, P&L + Balance Sheet, 12 months bank statements"}\n\nPlease share at the earliest for faster processing.\n\nGharKar Home Loans Team` },
-  { id:"missed",   icon:"📞", label:"Missed Call",   msg: l => `Dear ${l.name},\n\nWe tried reaching you regarding your home loan enquiry but couldn't connect.\n\nPlease call us back at your convenience, or let us know a good time to reach you.\n\nGharKar Home Loans Team` },
-  { id:"sanction", icon:"🎉", label:"Sanction!",     msg: l => `Dear ${l.name},\n\n*Congratulations!* 🎉\n\nYour home loan application has been *sanctioned* by the bank.\n\nWe will now initiate the disbursement process. Our team will contact you shortly with the next steps.\n\nThank you for choosing GharKar!\nGharKar Home Loans Team` },
-  { id:"disb",     icon:"🏦", label:"Disbursement",  msg: l => `Dear ${l.name},\n\nThis is a reminder for your home loan *disbursement appointment*.\n\nPlease carry all original documents as discussed. Contact us immediately for any queries.\n\nGharKar Home Loans Team` },
-  { id:"review",   icon:"⭐", label:"Review Request",msg: l => `Dear ${l.name},\n\nCongratulations on your successful home loan disbursement! 🏠\n\nIt was our pleasure to serve you. We would be grateful if you could spare 2 minutes to leave us a *Google Review* — it helps us serve more families like yours.\n\nThank you!\nGharKar Home Loans Team` },
-  { id:"reengage", icon:"🔄", label:"Re-engage",     msg: l => `Dear ${l.name},\n\nHope you are doing well!\n\nWe noticed we haven't been in touch recently regarding your home loan requirement. Interest rates are competitive right now — this could be a great time to proceed.\n\nWould you like us to revisit your case? We are ready to assist.\n\nGharKar Home Loans Team` },
-  { id:"docremind",icon:"📂", label:"Doc Reminder",  msg: l => `Dear ${l.name},\n\nGentle reminder — we are waiting for the remaining documents to process your home loan application further.\n\nKindly share the pending documents at the earliest to avoid delays.\n\nGharKar Home Loans Team` },
+  { id:"welcome",  icon:"👋", label:"Welcome",       msg: l => `Dear ${l.name},\n\nThank you for reaching out to GharKar CRM for your ${l.loanType||"home loan"} requirement.\n\nOur team will connect with you shortly to understand your requirements and guide you through the entire loan process.\n\nBest regards,\nGharKar CRM Team` },
+  { id:"doclist",  icon:"📋", label:"Doc List",      msg: l => `Dear ${l.name},\n\nKindly arrange the following documents for your ${l.loanType||"home loan"} application:\n\n📁 *KYC:* Aadhaar (front & back), PAN Card, Passport photos x2\n💰 *Income:* ${l.employmentType==="Salaried"?"3 months salary slips, Form 16, 6 months bank statements":"ITR last 3 years, P&L + Balance Sheet, 12 months bank statements"}\n\nPlease share at the earliest for faster processing.\n\nGharKar CRM Team` },
+  { id:"missed",   icon:"📞", label:"Missed Call",   msg: l => `Dear ${l.name},\n\nWe tried reaching you regarding your home loan enquiry but couldn't connect.\n\nPlease call us back at your convenience, or let us know a good time to reach you.\n\nGharKar CRM Team` },
+  { id:"sanction", icon:"🎉", label:"Sanction!",     msg: l => `Dear ${l.name},\n\n*Congratulations!* 🎉\n\nYour home loan application has been *sanctioned* by the bank.\n\nWe will now initiate the disbursement process. Our team will contact you shortly with the next steps.\n\nThank you for choosing GharKar CRM!\nGharKar CRM Team` },
+  { id:"disb",     icon:"🏦", label:"Disbursement",  msg: l => `Dear ${l.name},\n\nThis is a reminder for your home loan *disbursement appointment*.\n\nPlease carry all original documents as discussed. Contact us immediately for any queries.\n\nGharKar CRM Team` },
+  { id:"review",   icon:"⭐", label:"Review Request",msg: l => `Dear ${l.name},\n\nCongratulations on your successful home loan disbursement! 🏠\n\nIt was our pleasure to serve you. We would be grateful if you could spare 2 minutes to leave us a *Google Review* — it helps us serve more families like yours.\n\nThank you!\nGharKar CRM Team` },
+  { id:"reengage", icon:"🔄", label:"Re-engage",     msg: l => `Dear ${l.name},\n\nHope you are doing well!\n\nWe noticed we haven't been in touch recently regarding your home loan requirement. Interest rates are competitive right now — this could be a great time to proceed.\n\nWould you like us to revisit your case? We are ready to assist.\n\nGharKar CRM Team` },
+  { id:"docremind",icon:"📂", label:"Doc Reminder",  msg: l => `Dear ${l.name},\n\nGentle reminder — we are waiting for the remaining documents to process your home loan application further.\n\nKindly share the pending documents at the earliest to avoid delays.\n\nGharKar CRM Team` },
 ];
 
 const SK = "hlcrm_v7";
@@ -418,7 +418,7 @@ export default function App() {
   if (loading) return (
     <div style={{ height:'100vh', display:'flex', flexDirection:'column', alignItems:'center', justifyContent:'center', background:`linear-gradient(135deg,${T.navy} 0%,${T.navyMid} 60%,${T.navyLight} 100%)` }}>
       <style>{STYLE}</style>
-      <div style={{ fontFamily:"'Playfair Display',serif", fontSize:28, fontWeight:700, color:T.gold, marginBottom:12 }}>GharKar CDM</div>
+      <div style={{ fontFamily:"'Playfair Display',serif", fontSize:28, fontWeight:700, color:T.gold, marginBottom:12 }}>GharKar CRM</div>
       <div style={{ display:'flex', gap:6, marginBottom:16 }}>
         {[0,1,2].map(i => <div key={i} className="pulse" style={{ width:8, height:8, borderRadius:'50%', background:T.gold, animationDelay:`${i*0.2}s` }} />)}
       </div>
@@ -441,7 +441,7 @@ function LoginPage({ onLogin }) {
       <style>{STYLE}</style>
       <div style={{ marginBottom: 32, textAlign: "center" }}>
         <div style={{ fontFamily: "'Playfair Display',serif", fontSize: 30, fontWeight: 700, color: T.gold, letterSpacing: 1 }}>GharKar CRM</div>
-        <div style={{ color: "rgba(255,255,255,0.45)", fontSize: 12, marginTop: 4, letterSpacing: 3, textTransform: "uppercase" }}>GharKar CRM A Loan Processing software</div>
+        <div style={{ color: "rgba(255,255,255,0.45)", fontSize: 12, marginTop: 4, letterSpacing: 3, textTransform: "uppercase" }}>GharKar CRM — Home Loan Processing Software</div>
       </div>
       {!mode ? (
         <div style={{ display: "flex", flexDirection: "column", gap: 14, width: "100%", maxWidth: 380 }} className="fade">
