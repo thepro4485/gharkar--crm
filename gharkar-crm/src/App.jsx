@@ -126,6 +126,17 @@ const DOC_REQUIREMENTS = {
   },
 };
 
+const WA_TEMPLATES = [
+  { id:"welcome",  icon:"👋", label:"Welcome",       msg: l => `Dear ${l.name},\n\nThank you for reaching out to GharKar for your ${l.loanType||"home loan"} requirement.\n\nOur team will connect with you shortly to understand your requirements and guide you through the entire loan process.\n\nBest regards,\nGharKar Home Loans Team` },
+  { id:"doclist",  icon:"📋", label:"Doc List",      msg: l => `Dear ${l.name},\n\nKindly arrange the following documents for your ${l.loanType||"home loan"} application:\n\n📁 *KYC:* Aadhaar (front & back), PAN Card, Passport photos x2\n💰 *Income:* ${l.employmentType==="Salaried"?"3 months salary slips, Form 16, 6 months bank statements":"ITR last 3 years, P&L + Balance Sheet, 12 months bank statements"}\n\nPlease share at the earliest for faster processing.\n\nGharKar Home Loans Team` },
+  { id:"missed",   icon:"📞", label:"Missed Call",   msg: l => `Dear ${l.name},\n\nWe tried reaching you regarding your home loan enquiry but couldn't connect.\n\nPlease call us back at your convenience, or let us know a good time to reach you.\n\nGharKar Home Loans Team` },
+  { id:"sanction", icon:"🎉", label:"Sanction!",     msg: l => `Dear ${l.name},\n\n*Congratulations!* 🎉\n\nYour home loan application has been *sanctioned* by the bank.\n\nWe will now initiate the disbursement process. Our team will contact you shortly with the next steps.\n\nThank you for choosing GharKar!\nGharKar Home Loans Team` },
+  { id:"disb",     icon:"🏦", label:"Disbursement",  msg: l => `Dear ${l.name},\n\nThis is a reminder for your home loan *disbursement appointment*.\n\nPlease carry all original documents as discussed. Contact us immediately for any queries.\n\nGharKar Home Loans Team` },
+  { id:"review",   icon:"⭐", label:"Review Request",msg: l => `Dear ${l.name},\n\nCongratulations on your successful home loan disbursement! 🏠\n\nIt was our pleasure to serve you. We would be grateful if you could spare 2 minutes to leave us a *Google Review* — it helps us serve more families like yours.\n\nThank you!\nGharKar Home Loans Team` },
+  { id:"reengage", icon:"🔄", label:"Re-engage",     msg: l => `Dear ${l.name},\n\nHope you are doing well!\n\nWe noticed we haven't been in touch recently regarding your home loan requirement. Interest rates are competitive right now — this could be a great time to proceed.\n\nWould you like us to revisit your case? We are ready to assist.\n\nGharKar Home Loans Team` },
+  { id:"docremind",icon:"📂", label:"Doc Reminder",  msg: l => `Dear ${l.name},\n\nGentle reminder — we are waiting for the remaining documents to process your home loan application further.\n\nKindly share the pending documents at the earliest to avoid delays.\n\nGharKar Home Loans Team` },
+];
+
 const SK = "hlcrm_v7";
 function init() {
   return {
@@ -297,10 +308,12 @@ export default function App() {
   const [session, setSession] = useState(null);
 
   useEffect(() => {
-    fetch(`${API_BASE}/data`)
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), 10000); // 10s timeout
+    fetch(`${API_BASE}/data`, { signal: controller.signal })
       .then(res => res.json())
       .then(data => {
-        // Merge fetched data with default init so we always have the admin user and default structure
+        clearTimeout(timeout);
         const defaultStore = init();
         let finalUsers = data.users || [];
         if (finalUsers.length > 0 && !finalUsers.find(u => u.id === 'admin')) {
@@ -320,10 +333,11 @@ export default function App() {
         setLoading(false);
       })
       .catch(err => {
-        console.error("Error fetching DB:", err);
-        alert("Failed to connect to the database! Please check your internet connection or contact support. Working in offline mode.");
-        setLoading(false); // Fallback to initial state if server is down
+        clearTimeout(timeout);
+        console.warn('DB fetch failed, offline mode:', err.message);
+        setLoading(false);
       });
+    return () => { clearTimeout(timeout); controller.abort(); };
   }, []);
 
   const handleFetch = (url, options) => {
@@ -401,7 +415,16 @@ export default function App() {
   }
   function logout() { setSession(null); }
 
-  if (loading) return <div style={{ height: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', background: T.navy, color: T.gold, fontFamily: "'Playfair Display',serif", fontSize: 24 }}>Connecting to Database...</div>;
+  if (loading) return (
+    <div style={{ height:'100vh', display:'flex', flexDirection:'column', alignItems:'center', justifyContent:'center', background:`linear-gradient(135deg,${T.navy} 0%,${T.navyMid} 60%,${T.navyLight} 100%)` }}>
+      <style>{STYLE}</style>
+      <div style={{ fontFamily:"'Playfair Display',serif", fontSize:28, fontWeight:700, color:T.gold, marginBottom:12 }}>GharKar CDM</div>
+      <div style={{ display:'flex', gap:6, marginBottom:16 }}>
+        {[0,1,2].map(i => <div key={i} className="pulse" style={{ width:8, height:8, borderRadius:'50%', background:T.gold, animationDelay:`${i*0.2}s` }} />)}
+      </div>
+      <div style={{ color:'rgba(255,255,255,0.5)', fontSize:14 }}>Connecting to database…</div>
+    </div>
+  );
   if (!session) return <LoginPage onLogin={login} />;
   if (session.role === "admin") return <AdminApp store={store} persist={persist} session={session} onLogout={logout} />;
   if (session.role === "field") return <FieldApp store={store} persist={persist} session={session} onLogout={logout} />;
@@ -517,7 +540,7 @@ function Shell({ session, onLogout, navItems, children, activeNav, setActiveNav,
 }
 
 // ─── ADMIN APP ────────────────────────────────────────────────────────────────
-const AN = [{ id: "dashboard", label: "Dashboard" }, { id: "users", label: "Users" }, { id: "leads", label: "All Leads" }, { id: "logs", label: "Daily Logs" }, { id: "pipeline", label: "Pipeline" }, { id: "escalations", label: "Escalations" }, { id: "external", label: "External Follow-Ups" }];
+const AN = [{ id:"dashboard",label:"Dashboard" },{ id:"users",label:"Users" },{ id:"leads",label:"All Leads" },{ id:"logs",label:"Daily Logs" },{ id:"pipeline",label:"Pipeline" },{ id:"escalations",label:"Escalations" },{ id:"external",label:"External Follow-Ups" },{ id:"calculator",label:"🧲 Calculator" }];
 function AdminApp({ store, persist, session, onLogout }) {
   const [nav, setNav] = useState("dashboard");
   const [sel, setSel] = useState(null);
@@ -537,6 +560,7 @@ function AdminApp({ store, persist, session, onLogout }) {
     {nav === "pipeline" && <AdminPipeline store={store} onSel={setSel} />}
     {nav === "escalations" && <EscalationView store={store} persist={persist} />}
     {nav === "external" && <ExternalFollowups store={store} persist={persist} />}
+    {nav === "calculator" && <EMICalculator />}
   </Shell>);
 }
 
@@ -817,7 +841,7 @@ function ExternalFollowups({ store, persist }) {
 }
 
 // ─── EXECUTIVE APP ────────────────────────────────────────────────────────────
-const EN = [{ id: "today", label: "Today" }, { id: "leads", label: "My Leads" }, { id: "add", label: "Add Lead" }, { id: "followups", label: "Follow-Ups" }, { id: "guide", label: "Process Guide" }, { id: "external", label: "External" }, { id: "log", label: "Daily Log" }];
+const EN = [{ id:"today",label:"Today" },{ id:"leads",label:"My Leads" },{ id:"add",label:"Add Lead" },{ id:"followups",label:"Follow-Ups" },{ id:"guide",label:"Process Guide" },{ id:"external",label:"External" },{ id:"log",label:"Daily Log" },{ id:"calculator",label:"🧲 Calculator" }];
 function ExecutiveApp({ store, persist, session, onLogout }) {
   const [nav, setNav] = useState("today"); const [sel, setSel] = useState(null);
   const myLeads = (store.leads || []).filter(l => l.assignedTo === session.id);
@@ -846,6 +870,7 @@ function ExecutiveApp({ store, persist, session, onLogout }) {
     {nav === "guide" && <StepGuide />}
     {nav === "external" && <ExecExternal store={store} persist={persist} session={session} />}
     {nav === "log" && <DailyLog session={session} dailyLogs={store.dailyLogs || {}} onSave={saveLog} />}
+    {nav === "calculator" && <EMICalculator />}
   </Shell>);
 }
 
@@ -1140,8 +1165,28 @@ function LeadDetail({ lead, store, onBack, onUpdate, onDelete, isAdmin, fieldOnl
 
     {tab === "comm" && !fieldOnly && (
       <div className="fade">
+        {/* ── WhatsApp Quick Templates ── */}
         <div style={{ background: T.white, border: `1px solid ${T.border}`, borderRadius: 12, padding: 16, marginBottom: 12 }}>
-          <div style={{ fontSize: 13, fontWeight: 500, color: T.text, marginBottom: 8 }}>Log communication</div>
+          <div style={{ fontWeight: 600, fontSize: 13, color: T.text, marginBottom: 4 }}>💬 One-Click WhatsApp Templates</div>
+          <div style={{ fontSize: 12, color: T.textLight, marginBottom: 12 }}>Click any template to open WhatsApp with a pre-filled personalised message for {lead.name}.</div>
+          <div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
+            {WA_TEMPLATES.map(tpl => {
+              const phone = (lead.phone || "").replace(/\D/g, "");
+              const intlPhone = phone.length === 10 ? `91${phone}` : phone;
+              const msg = encodeURIComponent(tpl.msg(lead));
+              return (
+                <a key={tpl.id} href={`https://wa.me/${intlPhone}?text=${msg}`} target="_blank" rel="noreferrer"
+                  style={{ display: "flex", alignItems: "center", gap: 6, padding: "7px 14px", background: "#E8F5E9", border: "1px solid #A5D6A7", borderRadius: 20, fontSize: 12, fontWeight: 500, color: "#1B5E20", textDecoration: "none", cursor: "pointer", whiteSpace: "nowrap" }}
+                  title={tpl.msg(lead)}>
+                  <span>{tpl.icon}</span> {tpl.label}
+                </a>
+              );
+            })}
+          </div>
+        </div>
+        {/* ── Manual Log ── */}
+        <div style={{ background: T.white, border: `1px solid ${T.border}`, borderRadius: 12, padding: 16, marginBottom: 12 }}>
+          <div style={{ fontSize: 13, fontWeight: 500, color: T.text, marginBottom: 8 }}>Log communication manually</div>
           <div style={{ display: "flex", gap: 8, marginBottom: 8 }}>
             {["WhatsApp", "Email", "Call", "Meeting"].map(ct => (
               <button key={ct} onClick={() => setCommType(ct)} style={{ fontSize: 12, padding: "4px 12px", borderRadius: 20, border: `1px solid ${commType === ct ? cm.color : T.border}`, background: commType === ct ? cm.bg : "transparent", color: commType === ct ? cm.color : T.textMid, cursor: "pointer" }}>{ct}</button>
@@ -1150,7 +1195,7 @@ function LeadDetail({ lead, store, onBack, onUpdate, onDelete, isAdmin, fieldOnl
           <textarea value={commNote} onChange={e => setCommNote(e.target.value)} placeholder={`Log ${commType} with client...`} rows={3} style={{ marginBottom: 10, resize: "vertical" }} />
           <Btn onClick={addComm} c={cm.color}>Log Communication</Btn>
         </div>
-        {/* Auto welcome message */}
+        {/* ── History ── */}
         {(lead.commLog || []).length > 0 && <div style={{ fontSize: 12, color: T.textLight, marginBottom: 8 }}>All communications for this client in one place:</div>}
         {(lead.commLog || []).slice().reverse().map((c, i) => (
           <div key={i} style={{ background: T.white, border: `1px solid ${T.border}`, borderRadius: 10, padding: "10px 14px", marginBottom: 8, display: "flex", gap: 10 }}>
@@ -1520,6 +1565,212 @@ function DailyLog({ session, dailyLogs, onSave }) {
       </div>
     ))}
   </div>);
+}
+
+// ─── EMI / FOIR / LTV CALCULATOR ─────────────────────────────────────────────
+function EMICalculator() {
+  const [tab, setTab] = useState("emi");
+  // EMI tab
+  const [loan, setLoan] = useState(""); const [rate, setRate] = useState(""); const [tenure, setTenure] = useState("240");
+  // FOIR tab
+  const [income, setIncome] = useState(""); const [existEMI, setExistEMI] = useState("0"); const [fRate, setFRate] = useState("8.75"); const [fTenure, setFTenure] = useState("240");
+  // LTV tab
+  const [propVal, setPropVal] = useState(""); const [ltvType, setLtvType] = useState("flat");
+
+  function calcEMI(p, r, n) { const mr = r / 12 / 100; if (!mr) return p / n; return Math.round(p * mr * Math.pow(1 + mr, n) / (Math.pow(1 + mr, n) - 1)); }
+  function calcMaxLoan(inc, existE, r, n, foir = 0.50) { const maxE = inc * foir - existE; if (maxE <= 0) return 0; const mr = r / 12 / 100; if (!mr) return maxE * n; return Math.round(maxE * (Math.pow(1 + mr, n) - 1) / (mr * Math.pow(1 + mr, n))); }
+
+  const emi = loan && rate && tenure ? calcEMI(+loan, +rate, +tenure) : null;
+  const totalPay = emi ? emi * +tenure : null;
+  const totalInt = totalPay ? totalPay - +loan : null;
+  const intPct = totalPay ? Math.round((totalInt / totalPay) * 100) : 0;
+
+  const maxLoan = income && fRate && fTenure ? calcMaxLoan(+income, +(existEMI || 0), +fRate, +fTenure) : null;
+  const maxEMI = income ? +income * 0.5 - +(existEMI || 0) : null;
+  const foirUsed = income && existEMI ? Math.round((+existEMI / +income) * 100) : 0;
+
+  const LTV_MAP = { flat: 80, plot: 70, commercial: 60, construction: 75 };
+  const ltvPct = LTV_MAP[ltvType] || 80;
+  const maxByLTV = propVal ? Math.round(+propVal * ltvPct / 100) : null;
+
+  const tabs = [{ id: "emi", label: "EMI Calculator" }, { id: "foir", label: "FOIR / Eligibility" }, { id: "ltv", label: "LTV Check" }];
+
+  const GS = `
+    @keyframes slideUp{from{opacity:0;transform:translateY(20px)}to{opacity:1;transform:translateY(0)}}
+    .calc-in{animation:slideUp 0.35s ease}
+    .calc-bar{transition:width 0.7s cubic-bezier(.4,0,.2,1)}
+  `;
+
+  function Stat({ label, value, sub, color, big }) {
+    return (
+      <div style={{ textAlign: "center", padding: "16px 10px" }}>
+        <div style={{ fontSize: big ? 32 : 22, fontWeight: 700, color: color || T.navy, fontFamily: "'Playfair Display',serif", lineHeight: 1.1 }}>{value}</div>
+        <div style={{ fontSize: 11, fontWeight: 600, color: T.textLight, textTransform: "uppercase", letterSpacing: 0.8, marginTop: 4 }}>{label}</div>
+        {sub && <div style={{ fontSize: 11, color: T.textLight, marginTop: 2 }}>{sub}</div>}
+      </div>
+    );
+  }
+
+  function inp(label, val, set, placeholder, prefix) {
+    return (
+      <div>
+        <label style={{ fontSize: 11, fontWeight: 600, color: T.textMid, textTransform: "uppercase", letterSpacing: 0.8, display: "block", marginBottom: 5 }}>{label}</label>
+        <div style={{ position: "relative" }}>
+          {prefix && <span style={{ position: "absolute", left: 12, top: "50%", transform: "translateY(-50%)", fontSize: 14, color: T.textMid, fontWeight: 600 }}>{prefix}</span>}
+          <input type="number" value={val} onChange={e => set(e.target.value)} placeholder={placeholder} style={{ paddingLeft: prefix ? 26 : 13 }} />
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="fade">
+      <style>{GS}</style>
+      <div style={{ fontFamily: "'Playfair Display',serif", fontSize: 22, fontWeight: 700, color: T.navy, marginBottom: 6 }}>🧮 Loan Calculator</div>
+      <div style={{ fontSize: 13, color: T.textLight, marginBottom: 20 }}>Calculate EMI, check loan eligibility, and verify LTV for any client.</div>
+
+      {/* Tab bar */}
+      <div style={{ display: "flex", gap: 4, marginBottom: 20, background: T.creamDark, borderRadius: 12, padding: 4 }}>
+        {tabs.map(t => (
+          <button key={t.id} onClick={() => setTab(t.id)} style={{ flex: 1, padding: "9px 0", border: "none", borderRadius: 9, background: tab === t.id ? T.navy : "transparent", color: tab === t.id ? T.gold : T.textMid, fontWeight: tab === t.id ? 600 : 400, fontSize: 13, cursor: "pointer", transition: "all 0.2s" }}>{t.label}</button>
+        ))}
+      </div>
+
+      {/* ── EMI TAB ── */}
+      {tab === "emi" && (
+        <div className="calc-in">
+          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10, marginBottom: 14 }}>
+            {inp("Loan Amount (₹)", loan, setLoan, "e.g. 5000000", "₹")}
+            {inp("Annual Interest Rate (%)", rate, setRate, "e.g. 8.75")}
+            {inp("Tenure (months)", tenure, setTenure, "240 = 20 years")}
+          </div>
+          {emi && (
+            <div className="calc-in">
+              {/* Hero EMI card */}
+              <div style={{ background: `linear-gradient(135deg, ${T.navy} 0%, ${T.navyLight} 100%)`, borderRadius: 18, padding: "28px 24px", marginBottom: 14, textAlign: "center", boxShadow: "0 12px 40px rgba(11,20,55,0.25)" }}>
+                <div style={{ fontSize: 12, color: "rgba(255,255,255,0.55)", textTransform: "uppercase", letterSpacing: 2, marginBottom: 8 }}>Monthly EMI</div>
+                <div style={{ fontSize: 44, fontWeight: 700, color: T.gold, fontFamily: "'Playfair Display',serif", letterSpacing: -1 }}>₹{emi.toLocaleString("en-IN")}</div>
+                <div style={{ fontSize: 12, color: "rgba(255,255,255,0.4)", marginTop: 6 }}>for {tenure} months · ₹{(+loan).toLocaleString("en-IN")} @ {rate}%</div>
+              </div>
+              {/* Breakdown row */}
+              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 10, marginBottom: 14 }}>
+                {[
+                  { l: "Principal", v: `₹${(+loan).toLocaleString("en-IN")}`, c: T.blue },
+                  { l: "Total Interest", v: `₹${totalInt.toLocaleString("en-IN")}`, c: T.amber },
+                  { l: "Total Payment", v: `₹${totalPay.toLocaleString("en-IN")}`, c: T.purple },
+                ].map(m => (
+                  <div key={m.l} style={{ background: T.white, borderRadius: 12, padding: "14px 10px", textAlign: "center", border: `1px solid ${T.border}` }}>
+                    <div style={{ fontSize: 15, fontWeight: 700, color: m.c }}>{m.v}</div>
+                    <div style={{ fontSize: 11, color: T.textLight, marginTop: 3 }}>{m.l}</div>
+                  </div>
+                ))}
+              </div>
+              {/* Principal vs Interest bar */}
+              <div style={{ background: T.white, border: `1px solid ${T.border}`, borderRadius: 12, padding: 16 }}>
+                <div style={{ fontSize: 13, fontWeight: 600, color: T.text, marginBottom: 10 }}>Principal vs Interest Split</div>
+                <div style={{ display: "flex", height: 14, borderRadius: 7, overflow: "hidden", marginBottom: 8 }}>
+                  <div className="calc-bar" style={{ width: `${100 - intPct}%`, background: `linear-gradient(90deg,${T.blue},${T.navyLight})` }} />
+                  <div className="calc-bar" style={{ width: `${intPct}%`, background: `linear-gradient(90deg,${T.amber},${T.gold})` }} />
+                </div>
+                <div style={{ display: "flex", gap: 16, fontSize: 12 }}>
+                  <span style={{ color: T.blue }}>● Principal: {100 - intPct}%</span>
+                  <span style={{ color: T.amber }}>● Interest: {intPct}%</span>
+                </div>
+              </div>
+            </div>
+          )}
+          {!emi && <div style={{ fontSize: 13, color: T.textLight, padding: "24px 0", textAlign: "center" }}>Enter loan amount, interest rate, and tenure to calculate EMI.</div>}
+        </div>
+      )}
+
+      {/* ── FOIR TAB ── */}
+      {tab === "foir" && (
+        <div className="calc-in">
+          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10, marginBottom: 14 }}>
+            {inp("Monthly Income (₹)", income, setIncome, "e.g. 80000", "₹")}
+            {inp("Existing EMIs (₹)", existEMI, setExistEMI, "0 if none", "₹")}
+            {inp("Expected Interest Rate (%)", fRate, setFRate, "e.g. 8.75")}
+            {inp("Desired Tenure (months)", fTenure, setFTenure, "240 = 20 years")}
+          </div>
+          {maxLoan !== null && (
+            <div className="calc-in">
+              <div style={{ background: `linear-gradient(135deg, #0F6E56 0%, #1A7A4A 100%)`, borderRadius: 18, padding: "28px 24px", marginBottom: 14, textAlign: "center", boxShadow: "0 12px 40px rgba(26,122,74,0.25)" }}>
+                <div style={{ fontSize: 12, color: "rgba(255,255,255,0.55)", textTransform: "uppercase", letterSpacing: 2, marginBottom: 8 }}>Maximum Eligible Loan</div>
+                <div style={{ fontSize: 44, fontWeight: 700, color: "#FFE57F", fontFamily: "'Playfair Display',serif", letterSpacing: -1 }}>₹{maxLoan.toLocaleString("en-IN")}</div>
+                <div style={{ fontSize: 12, color: "rgba(255,255,255,0.4)", marginTop: 6 }}>Based on 50% FOIR at {fRate}% for {fTenure} months</div>
+              </div>
+              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 10, marginBottom: 14 }}>
+                {[
+                  { l: "Max New EMI", v: `₹${Math.max(0, maxEMI).toLocaleString("en-IN")}`, c: T.green },
+                  { l: "Existing FOIR", v: `${foirUsed}%`, c: foirUsed > 40 ? T.red : T.amber },
+                  { l: "Available FOIR", v: `${Math.max(0, 50 - foirUsed)}%`, c: T.blue },
+                ].map(m => (
+                  <div key={m.l} style={{ background: T.white, borderRadius: 12, padding: "14px 10px", textAlign: "center", border: `1px solid ${T.border}` }}>
+                    <div style={{ fontSize: 15, fontWeight: 700, color: m.c }}>{m.v}</div>
+                    <div style={{ fontSize: 11, color: T.textLight, marginTop: 3 }}>{m.l}</div>
+                  </div>
+                ))}
+              </div>
+              {/* FOIR gauge */}
+              <div style={{ background: T.white, border: `1px solid ${T.border}`, borderRadius: 12, padding: 16 }}>
+                <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 8 }}>
+                  <span style={{ fontSize: 13, fontWeight: 600, color: T.text }}>FOIR Gauge</span>
+                  <span style={{ fontSize: 12, color: foirUsed > 45 ? T.red : T.green, fontWeight: 600 }}>{foirUsed}% used (limit: 50%)</span>
+                </div>
+                <div style={{ background: T.creamDark, borderRadius: 7, height: 12, overflow: "hidden" }}>
+                  <div className="calc-bar" style={{ width: `${Math.min(foirUsed * 2, 100)}%`, height: "100%", background: foirUsed > 40 ? `linear-gradient(90deg,${T.amber},${T.red})` : `linear-gradient(90deg,${T.green},#4CAF50)`, borderRadius: 7 }} />
+                </div>
+                {maxLoan === 0 && <div style={{ marginTop: 10, fontSize: 13, color: T.red, fontWeight: 500 }}>⚠️ Existing EMIs exceed 50% FOIR limit. Client may not be eligible.</div>}
+              </div>
+            </div>
+          )}
+          {maxLoan === null && <div style={{ fontSize: 13, color: T.textLight, padding: "24px 0", textAlign: "center" }}>Enter income and existing EMIs to calculate loan eligibility.</div>}
+        </div>
+      )}
+
+      {/* ── LTV TAB ── */}
+      {tab === "ltv" && (
+        <div className="calc-in">
+          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10, marginBottom: 14 }}>
+            {inp("Property Value (₹)", propVal, setPropVal, "e.g. 8000000", "₹")}
+            <div>
+              <label style={{ fontSize: 11, fontWeight: 600, color: T.textMid, textTransform: "uppercase", letterSpacing: 0.8, display: "block", marginBottom: 5 }}>Property Type</label>
+              <select value={ltvType} onChange={e => setLtvType(e.target.value)}>
+                <option value="flat">Flat / Apartment (80% LTV)</option>
+                <option value="construction">Under Construction (75% LTV)</option>
+                <option value="plot">Plot / Land (70% LTV)</option>
+                <option value="commercial">Commercial (60% LTV)</option>
+              </select>
+            </div>
+          </div>
+          {maxByLTV && (
+            <div className="calc-in">
+              <div style={{ background: `linear-gradient(135deg, #4A148C 0%, #6A1B9A 100%)`, borderRadius: 18, padding: "28px 24px", marginBottom: 14, textAlign: "center", boxShadow: "0 12px 40px rgba(106,27,154,0.25)" }}>
+                <div style={{ fontSize: 12, color: "rgba(255,255,255,0.55)", textTransform: "uppercase", letterSpacing: 2, marginBottom: 8 }}>Max Loan by LTV ({ltvPct}%)</div>
+                <div style={{ fontSize: 44, fontWeight: 700, color: "#E1BEE7", fontFamily: "'Playfair Display',serif", letterSpacing: -1 }}>₹{maxByLTV.toLocaleString("en-IN")}</div>
+                <div style={{ fontSize: 12, color: "rgba(255,255,255,0.4)", marginTop: 6 }}>Property value ₹{(+propVal).toLocaleString("en-IN")} × {ltvPct}%</div>
+              </div>
+              <div style={{ background: T.white, border: `1px solid ${T.border}`, borderRadius: 12, padding: 16 }}>
+                <div style={{ fontSize: 13, fontWeight: 600, color: T.text, marginBottom: 10 }}>LTV Breakdown</div>
+                <div style={{ display: "flex", height: 16, borderRadius: 8, overflow: "hidden", marginBottom: 10 }}>
+                  <div className="calc-bar" style={{ width: `${ltvPct}%`, background: `linear-gradient(90deg,${T.purple},#AB47BC)` }} />
+                  <div className="calc-bar" style={{ width: `${100 - ltvPct}%`, background: T.creamDark }} />
+                </div>
+                <div style={{ display: "flex", gap: 16, fontSize: 12 }}>
+                  <span style={{ color: T.purple }}>● Bank Finances: {ltvPct}% = ₹{maxByLTV.toLocaleString("en-IN")}</span>
+                  <span style={{ color: T.textLight }}>● Client brings: {100 - ltvPct}% = ₹{(+propVal - maxByLTV).toLocaleString("en-IN")}</span>
+                </div>
+                <div style={{ marginTop: 12, fontSize: 12, color: T.textLight, lineHeight: 1.7 }}>
+                  <strong style={{ color: T.amber }}>Note:</strong> Final loan amount = lower of (FOIR eligibility) and (LTV cap). Always check both before applying.
+                </div>
+              </div>
+            </div>
+          )}
+          {!maxByLTV && <div style={{ fontSize: 13, color: T.textLight, padding: "24px 0", textAlign: "center" }}>Enter property value to calculate the maximum loan by LTV norms.</div>}
+        </div>
+      )}
+    </div>
+  );
 }
 
 // ─── PRIMITIVES ───────────────────────────────────────────────────────────────
