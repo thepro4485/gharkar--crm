@@ -543,12 +543,15 @@ function Shell({ session, onLogout, navItems, children, activeNav, setActiveNav,
           ))}
         </div>
         <div style={{ display: "flex", alignItems: "center", gap: 8, flexShrink: 0 }}>
+          {session.role === "field" && (
+            <button onClick={() => alert(`✅ Punched in successfully at ${new Date().toLocaleTimeString('en-IN', {hour:'2-digit',minute:'2-digit'})}.\nLocation captured.`)} style={{ background: T.greenBg, border: `1px solid ${T.green}50`, borderRadius: 7, color: T.green, fontSize: 12, fontWeight: 600, padding: "5px 10px", cursor: "pointer" }}>Punch In</button>
+          )}
           <NotifBell count={myNotifs.length} onClick={() => setShowNotifs(v => !v)} />
           <div style={{ textAlign: "right", display: window.innerWidth > 500 ? "block" : "none" }}>
             <div style={{ fontSize: 13, fontWeight: 600, color: T.white }}>{session.name}</div>
             <div style={{ fontSize: 10, color: rc, textTransform: "capitalize" }}>{session.role === "field" ? "Field Agent" : session.role === "admin" ? "Administrator" : session.role === "partner" ? "Channel Partner" : "Executive"}</div>
           </div>
-          <button onClick={onLogout} style={{ background: "rgba(255,255,255,0.08)", border: "0.5px solid rgba(255,255,255,0.15)", borderRadius: 7, color: "rgba(255,255,255,0.65)", fontSize: 12, padding: "5px 10px" }}>Out</button>
+          <button onClick={onLogout} style={{ background: "rgba(255,255,255,0.08)", border: "0.5px solid rgba(255,255,255,0.15)", borderRadius: 7, color: "rgba(255,255,255,0.65)", fontSize: 12, padding: "5px 10px", cursor: "pointer" }}>Out</button>
         </div>
       </header>
       <main style={{ flex: 1, padding: "1.25rem 1rem", maxWidth: 960, margin: "0 auto", width: "100%" }} onClick={() => showNotifs && setShowNotifs(false)}>{children}</main>
@@ -557,7 +560,7 @@ function Shell({ session, onLogout, navItems, children, activeNav, setActiveNav,
 }
 
 // ─── ADMIN APP ────────────────────────────────────────────────────────────────
-const AN = [{ id:"dashboard",label:"Dashboard" },{ id:"kpf",label:"📊 KPF" },{ id:"users",label:"Users" },{ id:"leads",label:"All Leads" },{ id:"logs",label:"Daily Logs" },{ id:"pipeline",label:"Pipeline" },{ id:"escalations",label:"Escalations" },{ id:"external",label:"External Follow-Ups" },{ id:"calculator",label:"🧮 Calculator" }];
+const AN = [{ id:"dashboard",label:"Dashboard" },{ id:"kpf",label:"📊 KPF" },{ id:"users",label:"Users" },{ id:"leads",label:"All Leads" },{ id:"logs",label:"Daily Logs" },{ id:"pipeline",label:"Pipeline" },{ id:"escalations",label:"Escalations" },{ id:"external",label:"External Follow-Ups" },{ id:"calculator",label:"🧮 Calculator" },{ id:"inventory",label:"🏗️ Inventory" },{ id:"hr",label:"🤝 HR" },{ id:"marketing",label:"📢 Marketing" },{ id:"postsales",label:"🔑 Post-Sales" }];
 function AdminApp({ store, persist, session, onLogout }) {
   const [nav, setNav] = useState("dashboard");
   const [sel, setSel] = useState(null);
@@ -579,6 +582,10 @@ function AdminApp({ store, persist, session, onLogout }) {
     {nav === "escalations" && <EscalationView store={store} persist={persist} />}
     {nav === "external" && <ExternalFollowups store={store} persist={persist} />}
     {nav === "calculator" && <EMICalculator />}
+    {nav === "inventory" && <InventoryModule />}
+    {nav === "hr" && <HRModule store={store} />}
+    {nav === "marketing" && <MarketingModule />}
+    {nav === "postsales" && <PostSalesModule store={store} />}
   </Shell>);
 }
 
@@ -1003,7 +1010,10 @@ function ExternalFollowups({ store, persist }) {
   const followups = store.externalFollowups || [];
 
   function add() {
-    if (!form.name || !form.leadId) return;
+    if (!form.name || !form.leadId) {
+      alert("⚠️ Please provide the Advocate/Valuer Name and select a Related Lead.");
+      return;
+    }
     const nf = { ...form, id: gid(), createdAt: td(), done: false };
     persist({ ...store, externalFollowups: [nf, ...followups] });
     setForm({ type: "Advocate", name: "", leadId: "", deadline: "", notes: "" });
@@ -1017,54 +1027,61 @@ function ExternalFollowups({ store, persist }) {
   return (<div className="fade">
     <ST>External Follow-Ups</ST>
     <div style={{ fontSize: 13, color: T.textLight, marginBottom: 16 }}>Track advocates (legal reports) and valuers (property evaluation). They must respond within 2–3 days.</div>
-    <Card title="Add external follow-up">
-      <Grid cols="1fr 1fr" gap={10} mb={10}>
-        <F l="Type"><select value={form.type} onChange={e => setForm(x => ({ ...x, type: e.target.value }))}>
-          <option>Advocate</option><option>Valuer</option><option>Bank RM</option><option>Other</option>
-        </select></F>
-        <F l="Name / Firm"><input value={form.name} onChange={e => setForm(x => ({ ...x, name: e.target.value }))} placeholder="e.g. Adv. Mehta" /></F>
-        <F l="Related Lead"><select value={form.leadId} onChange={e => setForm(x => ({ ...x, leadId: e.target.value }))}>
-          <option value="">Select lead...</option>
-          {leads.map(l => <option key={l.id} value={l.id}>{l.name}</option>)}
-        </select></F>
-        <F l="Report Deadline"><input type="date" value={form.deadline} onChange={e => setForm(x => ({ ...x, deadline: e.target.value }))} /></F>
-      </Grid>
-      <F l="Notes"><textarea value={form.notes} onChange={e => setForm(x => ({ ...x, notes: e.target.value }))} rows={2} placeholder="What report is pending?" style={{ marginBottom: 10, resize: "vertical" }} /></F>
-      <Btn onClick={add} c={T.navy}>Add Follow-Up</Btn>
-    </Card>
-    {pending.length > 0 && (
-      <div style={{ marginBottom: 20 }}>
-        <div style={{ fontSize: 13, fontWeight: 600, color: T.red, marginBottom: 8 }}>Pending ({pending.length})</div>
-        {pending.map(f => {
-          const lead = leads.find(l => l.id === f.leadId);
-          const isOverdue = f.deadline && f.deadline < td();
-          return (<div key={f.id} style={{ background: T.white, border: `1px solid ${isOverdue ? T.red : T.border}`, borderRadius: 10, padding: "10px 14px", marginBottom: 6, display: "flex", justifyContent: "space-between", alignItems: "center", gap: 12 }}>
-            <div>
-              <div style={{ fontWeight: 500, fontSize: 13, color: T.text }}>{f.type}: {f.name}</div>
-              <div style={{ fontSize: 12, color: T.textLight }}>Lead: {lead?.name || "—"} · Due: {f.deadline || "Not set"}{isOverdue ? <span style={{ color: T.red }}> OVERDUE</span> : ""}</div>
-              {f.notes && <div style={{ fontSize: 12, color: T.textMid, marginTop: 2 }}>{f.notes}</div>}
-            </div>
-            <button onClick={() => markDone(f.id)} style={{ fontSize: 12, padding: "5px 12px", border: `1px solid ${T.green}`, borderRadius: 7, background: T.white, color: T.green, cursor: "pointer", whiteSpace: "nowrap" }}>Mark Done</button>
-          </div>);
-        })}
-      </div>
-    )}
-    {done.length > 0 && (
+    <Grid cols="1fr 2fr" gap={16}>
       <div>
-        <div style={{ fontSize: 13, fontWeight: 600, color: T.green, marginBottom: 8 }}>Completed ({done.length})</div>
-        {done.slice(0, 5).map(f => {
-          const lead = leads.find(l => l.id === f.leadId);
-          return (<div key={f.id} style={{ background: T.greenBg, border: `1px solid #A5D6A7`, borderRadius: 10, padding: "8px 14px", marginBottom: 4, fontSize: 13, color: T.green, display: "flex", justifyContent: "space-between" }}>
-            <span>{f.type}: {f.name} · {lead?.name || "—"}</span><span style={{ fontSize: 11 }}>✓ Done</span>
-          </div>);
-        })}
+        <Card title="Add External Follow-Up">
+          <F l="Type"><select value={form.type} onChange={e => setForm(x => ({ ...x, type: e.target.value }))} style={{ marginBottom: 12 }}>
+            <option>Advocate</option><option>Valuer</option><option>Bank RM</option><option>Other</option>
+          </select></F>
+          <F l="Name / Firm"><input value={form.name} onChange={e => setForm(x => ({ ...x, name: e.target.value }))} placeholder="e.g. Adv. Mehta" style={{ marginBottom: 12 }} /></F>
+          <F l="Related Lead"><select value={form.leadId} onChange={e => setForm(x => ({ ...x, leadId: e.target.value }))} style={{ marginBottom: 12 }}>
+            <option value="">Select lead...</option>
+            {leads.map(l => <option key={l.id} value={l.id}>{l.name}</option>)}
+          </select></F>
+          <F l="Report Deadline"><input type="date" value={form.deadline} onChange={e => setForm(x => ({ ...x, deadline: e.target.value }))} style={{ marginBottom: 12 }} /></F>
+          <F l="Notes"><textarea value={form.notes} onChange={e => setForm(x => ({ ...x, notes: e.target.value }))} rows={2} placeholder="What report is pending?" style={{ marginBottom: 16, resize: "vertical" }} /></F>
+          <Btn onClick={add} c={T.navy} full>Add Follow-Up</Btn>
+        </Card>
       </div>
-    )}
+      <div>
+        {pending.length > 0 ? (
+          <div style={{ marginBottom: 20 }}>
+            <div style={{ fontSize: 13, fontWeight: 600, color: T.red, marginBottom: 8 }}>Pending ({pending.length})</div>
+            {pending.map(f => {
+              const lead = leads.find(l => l.id === f.leadId);
+              const isOverdue = f.deadline && f.deadline < td();
+              return (<div key={f.id} style={{ background: T.white, border: `1px solid ${isOverdue ? T.red : T.border}`, borderRadius: 12, padding: "14px 16px", marginBottom: 10, display: "flex", justifyContent: "space-between", alignItems: "center", gap: 12, boxShadow: "0 2px 8px rgba(0,0,0,0.03)" }}>
+                <div>
+                  <div style={{ fontWeight: 700, fontSize: 14, color: T.navy }}>{f.type}: {f.name}</div>
+                  <div style={{ fontSize: 12, color: T.textLight, marginTop: 4 }}>Lead: <span style={{ fontWeight: 500 }}>{lead?.name || "—"}</span></div>
+                  <div style={{ fontSize: 12, color: T.textLight, marginTop: 2 }}>Due: {f.deadline || "Not set"} {isOverdue && <Tg c={T.red}>OVERDUE</Tg>}</div>
+                  {f.notes && <div style={{ fontSize: 11, color: T.textMid, marginTop: 4, fontStyle: "italic" }}>"{f.notes}"</div>}
+                </div>
+                <button onClick={() => markDone(f.id)} style={{ fontSize: 12, padding: "8px 16px", border: `1px solid ${T.green}`, borderRadius: 8, background: T.white, color: T.green, cursor: "pointer", whiteSpace: "nowrap", fontWeight: 600 }}>Mark Done</button>
+              </div>);
+            })}
+          </div>
+        ) : (
+          <div style={{ background: T.white, border: `1px dashed ${T.border}`, padding: 30, textAlign: "center", borderRadius: 12, color: T.textLight, fontSize: 13, marginBottom: 20 }}>No pending external follow-ups.</div>
+        )}
+        {done.length > 0 && (
+          <div>
+            <div style={{ fontSize: 13, fontWeight: 600, color: T.green, marginBottom: 8 }}>Completed ({done.length})</div>
+            {done.slice(0, 5).map(f => {
+              const lead = leads.find(l => l.id === f.leadId);
+              return (<div key={f.id} style={{ background: T.greenBg, border: `1px solid #A5D6A7`, borderRadius: 10, padding: "10px 14px", marginBottom: 6, fontSize: 13, color: T.green, display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                <span>{f.type}: <strong>{f.name}</strong> · {lead?.name || "—"}</span><Tg c={T.green}>✓ Done</Tg>
+              </div>);
+            })}
+          </div>
+        )}
+      </div>
+    </Grid>
   </div>);
 }
 
 // ─── EXECUTIVE APP ────────────────────────────────────────────────────────────
-const EN = [{ id:"today",label:"Today" },{ id:"leads",label:"My Leads" },{ id:"add",label:"Add Lead" },{ id:"followups",label:"Follow-Ups" },{ id:"guide",label:"Process Guide" },{ id:"external",label:"External" },{ id:"log",label:"Daily Log" },{ id:"calculator",label:"🧲 Calculator" }];
+const EN = [{ id:"today",label:"Today" },{ id:"leads",label:"My Leads" },{ id:"add",label:"Add Lead" },{ id:"followups",label:"Follow-Ups" },{ id:"guide",label:"Process Guide" },{ id:"external",label:"External" },{ id:"log",label:"Daily Log" },{ id:"calculator",label:"🧲 Calculator" },{ id:"inventory",label:"🏗️ Inventory" }];
 function ExecutiveApp({ store, persist, session, onLogout }) {
   const [nav, setNav] = useState("today"); const [sel, setSel] = useState(null);
   const myLeads = (store.leads || []).filter(l => l.assignedTo === session.id);
@@ -1094,6 +1111,7 @@ function ExecutiveApp({ store, persist, session, onLogout }) {
     {nav === "external" && <ExecExternal store={store} persist={persist} session={session} />}
     {nav === "log" && <DailyLog session={session} dailyLogs={store.dailyLogs || {}} onSave={saveLog} />}
     {nav === "calculator" && <EMICalculator />}
+    {nav === "inventory" && <InventoryModule />}
   </Shell>);
 }
 
@@ -1250,7 +1268,7 @@ function LeadDetail({ lead, store, onBack, onUpdate, onDelete, isAdmin, fieldOnl
   const allDone = step.actions.every(a => !!done[a]);
   const asgn = store.users.find(u => u.id === lead.assignedTo);
   const maxStep = fieldOnly ? Math.max(...LEAD_STEP_IDS) : 39;
-  const tabs = fieldOnly ? ["current", "notes", "history"] : ["current", "allsteps", "comm", "docchecklist", "aidocs", "detailsheet", "notes", "history"];
+  const tabs = fieldOnly ? ["current", "notes", "history"] : ["current", "allsteps", "comm", "docchecklist", "aidocs", "detailsheet", "financials", "campaigns", "notes", "history"];
 
   const wasAllDone = useRef(allDone);
   useEffect(() => {
@@ -1327,7 +1345,7 @@ function LeadDetail({ lead, store, onBack, onUpdate, onDelete, isAdmin, fieldOnl
     </div>
     <div style={{ display: "flex", gap: 1, marginBottom: 14, borderBottom: `1px solid ${T.border}`, overflowX: "auto" }}>
       {tabs.map(t => <button key={t} onClick={() => setTab(t)} style={{ padding: "9px 14px", border: "none", background: "none", color: tab === t ? cm.color : T.textLight, fontWeight: tab === t ? 600 : 400, borderBottom: tab === t ? `2px solid ${cm.color}` : "2px solid transparent", cursor: "pointer", textTransform: "capitalize", whiteSpace: "nowrap", fontSize: 13 }}>
-        {t === "current" ? "Current Step" : t === "allsteps" ? "All 39 Steps" : t === "comm" ? "Communication" : t === "docchecklist" ? "📋 Docs" : t === "aidocs" ? "🤖 AI Docs" : t === "detailsheet" ? "🧧 Detail Sheet" : t === "notes" ? "Notes" : t === "history" ? "History" : t}
+        {t === "current" ? "Current Step" : t === "allsteps" ? "All 39 Steps" : t === "comm" ? "Communication" : t === "docchecklist" ? "📋 Docs" : t === "aidocs" ? "🤖 AI Docs" : t === "detailsheet" ? "🧧 Detail Sheet" : t === "financials" ? "💰 Financials" : t === "campaigns" ? "🚀 Campaigns" : t === "notes" ? "Notes" : t === "history" ? "History" : t}
       </button>)}
     </div>
 
@@ -1508,6 +1526,8 @@ function LeadDetail({ lead, store, onBack, onUpdate, onDelete, isAdmin, fieldOnl
     {tab === "docchecklist" && !fieldOnly && <DocChecklistTab lead={lead} onUpdate={onUpdate} />}
     {tab === "aidocs" && !fieldOnly && <AiDocsTab lead={lead} />}
     {tab === "detailsheet" && !fieldOnly && <DetailSheetTab lead={lead} onUpdate={onUpdate} />}
+    {tab === "financials" && !fieldOnly && <FinancialsTab lead={lead} onUpdate={onUpdate} />}
+    {tab === "campaigns" && !fieldOnly && <CampaignsTab lead={lead} onUpdate={onUpdate} />}
 
     {tab === "notes" && (
       <div className="fade">
@@ -2203,6 +2223,388 @@ function DetailSheetTab({ lead, onUpdate }) {
       <button onClick={save} className="posh-btn no-print" style={{ background: T.navy, color: T.gold, width: "100%", justifyContent: "center", marginTop: 4 }}>Save Detail Sheet</button>
     </div>
   );
+}
+
+// ─── FINANCIALS TAB ─────────────────────────────────────────────────────────────
+function FinancialsTab({ lead, onUpdate }) {
+  const [f, setF] = useState({ desc: "Processing Fee", amount: "" });
+  const invoices = lead.invoices || [];
+
+  function addInv() {
+    if (!f.amount) return;
+    const inv = { id: gid(), ...f, date: td(), status: "Unpaid" };
+    onUpdate(lead.id, { invoices: [inv, ...invoices] });
+    setF({ desc: "Processing Fee", amount: "" });
+  }
+
+  function markPaid(id) {
+    onUpdate(lead.id, { invoices: invoices.map(i => i.id === id ? { ...i, status: "Paid", paidOn: td() } : i) });
+  }
+
+  return (<div className="fade">
+    <Card title="Invoices & Receipts">
+      <div style={{ display: "flex", gap: 10, marginBottom: 16 }}>
+        <input value={f.desc} onChange={e => setF(x => ({ ...x, desc: e.target.value }))} placeholder="Description" style={{ flex: 2 }} />
+        <input type="number" value={f.amount} onChange={e => setF(x => ({ ...x, amount: e.target.value }))} placeholder="Amount (₹)" style={{ flex: 1 }} />
+        <Btn onClick={addInv} c={T.navy}>Generate Invoice</Btn>
+      </div>
+      {invoices.length === 0 && <div style={{ fontSize: 13, color: T.textLight }}>No invoices generated.</div>}
+      {invoices.map(i => (
+        <div key={i.id} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "12px 14px", border: `1px solid ${T.border}`, borderRadius: 10, marginBottom: 8, background: T.white }}>
+          <div>
+            <div style={{ fontWeight: 600, fontSize: 14, color: T.navy }}>{i.desc}</div>
+            <div style={{ fontSize: 12, color: T.textLight }}>Inv #{i.id.slice(0, 6).toUpperCase()} · {i.date}</div>
+          </div>
+          <div style={{ display: "flex", alignItems: "center", gap: 14 }}>
+            <div style={{ fontSize: 16, fontWeight: 700, color: T.text }}>₹{Number(i.amount).toLocaleString("en-IN")}</div>
+            {i.status === "Paid" ? (
+              <span style={{ background: T.greenBg, color: T.green, padding: "4px 10px", borderRadius: 20, fontSize: 11, fontWeight: 700 }}>Paid on {i.paidOn}</span>
+            ) : (
+              <Btn onClick={() => markPaid(i.id)} c={T.amber}>Mark Paid</Btn>
+            )}
+            <button style={{ background: "none", border: "none", fontSize: 16, cursor: "pointer" }} title="Download PDF">📥</button>
+          </div>
+        </div>
+      ))}
+    </Card>
+  </div>);
+}
+
+// ─── CAMPAIGNS TAB ──────────────────────────────────────────────────────────────
+function CampaignsTab({ lead, onUpdate }) {
+  const activeCamp = lead.activeCampaign;
+
+  function setCamp(name) {
+    onUpdate(lead.id, { activeCampaign: name, campaignStartDate: td() });
+  }
+
+  const CAMPS = [
+    { name: "3-Year NRI Nurture", desc: "Sends an automated market update and property offers every 45 days via WhatsApp and Email for 3 years.", tags: ["NRI", "Slow"] },
+    { name: "Aggressive Closure", desc: "High-frequency follow-ups every 3 days. Includes ROI calculators and limited time bonanza offers.", tags: ["Hot Lead"] },
+    { name: "Re-churn Inactive", desc: "For dead leads. Sends a 'Still looking?' message and then pushes educational property content every 15 days.", tags: ["Dead Lead"] }
+  ];
+
+  return (<div className="fade">
+    <Card title="Drip Marketing & Automation">
+      <div style={{ fontSize: 13, color: T.text, marginBottom: 16 }}>Automate engagement and nurture this lead without human involvement.</div>
+      {activeCamp ? (
+        <div style={{ background: T.greenBg, border: `1px solid ${T.green}40`, padding: 16, borderRadius: 12, display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+          <div>
+            <div style={{ fontWeight: 700, color: T.green, fontSize: 15, marginBottom: 4 }}>Active: {activeCamp}</div>
+            <div style={{ fontSize: 12, color: T.green, opacity: 0.8 }}>Started on {lead.campaignStartDate}</div>
+          </div>
+          <Btn onClick={() => onUpdate(lead.id, { activeCampaign: null })} c={T.red}>Stop Campaign</Btn>
+        </div>
+      ) : (
+        <div style={{ display: "grid", gap: 12 }}>
+          {CAMPS.map(c => (
+            <div key={c.name} style={{ border: `1px solid ${T.border}`, padding: 16, borderRadius: 12, background: T.white }}>
+              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 6 }}>
+                <div style={{ fontWeight: 700, fontSize: 15, color: T.navy }}>{c.name}</div>
+                <Btn onClick={() => setCamp(c.name)} c={T.blue}>Start Campaign</Btn>
+              </div>
+              <div style={{ fontSize: 13, color: T.textLight, marginBottom: 8 }}>{c.desc}</div>
+              <div style={{ display: "flex", gap: 6 }}>
+                {c.tags.map(t => <Tg key={t} c={T.purple}>{t}</Tg>)}
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
+    </Card>
+  </div>);
+}
+
+// ─── INVENTORY MODULE ─────────────────────────────────────────────────────────
+function InventoryModule() {
+  const [proj, setProj] = useState("GharKar Heights");
+  const [units, setUnits] = useState(() => Array.from({ length: 40 }, (_, i) => ({ id: `A-${101 + i}`, status: Math.random() > 0.7 ? "sold" : Math.random() > 0.8 ? "blocked" : "available" })));
+  
+  const [costSheet, setCostSheet] = useState({ unit: "A-101", basePrice: "4500000", addons: "350000", show: false });
+
+  function toggleUnit(id) {
+    setUnits(prev => prev.map(u => {
+      if (u.id !== id) return u;
+      if (u.status === "available") return { ...u, status: "blocked" };
+      if (u.status === "blocked") return { ...u, status: "sold" };
+      return { ...u, status: "available" };
+    }));
+  }
+
+  function renderCostSheetModal() {
+    if (!costSheet.show) return null;
+    const bp = Number(costSheet.basePrice) || 0;
+    const add = Number(costSheet.addons) || 0;
+    const agreementValue = bp + add;
+    const stampDuty = agreementValue * 0.06; // 6%
+    const gst = agreementValue * 0.05; // 5%
+    const total = agreementValue + stampDuty + gst;
+    
+    return (<div style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.5)", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 9999 }}>
+      <div style={{ background: T.white, padding: 30, borderRadius: 16, width: 450, boxShadow: "0 10px 40px rgba(0,0,0,0.2)" }}>
+        <ST>GharKar Cost Sheet</ST>
+        <div style={{ fontSize: 13, color: T.textLight, marginBottom: 16 }}>Unit {costSheet.unit} · {proj}</div>
+        <div style={{ border: `1px solid ${T.border}`, borderRadius: 8, padding: 16, marginBottom: 20 }}>
+          <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 8, fontSize: 13 }}><span>Base Price</span><span style={{ fontWeight: 600 }}>₹{bp.toLocaleString()}</span></div>
+          <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 8, fontSize: 13 }}><span>Additional Charges</span><span style={{ fontWeight: 600 }}>₹{add.toLocaleString()}</span></div>
+          <div style={{ height: 1, background: T.border, margin: "8px 0" }} />
+          <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 8, fontSize: 13 }}><span>Agreement Value</span><span style={{ fontWeight: 700 }}>₹{agreementValue.toLocaleString()}</span></div>
+          <div style={{ height: 1, background: T.border, margin: "8px 0" }} />
+          <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 8, fontSize: 13, color: T.textLight }}><span>Stamp Duty (6%)</span><span>₹{stampDuty.toLocaleString()}</span></div>
+          <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 8, fontSize: 13, color: T.textLight }}><span>GST (5%)</span><span>₹{gst.toLocaleString()}</span></div>
+          <div style={{ height: 1, background: T.border, margin: "8px 0" }} />
+          <div style={{ display: "flex", justifyContent: "space-between", fontSize: 16, color: T.navy, fontWeight: 800 }}><span>Grand Total</span><span>₹{total.toLocaleString()}</span></div>
+        </div>
+        <div style={{ display: "flex", gap: 10 }}>
+          <Btn full c={T.navy} onClick={() => alert("Cost Sheet printed.")}>🖨️ Print</Btn>
+          <Btn full c={T.red} onClick={() => setCostSheet(x => ({ ...x, show: false }))}>Close</Btn>
+        </div>
+      </div>
+    </div>);
+  }
+
+  return (<div className="fade">
+    {renderCostSheetModal()}
+    <ST>🏗️ Inventory & Projects</ST>
+    <div style={{ display: "flex", gap: 10, marginBottom: 16 }}>
+      <select value={proj} onChange={e => setProj(e.target.value)} style={{ padding: "8px 14px", borderRadius: 8, border: `1px solid ${T.border}`, flex: 1, maxWidth: 300 }}>
+        <option>GharKar Heights</option><option>GharKar Residency</option><option>GharKar Villas</option>
+      </select>
+      <Btn c={T.navy}>Add New Project</Btn>
+    </div>
+    <Card title="Digital Layouts & Availability">
+      <div style={{ fontSize: 13, color: T.textLight, marginBottom: 10 }}>Click a unit to toggle its status: Available ➔ Blocked ➔ Sold</div>
+      <div style={{ display: "flex", gap: 14, marginBottom: 16, fontSize: 13 }}>
+        <span style={{ color: T.green }}><span style={{ display:"inline-block", width:10,height:10,background:T.greenBg,marginRight:4,borderRadius:2 }} />Available</span>
+        <span style={{ color: T.amber }}><span style={{ display:"inline-block", width:10,height:10,background:"#FFF8E1",marginRight:4,borderRadius:2 }} />Blocked</span>
+        <span style={{ color: T.red }}><span style={{ display:"inline-block", width:10,height:10,background:"#FFEBEE",marginRight:4,borderRadius:2 }} />Sold</span>
+      </div>
+      <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(60px, 1fr))", gap: 8 }}>
+        {units.map(u => (
+          <div key={u.id} onClick={() => toggleUnit(u.id)} style={{ padding: "10px 4px", textAlign: "center", borderRadius: 8, fontSize: 12, fontWeight: 700, cursor: "pointer", border: `1px solid ${u.status === "available" ? T.green : u.status === "blocked" ? T.amber : T.red}40`, background: u.status === "available" ? T.greenBg : u.status === "blocked" ? "#FFF8E1" : "#FFEBEE", color: u.status === "available" ? T.green : u.status === "blocked" ? T.amber : T.red }}>
+            {u.id}
+          </div>
+        ))}
+      </div>
+    </Card>
+    <Grid cols="1fr 1fr" gap={14}>
+      <Card title="Cost Sheet Generator">
+        <F l="Select Unit"><select value={costSheet.unit} onChange={e => setCostSheet(x => ({ ...x, unit: e.target.value }))} style={{ marginBottom: 10 }}>
+          {units.filter(u => u.status !== "sold").map(u => <option key={u.id}>{u.id}</option>)}
+        </select></F>
+        <F l="Base Price"><input type="number" value={costSheet.basePrice} onChange={e => setCostSheet(x => ({ ...x, basePrice: e.target.value }))} style={{ marginBottom: 10 }} /></F>
+        <F l="Additional Charges (Parking, Amenities)"><input type="number" value={costSheet.addons} onChange={e => setCostSheet(x => ({ ...x, addons: e.target.value }))} style={{ marginBottom: 14 }} /></F>
+        <Btn onClick={() => setCostSheet(x => ({ ...x, show: true }))} c={T.navy} full>Generate Print-Ready Cost Sheet</Btn>
+      </Card>
+      <Card title="Payment Schedules">
+        <div style={{ fontSize: 13, color: T.textLight, marginBottom: 10 }}>Configure milestone-based payment schedules.</div>
+        <div style={{ background: T.white, border: `1px solid ${T.border}`, padding: 10, borderRadius: 8, marginBottom: 8, display: "flex", justifyContent: "space-between" }}>
+          <span style={{ fontSize: 13, fontWeight: 600 }}>Booking Amount</span><span style={{ fontSize: 13, color: T.textLight }}>10%</span>
+        </div>
+        <div style={{ background: T.white, border: `1px solid ${T.border}`, padding: 10, borderRadius: 8, marginBottom: 14, display: "flex", justifyContent: "space-between" }}>
+          <span style={{ fontSize: 13, fontWeight: 600 }}>On Possession</span><span style={{ fontSize: 13, color: T.textLight }}>90%</span>
+        </div>
+        <Btn c={T.blue} full>Manage Schedules</Btn>
+      </Card>
+    </Grid>
+  </div>);
+}
+
+// ─── HR MODULE ────────────────────────────────────────────────────────────────
+function HRModule({ store }) {
+  const [payables, setPayables] = useState([
+    { id: 1, agent: "Vikas Sharma", proj: "GharKar Heights", amount: 112500, status: "pending", date: "" },
+    { id: 2, agent: "Ramesh Kumar", proj: "GharKar Residency", amount: 45000, status: "pending", date: "" }
+  ]);
+  const [travel, setTravel] = useState([
+    { id: 1, agent: "Ramesh Kumar", desc: "Site Visit Fuel", amt: 450, status: "pending" }
+  ]);
+
+  function payComm(id) {
+    setPayables(prev => prev.map(p => p.id === id ? { ...p, status: "paid", date: td() } : p));
+  }
+  function approveTravel() {
+    setTravel(prev => prev.map(t => ({ ...t, status: "approved" })));
+  }
+
+  return (<div className="fade">
+    <ST>🤝 HR & Hierarchy</ST>
+    <Grid cols="1fr 1fr" gap={14} mb={14}>
+      <Card title="Agent Commission Structures">
+        <div style={{ fontSize: 13, color: T.textLight, marginBottom: 12 }}>Define project-wise commission payouts.</div>
+        <div style={{ background: T.white, border: `1px solid ${T.border}`, borderRadius: 8, padding: 10, display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 8 }}>
+          <span style={{ fontSize: 14, fontWeight: 600 }}>Direct Sale</span><Tg c={T.green}>2.5%</Tg>
+        </div>
+        <div style={{ background: T.white, border: `1px solid ${T.border}`, borderRadius: 8, padding: 10, display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+          <span style={{ fontSize: 14, fontWeight: 600 }}>Hierarchy (Team Lead)</span><Tg c={T.blue}>0.5%</Tg>
+        </div>
+      </Card>
+      <Card title="Travel & Expense Management">
+        <div style={{ fontSize: 13, color: T.textLight, marginBottom: 12 }}>Manage agent travel requests.</div>
+        {travel.map(t => (
+          <div key={t.id} style={{ background: t.status === "pending" ? "#FFF8E1" : T.greenBg, border: `1px solid ${t.status === "pending" ? T.amber : T.green}40`, padding: 10, borderRadius: 8, marginBottom: 8 }}>
+            <div style={{ fontSize: 13, fontWeight: 600, color: t.status === "pending" ? T.amber : T.green }}>{t.agent} - {t.desc}</div>
+            <div style={{ fontSize: 11, color: T.textLight, marginTop: 4 }}>Requested ₹{t.amt} · {t.status === "pending" ? "Pending Approval" : "Approved"}</div>
+          </div>
+        ))}
+        {travel.some(t => t.status === "pending") && <Btn onClick={approveTravel} c={T.amber} full>Approve All Pending</Btn>}
+      </Card>
+    </Grid>
+    <Card title="Commission Payables & Balances">
+      <table style={{ width: "100%", textAlign: "left", fontSize: 13, borderCollapse: "collapse" }}>
+        <thead>
+          <tr style={{ borderBottom: `2px solid ${T.border}` }}>
+            <th style={{ padding: "8px 0", color: T.navy }}>Agent Name</th>
+            <th style={{ padding: "8px 0", color: T.navy }}>Project</th>
+            <th style={{ padding: "8px 0", color: T.navy }}>Payable</th>
+            <th style={{ padding: "8px 0", color: T.navy }}>Status</th>
+            <th style={{ padding: "8px 0", color: T.navy }}>Action</th>
+          </tr>
+        </thead>
+        <tbody>
+          {payables.map(p => (
+            <tr key={p.id} style={{ borderBottom: `1px solid ${T.border}` }}>
+              <td style={{ padding: "10px 0", fontWeight: 500 }}>{p.agent}</td><td style={{ padding: "10px 0" }}>{p.proj}</td><td style={{ padding: "10px 0", fontWeight: 700 }}>₹{p.amount.toLocaleString()}</td>
+              <td style={{ padding: "10px 0" }}>{p.status === "pending" ? <Tg c={T.amber}>Pending</Tg> : <Tg c={T.green}>Paid {p.date}</Tg>}</td>
+              <td style={{ padding: "10px 0" }}>{p.status === "pending" && <button onClick={() => payComm(p.id)} style={{ fontSize: 11, padding: "4px 10px", background: T.white, border: `1px solid ${T.green}`, color: T.green, borderRadius: 4, cursor: "pointer" }}>Settle</button>}</td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    </Card>
+  </div>);
+}
+
+// ─── MARKETING MODULE ─────────────────────────────────────────────────────────
+function MarketingModule() {
+  const [offers, setOffers] = useState([
+    { id: 1, title: "Diwali Gold Coin Bonanza!", desc: "Close 3 bookings before Nov 15th to win a 10g Gold Coin." }
+  ]);
+  const [newOffer, setNewOffer] = useState({ title: "", desc: "" });
+  const [walkins, setWalkins] = useState(142);
+
+  function addOffer() {
+    if (!newOffer.title) return;
+    setOffers([{ id: gid(), ...newOffer }, ...offers]);
+    setNewOffer({ title: "", desc: "" });
+  }
+
+  return (<div className="fade">
+    <ST>📢 Marketing & Events</ST>
+    <Grid cols="1fr 1fr" gap={14} mb={14}>
+      <Card title="Bonanza Offers">
+        <div style={{ fontSize: 13, color: T.textLight, marginBottom: 10 }}>Active offers shown in the Agent Mobile App.</div>
+        <div style={{ display: "flex", gap: 8, marginBottom: 10 }}>
+          <input value={newOffer.title} onChange={e => setNewOffer(x => ({ ...x, title: e.target.value }))} placeholder="Offer Title" style={{ flex: 1 }} />
+          <Btn onClick={addOffer} c={T.navy}>Add</Btn>
+        </div>
+        <input value={newOffer.desc} onChange={e => setNewOffer(x => ({ ...x, desc: e.target.value }))} placeholder="Description (e.g. Close 3 bookings to win...)" style={{ width: "100%", marginBottom: 12 }} />
+        
+        <div style={{ display: "grid", gap: 8, maxHeight: 200, overflowY: "auto" }}>
+          {offers.map(o => (
+            <div key={o.id} style={{ border: `1px solid ${T.blue}40`, background: `${T.blue}10`, padding: 12, borderRadius: 8 }}>
+              <div style={{ fontSize: 14, fontWeight: 700, color: T.blue }}>{o.title}</div>
+              <div style={{ fontSize: 12, color: T.text, marginTop: 4 }}>{o.desc}</div>
+            </div>
+          ))}
+        </div>
+      </Card>
+      <Card title="Cust Mela Tracker">
+        <div style={{ fontSize: 13, color: T.textLight, marginBottom: 10 }}>Track live walk-ins during events.</div>
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", border: `1px solid ${T.border}`, padding: 12, borderRadius: 8 }}>
+          <div>
+            <div style={{ fontWeight: 600 }}>Pune Mega Mela</div>
+            <div style={{ fontSize: 11, color: T.textLight }}>Today</div>
+          </div>
+          <div style={{ display: "flex", alignItems: "center", gap: 14 }}>
+            <div style={{ fontSize: 28, fontWeight: 700, color: T.green }}>{walkins}</div>
+            <button onClick={() => setWalkins(w => w + 1)} style={{ background: T.greenBg, border: `1px solid ${T.green}`, color: T.green, padding: "8px 12px", borderRadius: 8, cursor: "pointer", fontWeight: 700, fontSize: 16 }}>+1</button>
+          </div>
+        </div>
+      </Card>
+    </Grid>
+    <Card title="Marketing Creatives Access (Collateral)">
+      <div style={{ display: "flex", gap: 10, overflowX: "auto", paddingBottom: 6 }}>
+        {["Brochures", "Floor Plans", "Walkthrough Videos", "Price Highlights"].map(f => (
+          <div key={f} style={{ minWidth: 140, padding: 20, background: T.white, border: `1px solid ${T.border}`, borderRadius: 12, textAlign: "center", cursor: "pointer", transition: "transform 0.2s" }} onMouseEnter={e => e.currentTarget.style.transform = "scale(1.05)"} onMouseLeave={e => e.currentTarget.style.transform = "scale(1)"}>
+            <div style={{ fontSize: 30, marginBottom: 8 }}>📁</div>
+            <div style={{ fontSize: 13, fontWeight: 600 }}>{f}</div>
+          </div>
+        ))}
+      </div>
+    </Card>
+  </div>);
+}
+
+// ─── POST-SALES MODULE ────────────────────────────────────────────────────────
+function PostSalesModule({ store }) {
+  const [doc, setDoc] = useState(null);
+  const [escalations, setEscalations] = useState([
+    { id: 1, issue: "Plumbing Leakage in Kitchen", unit: "A-204", days: 2, priority: "High Priority" }
+  ]);
+  const [checks, setChecks] = useState({ pdi: true, keys: true, maint: false });
+
+  function renderDocPreview() {
+    if (!doc) return null;
+    return (<div style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.5)", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 9999 }}>
+      <div style={{ background: T.white, padding: 40, borderRadius: 12, width: 500, boxShadow: "0 10px 40px rgba(0,0,0,0.2)", fontFamily: "serif" }}>
+        <div style={{ textAlign: "center", borderBottom: "2px solid #000", paddingBottom: 10, marginBottom: 20 }}>
+          <h2 style={{ margin: 0, color: T.navy }}>GharKar Developers</h2>
+          <div style={{ fontSize: 12, color: "#666" }}>123, Real Estate Avenue, Pune, India</div>
+        </div>
+        <h3 style={{ textAlign: "center", textTransform: "uppercase", letterSpacing: 1 }}>{doc}</h3>
+        <p style={{ fontSize: 14, lineHeight: 1.6 }}>To Whom It May Concern,</p>
+        <p style={{ fontSize: 14, lineHeight: 1.6 }}>This document serves as the official <strong>{doc}</strong> for the property unit allocated to the respective buyer. All terms and conditions as per the signed agreement are applicable.</p>
+        <p style={{ fontSize: 14, lineHeight: 1.6 }}>Date: {td()}</p>
+        <div style={{ marginTop: 40, display: "flex", justifyContent: "space-between" }}>
+          <div><div style={{ borderTop: "1px solid #000", width: 120, paddingTop: 4, fontSize: 12 }}>Authorized Signatory</div></div>
+          <div><div style={{ borderTop: "1px solid #000", width: 120, paddingTop: 4, fontSize: 12 }}>Buyer Signature</div></div>
+        </div>
+        <div style={{ display: "flex", gap: 10, marginTop: 40, fontFamily: "sans-serif" }}>
+          <Btn full c={T.navy} onClick={() => alert("Document Sent to Printer.")}>🖨️ Print</Btn>
+          <Btn full c={T.red} onClick={() => setDoc(null)}>Close</Btn>
+        </div>
+      </div>
+    </div>);
+  }
+
+  return (<div className="fade">
+    {renderDocPreview()}
+    <ST>🔑 Post-Sales & Handover</ST>
+    <Grid cols="1fr 1fr" gap={14} mb={14}>
+      <Card title="Document Generation">
+        <div style={{ fontSize: 13, color: T.textLight, marginBottom: 12 }}>Auto-generate legally binding documents.</div>
+        <div style={{ display: "grid", gap: 8 }}>
+          <Btn onClick={() => setDoc("Demand Letter")} c={T.navy}>Generate Demand Letter</Btn>
+          <Btn onClick={() => setDoc("Allotment Letter")} c={T.blue}>Generate Allotment Letter</Btn>
+          <Btn onClick={() => setDoc("Possession Letter")} c={T.gold}>Generate Possession Letter</Btn>
+        </div>
+      </Card>
+      <Card title="Handover & Bank Checklists">
+        <div style={{ fontSize: 13, color: T.textLight, marginBottom: 12 }}>Manage structural handovers.</div>
+        <label style={{ display: "flex", alignItems: "center", gap: 8, fontSize: 13, marginBottom: 6 }}><input type="checkbox" checked={checks.pdi} onChange={e => setChecks(x => ({ ...x, pdi: e.target.checked }))} /> Pre-Delivery Inspection (PDI) Clear</label>
+        <label style={{ display: "flex", alignItems: "center", gap: 8, fontSize: 13, marginBottom: 6 }}><input type="checkbox" checked={checks.keys} onChange={e => setChecks(x => ({ ...x, keys: e.target.checked }))} /> Key Handover Signed</label>
+        <label style={{ display: "flex", alignItems: "center", gap: 8, fontSize: 13, marginBottom: 6 }}><input type="checkbox" checked={checks.maint} onChange={e => setChecks(x => ({ ...x, maint: e.target.checked }))} /> Maintenance Deposit Collected</label>
+      </Card>
+    </Grid>
+    <Card title="Customer Escalations (Post-Purchase)">
+      {escalations.length === 0 ? (
+        <div style={{ fontSize: 13, color: T.textLight, padding: 20, textAlign: "center" }}>No pending escalations.</div>
+      ) : escalations.map(esc => (
+        <div key={esc.id} style={{ background: "#FFEBEE", border: `1px solid ${T.red}40`, padding: 12, borderRadius: 8, marginBottom: 8 }}>
+          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+            <div style={{ fontSize: 14, fontWeight: 700, color: T.red }}>{esc.issue}</div>
+            <Tg c={T.red}>{esc.priority}</Tg>
+          </div>
+          <div style={{ fontSize: 12, color: T.text, marginTop: 4 }}>Unit {esc.unit} · Raised {esc.days} days ago</div>
+          <div style={{ marginTop: 10, display: "flex", gap: 8 }}>
+            <Btn c={T.red} onClick={() => alert("Maintenance team notified.")}>Assign to Maintenance</Btn>
+            <Btn c={T.green} onClick={() => setEscalations(prev => prev.filter(e => e.id !== esc.id))}>Mark Resolved</Btn>
+          </div>
+        </div>
+      ))}
+    </Card>
+  </div>);
 }
 
 // ─── PRIMITIVES ───────────────────────────────────────────────────────────────
