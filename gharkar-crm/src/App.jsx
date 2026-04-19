@@ -1818,6 +1818,44 @@ function EMICalculator() {
   );
 }
 
+// ─── DETAIL SHEET HELPERS (defined OUTSIDE component to prevent remount bug) ──
+function DSReadField({ label, value }) {
+  return (
+    <div style={{ paddingBottom: 12 }}>
+      <div style={{ fontSize: 10, fontWeight: 700, color: T.textLight, textTransform: "uppercase", letterSpacing: 1, marginBottom: 3 }}>{label}</div>
+      <div style={{ fontSize: 14, fontWeight: 500, color: T.text }}>{value || "—"}</div>
+    </div>
+  );
+}
+function DSSection({ title, accent, children }) {
+  return (
+    <div className="posh-card" style={{ marginBottom: 16 }}>
+      <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 18, paddingBottom: 14, borderBottom: `1px solid ${T.border}` }}>
+        <div style={{ width: 4, height: 28, borderRadius: 2, background: accent || T.gold }} />
+        <div style={{ fontFamily: "'Playfair Display',serif", fontSize: 16, fontWeight: 700, color: T.navy }}>{title}</div>
+      </div>
+      {children}
+    </div>
+  );
+}
+function DSRadio({ label, value, onChange, options }) {
+  return (
+    <div style={{ marginBottom: 14 }}>
+      <div style={{ fontSize: 11, fontWeight: 700, color: T.textMid, textTransform: "uppercase", letterSpacing: 0.8, marginBottom: 8 }}>{label}</div>
+      <div style={{ display: "flex", gap: 12 }}>
+        {options.map(o => (
+          <label key={o} style={{ display: "flex", alignItems: "center", gap: 7, cursor: "pointer", fontSize: 13, fontWeight: value === o ? 600 : 400, color: value === o ? T.navy : T.textMid }}>
+            <div style={{ width: 18, height: 18, borderRadius: "50%", border: `2px solid ${value === o ? T.gold : T.border}`, background: value === o ? T.gold : "transparent", display: "flex", alignItems: "center", justifyContent: "center", transition: "all 0.15s" }} onClick={() => onChange(o)}>
+              {value === o && <div style={{ width: 8, height: 8, borderRadius: "50%", background: T.white }} />}
+            </div>
+            {o}
+          </label>
+        ))}
+      </div>
+    </div>
+  );
+}
+
 // ─── DETAIL SHEET TAB ────────────────────────────────────────────────────────
 function DetailSheetTab({ lead, onUpdate }) {
   const hasCoApp = lead.coApplicant && lead.coApplicant.trim().toLowerCase() !== "none" && lead.coApplicant.trim() !== "";
@@ -1845,42 +1883,8 @@ function DetailSheetTab({ lead, onUpdate }) {
   function upd(k, v) { setForm(f => ({ ...f, [k]: v })); }
   function save() { onUpdate(lead.id, form); alert("Detail Sheet saved!"); }
 
-  const RF = ({ label, value }) => (
-    <div style={{ paddingBottom: 12 }}>
-      <div style={{ fontSize: 10, fontWeight: 700, color: T.textLight, textTransform: "uppercase", letterSpacing: 1, marginBottom: 3 }}>{label}</div>
-      <div style={{ fontSize: 14, fontWeight: 500, color: T.text }}>{value || "—"}</div>
-    </div>
-  );
-
-  const Radio = ({ label, field, options }) => (
-    <div style={{ marginBottom: 14 }}>
-      <div style={{ fontSize: 11, fontWeight: 700, color: T.textMid, textTransform: "uppercase", letterSpacing: 0.8, marginBottom: 8 }}>{label}</div>
-      <div style={{ display: "flex", gap: 12 }}>
-        {options.map(o => (
-          <label key={o} style={{ display: "flex", alignItems: "center", gap: 7, cursor: "pointer", fontSize: 13, fontWeight: form[field] === o ? 600 : 400, color: form[field] === o ? T.navy : T.textMid }}>
-            <div style={{ width: 18, height: 18, borderRadius: "50%", border: `2px solid ${form[field] === o ? T.gold : T.border}`, background: form[field] === o ? T.gold : "transparent", display: "flex", alignItems: "center", justifyContent: "center", transition: "all 0.15s" }} onClick={() => upd(field, o)}>
-              {form[field] === o && <div style={{ width: 8, height: 8, borderRadius: "50%", background: T.white }} />}
-            </div>
-            {o}
-          </label>
-        ))}
-      </div>
-    </div>
-  );
-
-  const Sec = ({ title, accent, children }) => (
-    <div className="posh-card" style={{ marginBottom: 16 }}>
-      <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 18, paddingBottom: 14, borderBottom: `1px solid ${T.border}` }}>
-        <div style={{ width: 4, height: 28, borderRadius: 2, background: accent || T.gold }} />
-        <div style={{ fontFamily: "'Playfair Display',serif", fontSize: 16, fontWeight: 700, color: T.navy }}>{title}</div>
-      </div>
-      {children}
-    </div>
-  );
-
   return (
     <div className="fade print-page">
-      {/* Header */}
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 20 }} className="no-print">
         <div>
           <div style={{ fontFamily: "'Playfair Display',serif", fontSize: 20, fontWeight: 700, color: T.navy }}>Client Detail Sheet</div>
@@ -1892,15 +1896,14 @@ function DetailSheetTab({ lead, onUpdate }) {
         </div>
       </div>
 
-      {/* Applicant */}
-      <Sec title="Primary Applicant" accent={T.gold}>
+      <DSSection title="Primary Applicant" accent={T.gold}>
         <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 16, marginBottom: 16 }}>
-          <RF label="Full Name" value={lead.name} />
-          <RF label="Mobile" value={lead.phone} />
-          <RF label="Email" value={lead.email} />
-          <RF label="Loan Type" value={lead.loanType} />
-          <RF label="Loan Amount" value={lead.loanAmount ? `₹${Number(lead.loanAmount).toLocaleString("en-IN")}` : null} />
-          <RF label="Employment Type" value={lead.employmentType} />
+          <DSReadField label="Full Name" value={lead.name} />
+          <DSReadField label="Mobile" value={lead.phone} />
+          <DSReadField label="Email" value={lead.email} />
+          <DSReadField label="Loan Type" value={lead.loanType} />
+          <DSReadField label="Loan Amount" value={lead.loanAmount ? `₹${Number(lead.loanAmount).toLocaleString("en-IN")}` : null} />
+          <DSReadField label="Employment Type" value={lead.employmentType} />
         </div>
         <F l="Current Residential Address"><textarea value={form.address} onChange={e => upd("address", e.target.value)} rows={2} placeholder="Full current address..." /></F>
         <div style={{ marginTop: 14 }} />
@@ -1908,7 +1911,7 @@ function DetailSheetTab({ lead, onUpdate }) {
           <F l="Father's Full Name"><input value={form.fatherName} onChange={e => upd("fatherName", e.target.value)} placeholder="Father's name" /></F>
           <F l="Mother's Full Name"><input value={form.motherName} onChange={e => upd("motherName", e.target.value)} placeholder="Mother's name" /></F>
         </div>
-        <Radio label="Marital Status" field="marital" options={["Unmarried", "Married"]} />
+        <DSRadio label="Marital Status" value={form.marital} onChange={v => upd("marital", v)} options={["Unmarried", "Married"]} />
         {form.marital === "Married" && (
           <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10, marginBottom: 14 }}>
             <F l="Spouse Full Name"><input value={form.spouseName} onChange={e => upd("spouseName", e.target.value)} placeholder="Spouse name" /></F>
@@ -1919,13 +1922,12 @@ function DetailSheetTab({ lead, onUpdate }) {
           <F l="Number of Existing Loans"><input type="number" min="0" value={form.existingLoans} onChange={e => upd("existingLoans", e.target.value)} /></F>
           <F l="Existing Loan Details (bank / EMI)"><input value={form.existingLoanDetails} onChange={e => upd("existingLoanDetails", e.target.value)} placeholder="e.g. HDFC Car Loan ₹8,000/mo" /></F>
         </div>
-      </Sec>
+      </DSSection>
 
-      {/* Co-applicant — only show if co-applicant is set */}
       {hasCoApp && (
-        <Sec title={`Co-Applicant — ${lead.coApplicant}`} accent={T.blue}>
+        <DSSection title={`Co-Applicant — ${lead.coApplicant}`} accent={T.blue}>
           <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 16, marginBottom: 16 }}>
-            <RF label="Co-Applicant Name" value={lead.coApplicant} />
+            <DSReadField label="Co-Applicant Name" value={lead.coApplicant} />
             <div><F l="Mobile"><input value={form.coPhone} onChange={e => upd("coPhone", e.target.value)} placeholder="Co-applicant mobile" /></F></div>
             <div><F l="Email"><input value={form.coEmail} onChange={e => upd("coEmail", e.target.value)} placeholder="Co-applicant email" /></F></div>
             <div><F l="Relationship to Applicant"><input value={form.coRelation} onChange={e => upd("coRelation", e.target.value)} placeholder="e.g. Spouse, Parent, Sibling" /></F></div>
@@ -1936,7 +1938,7 @@ function DetailSheetTab({ lead, onUpdate }) {
             <F l="Father's Full Name"><input value={form.coFatherName} onChange={e => upd("coFatherName", e.target.value)} placeholder="Father's name" /></F>
             <F l="Mother's Full Name"><input value={form.coMotherName} onChange={e => upd("coMotherName", e.target.value)} placeholder="Mother's name" /></F>
           </div>
-          <Radio label="Marital Status" field="coMarital" options={["Unmarried", "Married"]} />
+          <DSRadio label="Marital Status" value={form.coMarital} onChange={v => upd("coMarital", v)} options={["Unmarried", "Married"]} />
           {form.coMarital === "Married" && (
             <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10, marginBottom: 14 }}>
               <F l="Spouse Full Name"><input value={form.coSpouseName} onChange={e => upd("coSpouseName", e.target.value)} placeholder="Spouse name" /></F>
@@ -1947,7 +1949,7 @@ function DetailSheetTab({ lead, onUpdate }) {
             <F l="Number of Existing Loans"><input type="number" min="0" value={form.coExistingLoans} onChange={e => upd("coExistingLoans", e.target.value)} /></F>
             <F l="Existing Loan Details (bank / EMI)"><input value={form.coExistingLoanDetails} onChange={e => upd("coExistingLoanDetails", e.target.value)} placeholder="e.g. SBI Home Loan ₹22,000/mo" /></F>
           </div>
-        </Sec>
+        </DSSection>
       )}
 
       <button onClick={save} className="posh-btn no-print" style={{ background: T.navy, color: T.gold, width: "100%", justifyContent: "center", marginTop: 4 }}>Save Detail Sheet</button>
