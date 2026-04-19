@@ -144,14 +144,14 @@ const DOC_REQUIREMENTS = {
 };
 
 const WA_TEMPLATES = [
-  { id:"welcome",  icon:"👋", label:"Welcome",       msg: l => `Dear ${l.name},\n\nThank you for reaching out to GharKar CRM for your ${l.loanType||"home loan"} requirement.\n\nOur team will connect with you shortly to understand your requirements and guide you through the entire loan process.\n\nBest regards,\nGharKar CRM Team` },
-  { id:"doclist",  icon:"📋", label:"Doc List",      msg: l => `Dear ${l.name},\n\nKindly arrange the following documents for your ${l.loanType||"home loan"} application:\n\n📁 *KYC:* Aadhaar (front & back), PAN Card, Passport photos x2\n💰 *Income:* ${l.employmentType==="Salaried"?"3 months salary slips, Form 16, 6 months bank statements":"ITR last 3 years, P&L + Balance Sheet, 12 months bank statements"}\n\nPlease share at the earliest for faster processing.\n\nGharKar CRM Team` },
-  { id:"missed",   icon:"📞", label:"Missed Call",   msg: l => `Dear ${l.name},\n\nWe tried reaching you regarding your home loan enquiry but couldn't connect.\n\nPlease call us back at your convenience, or let us know a good time to reach you.\n\nGharKar CRM Team` },
-  { id:"sanction", icon:"🎉", label:"Sanction!",     msg: l => `Dear ${l.name},\n\n*Congratulations!* 🎉\n\nYour home loan application has been *sanctioned* by the bank.\n\nWe will now initiate the disbursement process. Our team will contact you shortly with the next steps.\n\nThank you for choosing GharKar CRM!\nGharKar CRM Team` },
-  { id:"disb",     icon:"🏦", label:"Disbursement",  msg: l => `Dear ${l.name},\n\nThis is a reminder for your home loan *disbursement appointment*.\n\nPlease carry all original documents as discussed. Contact us immediately for any queries.\n\nGharKar CRM Team` },
-  { id:"review",   icon:"⭐", label:"Review Request",msg: l => `Dear ${l.name},\n\nCongratulations on your successful home loan disbursement! 🏠\n\nIt was our pleasure to serve you. We would be grateful if you could spare 2 minutes to leave us a *Google Review* — it helps us serve more families like yours.\n\nThank you!\nGharKar CRM Team` },
-  { id:"reengage", icon:"🔄", label:"Re-engage",     msg: l => `Dear ${l.name},\n\nHope you are doing well!\n\nWe noticed we haven't been in touch recently regarding your home loan requirement. Interest rates are competitive right now — this could be a great time to proceed.\n\nWould you like us to revisit your case? We are ready to assist.\n\nGharKar CRM Team` },
-  { id:"docremind",icon:"📂", label:"Doc Reminder",  msg: l => `Dear ${l.name},\n\nGentle reminder — we are waiting for the remaining documents to process your home loan application further.\n\nKindly share the pending documents at the earliest to avoid delays.\n\nGharKar CRM Team` },
+  { id:"welcome",  icon:"👋", label:"Welcome",       msg: l => `Dear ${l.name},\n\nThank you for reaching out to GharKar for your ${l.loanType||"home loan"} requirement.\n\nOur team will connect with you shortly to understand your requirements and guide you through the entire loan process.\n\nBest regards,\nGharKar Team` },
+  { id:"doclist",  icon:"📋", label:"Doc List",      msg: l => `Dear ${l.name},\n\nKindly arrange the following documents for your ${l.loanType||"home loan"} application:\n\n📁 *KYC:* Aadhaar (front & back), PAN Card, Passport photos x2\n💰 *Income:* ${l.employmentType==="Salaried"?"3 months salary slips, Form 16, 6 months bank statements":"ITR last 3 years, P&L + Balance Sheet, 12 months bank statements"}\n\nPlease share at the earliest for faster processing.\n\nGharKar Team` },
+  { id:"missed",   icon:"📞", label:"Missed Call",   msg: l => `Dear ${l.name},\n\nWe tried reaching you regarding your home loan enquiry but couldn't connect.\n\nPlease call us back at your convenience, or let us know a good time to reach you.\n\nGharKar Team` },
+  { id:"sanction", icon:"🎉", label:"Sanction!",     msg: l => `Dear ${l.name},\n\n*Congratulations!* 🎉\n\nYour home loan application has been *sanctioned* by the bank.\n\nWe will now initiate the disbursement process. Our team will contact you shortly with the next steps.\n\nThank you for choosing GharKar!\nGharKar Team` },
+  { id:"disb",     icon:"🏦", label:"Disbursement",  msg: l => `Dear ${l.name},\n\nThis is a reminder for your home loan *disbursement appointment*.\n\nPlease carry all original documents as discussed. Contact us immediately for any queries.\n\nGharKar Team` },
+  { id:"review",   icon:"⭐", label:"Review Request",msg: l => `Dear ${l.name},\n\nCongratulations on your successful home loan disbursement! 🏠\n\nIt was our pleasure to serve you. We would be grateful if you could spare 2 minutes to leave us a *Google Review* — it helps us serve more families like yours.\n\nThank you!\nGharKar Team` },
+  { id:"reengage", icon:"🔄", label:"Re-engage",     msg: l => `Dear ${l.name},\n\nHope you are doing well!\n\nWe noticed we haven't been in touch recently regarding your home loan requirement. Interest rates are competitive right now — this could be a great time to proceed.\n\nWould you like us to revisit your case? We are ready to assist.\n\nGharKar Team` },
+  { id:"docremind",icon:"📂", label:"Doc Reminder",  msg: l => `Dear ${l.name},\n\nGentle reminder — we are waiting for the remaining documents to process your home loan application further.\n\nKindly share the pending documents at the earliest to avoid delays.\n\nGharKar Team` },
 ];
 
 const SK = "hlcrm_v7";
@@ -1414,52 +1414,94 @@ function LeadDetail({ lead, store, onBack, onUpdate, onDelete, isAdmin, fieldOnl
     )}
 
     {tab === "comm" && !fieldOnly && (
-      <div className="fade">
-        {/* ── WhatsApp Quick Templates ── */}
-        <div style={{ background: T.white, border: `1px solid ${T.border}`, borderRadius: 12, padding: 16, marginBottom: 12 }}>
-          <div style={{ fontWeight: 600, fontSize: 13, color: T.text, marginBottom: 4 }}>💬 One-Click WhatsApp Templates</div>
-          <div style={{ fontSize: 12, color: T.textLight, marginBottom: 12 }}>Click any template to open WhatsApp with a pre-filled personalised message for {lead.name}.</div>
-          <div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
-            {WA_TEMPLATES.map(tpl => {
+      <div className="fade" style={{ background: "#efeae2", border: `1px solid ${T.border}`, borderRadius: 16, overflow: "hidden", display: "flex", flexDirection: "column", height: 600, position: "relative" }}>
+        {/* Chat Header */}
+        <div style={{ background: "#f0f2f5", padding: "10px 16px", display: "flex", alignItems: "center", gap: 14, borderBottom: "1px solid #d1d7db", zIndex: 2 }}>
+          <div style={{ width: 40, height: 40, borderRadius: "50%", background: "#dfe5e7", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 20 }}>👤</div>
+          <div style={{ flex: 1 }}>
+            <div style={{ fontSize: 15, fontWeight: 600, color: "#111b21", marginBottom: 2 }}>{lead.name}</div>
+            <div style={{ fontSize: 12, color: "#667781" }}>{lead.phone}</div>
+          </div>
+          <div style={{ display: "flex", gap: 16, color: "#54656f", fontSize: 18, cursor: "pointer" }}>
+            <span>📞</span>
+            <span>📹</span>
+            <span>⋮</span>
+          </div>
+        </div>
+
+        {/* Chat History (Scrollable) */}
+        <div style={{ flex: 1, padding: "20px 5%", overflowY: "auto", display: "flex", flexDirection: "column", gap: 12 }}>
+          <div style={{ background: "#ffeecd", alignSelf: "center", padding: "6px 12px", borderRadius: 8, fontSize: 11, color: "#54656f", marginBottom: 10, textAlign: "center", boxShadow: "0 1px 1px rgba(0,0,0,0.05)" }}>
+            Messages and calls are end-to-end encrypted. No one outside of this chat, not even GharKar, can read or listen to them.
+          </div>
+          {(lead.commLog || []).map((c, i) => {
+            // Treat WhatsApp messages as "sent" (green, right), others as system/notes (white, center/left)
+            if (c.type === "WhatsApp") {
+              return (
+                <div key={i} style={{ alignSelf: "flex-end", maxWidth: "75%", background: "#d9fdd3", borderRadius: "8px 0 8px 8px", padding: "6px 8px 8px 10px", boxShadow: "0 1px 0.5px rgba(11,20,55,0.13)", position: "relative" }}>
+                  <div style={{ fontSize: 13, color: "#111b21", lineHeight: 1.5, whiteSpace: "pre-wrap", marginBottom: 12 }}>{c.msg}</div>
+                  <div style={{ fontSize: 10, color: "#667781", position: "absolute", bottom: 4, right: 8, display: "flex", alignItems: "center", gap: 4 }}>
+                    {c.time}
+                    <svg viewBox="0 0 16 15" width="14" height="13" fill="#53bdeb"><path d="M15.01 3.316l-.478-.372a.365.365 0 0 0-.51.063L8.666 9.879a.32.32 0 0 1-.484.033l-.358-.325a.319.319 0 0 0-.484.032l-.378.483a.418.418 0 0 0 .036.541l1.32 1.266c.143.14.361.125.484-.033l6.272-8.048a.366.366 0 0 0-.064-.512zm-4.1 0l-.478-.372a.365.365 0 0 0-.51.063L4.566 9.879a.32.32 0 0 1-.484.033L1.891 7.769a.366.366 0 0 0-.515.006l-.423.433a.364.364 0 0 0 .006.514l3.258 3.185c.143.14.361.125.484-.033l6.272-8.048a.365.365 0 0 0-.063-.51z"/></svg>
+                  </div>
+                </div>
+              );
+            }
+            return (
+              <div key={i} style={{ alignSelf: "flex-start", maxWidth: "75%", background: "#fff", borderRadius: "0 8px 8px 8px", padding: "6px 8px 8px 10px", boxShadow: "0 1px 0.5px rgba(11,20,55,0.13)", position: "relative" }}>
+                <div style={{ fontSize: 11, fontWeight: 700, color: cm.color, marginBottom: 4 }}>{c.type} {c.by ? `(by ${c.by})` : ""}</div>
+                <div style={{ fontSize: 13, color: "#111b21", lineHeight: 1.5, whiteSpace: "pre-wrap", marginBottom: 12 }}>{c.msg}</div>
+                <div style={{ fontSize: 10, color: "#667781", position: "absolute", bottom: 4, right: 8 }}>{c.date} {c.time}</div>
+              </div>
+            );
+          })}
+          {!(lead.commLog || []).length && (
+            <div style={{ textAlign: "center", fontSize: 13, color: "#54656f", marginTop: 40, background: "rgba(255,255,255,0.6)", padding: "10px 20px", borderRadius: 20, alignSelf: "center" }}>No messages yet. Send a WhatsApp to start the conversation.</div>
+          )}
+        </div>
+
+        {/* Quick Templates Drawer */}
+        <div style={{ background: "#f0f2f5", padding: "10px 16px", borderTop: "1px solid #d1d7db", display: "flex", gap: 8, overflowX: "auto" }}>
+          {WA_TEMPLATES.map(tpl => (
+            <button key={tpl.id} onClick={() => setCommNote(tpl.msg(lead))} style={{ background: "#fff", border: "1px solid #d1d7db", borderRadius: 20, padding: "6px 14px", fontSize: 12, fontWeight: 600, color: "#54656f", cursor: "pointer", whiteSpace: "nowrap", display: "flex", alignItems: "center", gap: 6, transition: "all 0.15s" }}>
+              <span>{tpl.icon}</span> {tpl.label}
+            </button>
+          ))}
+        </div>
+
+        {/* Input Bar */}
+        <div style={{ background: "#f0f2f5", padding: "12px 16px", display: "flex", alignItems: "center", gap: 12 }}>
+          <div style={{ fontSize: 24, color: "#54656f", cursor: "pointer" }}>😊</div>
+          <div style={{ fontSize: 22, color: "#54656f", cursor: "pointer", transform: "rotate(45deg)" }}>📎</div>
+          <input 
+            value={commNote} 
+            onChange={e => setCommNote(e.target.value)} 
+            placeholder="Type a message" 
+            onKeyDown={e => { if (e.key === 'Enter') { 
+              if (!commNote.trim()) return;
+              const msg = commNote.trim();
+              const commLog = [...(lead.commLog || []), { type: "WhatsApp", msg, date: td(), time: new Date().toLocaleTimeString("en-IN", { hour: "2-digit", minute: "2-digit" }), by: asgn?.name || "System" }];
+              onUpdate(lead.id, { commLog });
+              setCommNote("");
               const phone = (lead.phone || "").replace(/\D/g, "");
               const intlPhone = phone.length === 10 ? `91${phone}` : phone;
-              const msg = encodeURIComponent(tpl.msg(lead));
-              return (
-                <a key={tpl.id} href={`https://wa.me/${intlPhone}?text=${msg}`} target="_blank" rel="noreferrer"
-                  style={{ display: "flex", alignItems: "center", gap: 6, padding: "7px 14px", background: "#E8F5E9", border: "1px solid #A5D6A7", borderRadius: 20, fontSize: 12, fontWeight: 500, color: "#1B5E20", textDecoration: "none", cursor: "pointer", whiteSpace: "nowrap" }}
-                  title={tpl.msg(lead)}>
-                  <span>{tpl.icon}</span> {tpl.label}
-                </a>
-              );
-            })}
-          </div>
+              window.open(`https://wa.me/${intlPhone}?text=${encodeURIComponent(msg)}`, "_blank");
+            }}}
+            style={{ flex: 1, border: "none", borderRadius: 8, padding: "12px 16px", fontSize: 14, background: "#fff", outline: "none", boxShadow: "none", color: "#111b21" }} 
+          />
+          <button onClick={() => {
+            if (!commNote.trim()) return;
+            const msg = commNote.trim();
+            const commLog = [...(lead.commLog || []), { type: "WhatsApp", msg, date: td(), time: new Date().toLocaleTimeString("en-IN", { hour: "2-digit", minute: "2-digit" }), by: asgn?.name || "System" }];
+            onUpdate(lead.id, { commLog });
+            setCommNote("");
+            const phone = (lead.phone || "").replace(/\D/g, "");
+            const intlPhone = phone.length === 10 ? `91${phone}` : phone;
+            window.open(`https://wa.me/${intlPhone}?text=${encodeURIComponent(msg)}`, "_blank");
+          }} style={{ width: 44, height: 44, borderRadius: "50%", background: "#00a884", border: "none", color: "#fff", display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer", transition: "transform 0.15s" }}>
+            <svg viewBox="0 0 24 24" width="22" height="22" fill="currentColor"><path d="M2.01 21L23 12 2.01 3 2 10l15 2-15 2z"></path></svg>
+          </button>
         </div>
-        {/* ── Manual Log ── */}
-        <div style={{ background: T.white, border: `1px solid ${T.border}`, borderRadius: 12, padding: 16, marginBottom: 12 }}>
-          <div style={{ fontSize: 13, fontWeight: 500, color: T.text, marginBottom: 8 }}>Log communication manually</div>
-          <div style={{ display: "flex", gap: 8, marginBottom: 8 }}>
-            {["WhatsApp", "Email", "Call", "Meeting"].map(ct => (
-              <button key={ct} onClick={() => setCommType(ct)} style={{ fontSize: 12, padding: "4px 12px", borderRadius: 20, border: `1px solid ${commType === ct ? cm.color : T.border}`, background: commType === ct ? cm.bg : "transparent", color: commType === ct ? cm.color : T.textMid, cursor: "pointer" }}>{ct}</button>
-            ))}
-          </div>
-          <textarea value={commNote} onChange={e => setCommNote(e.target.value)} placeholder={`Log ${commType} with client...`} rows={3} style={{ marginBottom: 10, resize: "vertical" }} />
-          <Btn onClick={addComm} c={cm.color}>Log Communication</Btn>
-        </div>
-        {/* ── History ── */}
-        {(lead.commLog || []).length > 0 && <div style={{ fontSize: 12, color: T.textLight, marginBottom: 8 }}>All communications for this client in one place:</div>}
-        {(lead.commLog || []).slice().reverse().map((c, i) => (
-          <div key={i} style={{ background: T.white, border: `1px solid ${T.border}`, borderRadius: 10, padding: "10px 14px", marginBottom: 8, display: "flex", gap: 10 }}>
-            <div style={{ fontSize: 18, flexShrink: 0 }}>{c.type === "WhatsApp" ? "💬" : c.type === "Email" ? "📧" : c.type === "Call" ? "📞" : c.type === "Meeting" ? "🤝" : "⚙️"}</div>
-            <div style={{ flex: 1 }}>
-              <div style={{ display: "flex", justifyContent: "space-between" }}>
-                <span style={{ fontSize: 12, fontWeight: 600, color: cm.color }}>{c.type}</span>
-                <span style={{ fontSize: 11, color: T.textLight }}>{c.date} {c.time}{c.by ? ` · ${c.by}` : ""}</span>
-              </div>
-              <div style={{ fontSize: 13, color: T.text, lineHeight: 1.6, marginTop: 3, whiteSpace: "pre-wrap" }}>{c.msg}</div>
-            </div>
-          </div>
-        ))}
-        {!(lead.commLog || []).length && <div style={{ fontSize: 13, color: T.textLight }}>No communication logged yet.</div>}
       </div>
     )}
 
