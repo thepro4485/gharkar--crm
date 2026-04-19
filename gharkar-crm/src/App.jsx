@@ -557,7 +557,7 @@ function Shell({ session, onLogout, navItems, children, activeNav, setActiveNav,
 }
 
 // ─── ADMIN APP ────────────────────────────────────────────────────────────────
-const AN = [{ id:"dashboard",label:"Dashboard" },{ id:"users",label:"Users" },{ id:"leads",label:"All Leads" },{ id:"logs",label:"Daily Logs" },{ id:"pipeline",label:"Pipeline" },{ id:"escalations",label:"Escalations" },{ id:"external",label:"External Follow-Ups" },{ id:"calculator",label:"🧲 Calculator" }];
+const AN = [{ id:"dashboard",label:"Dashboard" },{ id:"kpf",label:"📊 KPF" },{ id:"users",label:"Users" },{ id:"leads",label:"All Leads" },{ id:"logs",label:"Daily Logs" },{ id:"pipeline",label:"Pipeline" },{ id:"escalations",label:"Escalations" },{ id:"external",label:"External Follow-Ups" },{ id:"calculator",label:"🧮 Calculator" }];
 function AdminApp({ store, persist, session, onLogout }) {
   const [nav, setNav] = useState("dashboard");
   const [sel, setSel] = useState(null);
@@ -571,6 +571,7 @@ function AdminApp({ store, persist, session, onLogout }) {
   }
   return (<Shell session={session} onLogout={onLogout} navItems={AN} activeNav={nav} setActiveNav={setNav} store={store} persist={persist}>
     {nav === "dashboard" && <AdminDash store={store} onSel={setSel} />}
+    {nav === "kpf" && <KPFDashboard store={store} onSel={setSel} />}
     {nav === "users" && <ManageUsers store={store} persist={persist} />}
     {nav === "leads" && <div className="fade"><ST>All Leads ({(store.leads || []).length})</ST><LeadTable leads={store.leads || []} users={store.users} onSelect={setSel} onDelete={delLead} /></div>}
     {nav === "logs" && <AdminLogs store={store} />}
@@ -579,6 +580,211 @@ function AdminApp({ store, persist, session, onLogout }) {
     {nav === "external" && <ExternalFollowups store={store} persist={persist} />}
     {nav === "calculator" && <EMICalculator />}
   </Shell>);
+}
+
+// ─── KPF DASHBOARD ───────────────────────────────────────────────────────────────
+function KPFDashboard({ store, onSel }) {
+  const leads = store.leads || [];
+  const users = (store.users || []).filter(u => u.role !== "admin");
+  const today = td();
+
+  // Core KPIs
+  const active = leads.filter(l => l.currentStep < 39);
+  const disbursed = leads.filter(l => l.currentStep >= 38);
+  const thisMonth = leads.filter(l => {
+    const d = l.stageHistory?.find(h => h.step >= 38)?.date;
+    return d && d.startsWith(today.slice(0, 7));
+  });
+  const overdue = leads.filter(l => l.followUp && l.followUp < today && l.currentStep < 39);
+  const todayFU = leads.filter(l => l.followUp === today && l.currentStep < 39);
+  const noFU = leads.filter(l => !l.followUp && l.currentStep < 39);
+  const convRate = leads.length > 0 ? Math.round((disbursed.length / leads.length) * 100) : 0;
+
+  // Pipeline by category
+  const catCounts = {};
+  leads.forEach(l => {
+    const cat = STEPS.find(s => s.id === l.currentStep)?.cat || "lead";
+    catCounts[cat] = (catCounts[cat] || 0) + 1;
+  });
+
+  // Step bottleneck — top 6 steps by lead count
+  const stepCounts = {};
+  active.forEach(l => { stepCounts[l.currentStep] = (stepCounts[l.currentStep] || 0) + 1; });
+  const topSteps = Object.entries(stepCounts)
+    .sort((a, b) => b[1] - a[1]).slice(0, 6)
+    .map(([id, count]) => ({ step: STEPS.find(s => s.id === +id), count }));
+  const maxStepCount = Math.max(...topSteps.map(s => s.count), 1);
+
+  // Source breakdown
+  const srcCounts = {};
+  leads.forEach(l => { const s = l.source || "Other"; srcCounts[s] = (srcCounts[s] || 0) + 1; });
+  const srcTotal = leads.length || 1;
+  const srcColors = [T.navy, T.blue, T.purple, T.amber, T.green, T.red, "#6D4C41", T.textMid];
+
+  // Staff performance
+  const staffPerf = users.map(u => {
+    const ml = leads.filter(l => l.assignedTo === u.id);
+    const ma = ml.filter(l => l.currentStep < 39);
+    const md = ml.filter(l => l.currentStep >= 38);
+    const mo = ml.filter(l => l.followUp && l.followUp < today && l.currentStep < 39);
+    const mt = ml.filter(l => l.followUp === today && l.currentStep < 39);
+    const mn = ml.filter(l => !l.followUp && l.currentStep < 39);
+    const cr = ml.length > 0 ? Math.round((md.length / ml.length) * 100) : 0;
+    return { user: u, total: ml.length, active: ma.length, disbursed: md.length, overdue: mo.length, todayFU: mt.length, noFU: mn.length, convRate: cr };
+  }).sort((a, b) => b.total - a.total);
+  const maxLeads = Math.max(...staffPerf.map(s => s.total), 1);
+
+  const KPICard = ({ label, value, color, bg, sub }) => (
+    <div className="stat-card" style={{ background: bg || T.white, border: `1px solid ${color}22`, padding: "18px 14px" }}>
+      <div style={{ fontSize: 30, fontWeight: 800, color, fontFamily: "'Playfair Display',serif", lineHeight: 1 }}>{value}</div>
+      <div style={{ fontSize: 10, fontWeight: 700, color, textTransform: "uppercase", letterSpacing: 0.9, marginTop: 6, opacity: 0.8 }}>{label}</div>
+      {sub && <div style={{ fontSize: 10, color: T.textLight, marginTop: 3 }}>{sub}</div>}
+    </div>
+  );
+
+  return (
+    <div className="fade">
+      <div style={{ fontFamily: "'Playfair Display',serif", fontSize: 22, fontWeight: 700, color: T.navy, marginBottom: 4 }}>📊 KPF Dashboard</div>
+      <div style={{ fontSize: 12, color: T.textLight, marginBottom: 20 }}>Key Performance Figures — live snapshot of your entire pipeline.</div>
+
+      {/* KPI Cards */}
+      <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit,minmax(120px,1fr))", gap: 10, marginBottom: 20 }}>
+        <KPICard label="Total Leads" value={leads.length} color={T.navy} bg="#EEF0FB" />
+        <KPICard label="Active Pipeline" value={active.length} color={T.blue} bg={T.blueBg} />
+        <KPICard label="Disbursed" value={disbursed.length} color={T.green} bg={T.greenBg} />
+        <KPICard label="This Month" value={thisMonth.length} color={T.purple} bg={T.purpleBg} sub="disbursals" />
+        <KPICard label="Today's FU" value={todayFU.length} color={T.amber} bg={T.amberBg} />
+        <KPICard label="Overdue" value={overdue.length} color={overdue.length > 0 ? T.red : T.green} bg={overdue.length > 0 ? T.redBg : T.greenBg} />
+        <KPICard label="No Follow-Up" value={noFU.length} color={noFU.length > 0 ? T.amber : T.green} bg={noFU.length > 0 ? T.amberBg : T.greenBg} />
+        <KPICard label="Conv. Rate" value={`${convRate}%`} color={convRate >= 20 ? T.green : T.amber} bg={T.cream} sub={`${disbursed.length} of ${leads.length}`} />
+      </div>
+
+      {/* Two col: pipeline funnel + source */}
+      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 14, marginBottom: 14 }}>
+        {/* Pipeline Funnel */}
+        <div className="posh-card">
+          <div style={{ fontWeight: 700, fontSize: 14, color: T.navy, marginBottom: 16, borderBottom: `1px solid ${T.border}`, paddingBottom: 10 }}>Pipeline by Stage</div>
+          {Object.entries(CAT_META).map(([cat, meta]) => {
+            const count = catCounts[cat] || 0;
+            const pct = Math.round((count / Math.max(leads.length, 1)) * 100);
+            return (
+              <div key={cat} style={{ marginBottom: 14 }}>
+                <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 5 }}>
+                  <span style={{ fontSize: 12, fontWeight: 600, color: meta.color }}>{meta.label}</span>
+                  <span style={{ fontSize: 11, color: T.textMid, fontWeight: 600 }}>{count} &nbsp;<span style={{ color: T.textLight, fontWeight: 400 }}>{pct}%</span></span>
+                </div>
+                <div style={{ background: T.creamDark, borderRadius: 6, height: 9, overflow: "hidden" }}>
+                  <div style={{ width: `${Math.max(pct, 2)}%`, height: "100%", background: `linear-gradient(90deg,${meta.color},${meta.color}80)`, borderRadius: 6, transition: "width 0.8s ease" }} />
+                </div>
+              </div>
+            );
+          })}
+        </div>
+
+        {/* Lead Source Breakdown */}
+        <div className="posh-card">
+          <div style={{ fontWeight: 700, fontSize: 14, color: T.navy, marginBottom: 16, borderBottom: `1px solid ${T.border}`, paddingBottom: 10 }}>Lead Sources</div>
+          {Object.entries(srcCounts).sort((a, b) => b[1] - a[1]).map(([src, cnt], i) => {
+            const pct = Math.round((cnt / srcTotal) * 100);
+            const c = srcColors[i % srcColors.length];
+            return (
+              <div key={src} style={{ marginBottom: 14 }}>
+                <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 5 }}>
+                  <span style={{ fontSize: 12, fontWeight: 600, color: c }}>{src}</span>
+                  <span style={{ fontSize: 11, color: T.textMid, fontWeight: 600 }}>{cnt} &nbsp;<span style={{ color: T.textLight, fontWeight: 400 }}>{pct}%</span></span>
+                </div>
+                <div style={{ background: T.creamDark, borderRadius: 6, height: 9, overflow: "hidden" }}>
+                  <div style={{ width: `${Math.max(pct, 2)}%`, height: "100%", background: `linear-gradient(90deg,${c},${c}80)`, borderRadius: 6, transition: "width 0.8s ease" }} />
+                </div>
+              </div>
+            );
+          })}
+          {Object.keys(srcCounts).length === 0 && <div style={{ fontSize: 13, color: T.textLight }}>No data yet.</div>}
+        </div>
+      </div>
+
+      {/* Step Bottleneck */}
+      <div className="posh-card" style={{ marginBottom: 14 }}>
+        <div style={{ fontWeight: 700, fontSize: 14, color: T.navy, marginBottom: 16, borderBottom: `1px solid ${T.border}`, paddingBottom: 10 }}>🚧 Step Bottleneck — Where Leads Are Stuck</div>
+        {topSteps.length === 0 && <div style={{ fontSize: 13, color: T.textLight }}>No active leads.</div>}
+        {topSteps.map(({ step, count }) => {
+          if (!step) return null;
+          const meta = CAT_META[step.cat] || CAT_META.lead;
+          const pct = Math.round((count / maxStepCount) * 100);
+          return (
+            <div key={step.id} style={{ marginBottom: 12, display: "flex", alignItems: "center", gap: 12 }}>
+              <div style={{ width: 32, height: 32, borderRadius: 8, background: `${meta.color}15`, display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0, fontSize: 12, fontWeight: 700, color: meta.color }}>{step.id}</div>
+              <div style={{ flex: 1 }}>
+                <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 4 }}>
+                  <span style={{ fontSize: 12, fontWeight: 600, color: T.text }}>{step.label}</span>
+                  <span style={{ fontSize: 11, fontWeight: 700, color: meta.color }}>{count} lead{count > 1 ? "s" : ""}</span>
+                </div>
+                <div style={{ background: T.creamDark, borderRadius: 5, height: 8, overflow: "hidden" }}>
+                  <div style={{ width: `${pct}%`, height: "100%", background: `linear-gradient(90deg,${meta.color},${meta.color}70)`, borderRadius: 5, transition: "width 0.7s ease" }} />
+                </div>
+              </div>
+            </div>
+          );
+        })}
+      </div>
+
+      {/* Staff Performance Table */}
+      <div className="posh-card">
+        <div style={{ fontWeight: 700, fontSize: 14, color: T.navy, marginBottom: 16, borderBottom: `1px solid ${T.border}`, paddingBottom: 10 }}>👥 Staff Performance</div>
+        {staffPerf.length === 0 && <div style={{ fontSize: 13, color: T.textLight }}>No staff added yet.</div>}
+        {staffPerf.length > 0 && (
+          <div style={{ overflowX: "auto" }}>
+            <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 13 }}>
+              <thead>
+                <tr style={{ borderBottom: `2px solid ${T.border}` }}>
+                  {["Executive", "Leads", "Active", "Disbursed", "Conv%", "Today FU", "Overdue", "No FU"].map(h => (
+                    <th key={h} style={{ padding: "8px 10px", textAlign: "left", fontSize: 10, fontWeight: 700, color: T.textLight, textTransform: "uppercase", letterSpacing: 0.8, whiteSpace: "nowrap" }}>{h}</th>
+                  ))}
+                </tr>
+              </thead>
+              <tbody>
+                {staffPerf.map(s => (
+                  <tr key={s.user.id} style={{ borderBottom: `1px solid ${T.border}` }}>
+                    <td style={{ padding: "10px 10px" }}>
+                      <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                        <div style={{ width: 32, height: 32, borderRadius: "50%", background: `linear-gradient(135deg,${T.navy},${T.navyLight})`, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 13, fontWeight: 700, color: T.gold, flexShrink: 0 }}>
+                          {s.user.name.charAt(0).toUpperCase()}
+                        </div>
+                        <div>
+                          <div style={{ fontWeight: 600, color: T.text, fontSize: 13 }}>{s.user.name}</div>
+                          <div style={{ fontSize: 10, color: T.textLight, textTransform: "capitalize" }}>{s.user.role}</div>
+                        </div>
+                      </div>
+                    </td>
+                    <td style={{ padding: "10px 10px" }}>
+                      <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
+                        <div style={{ width: 50, background: T.creamDark, borderRadius: 4, height: 6, overflow: "hidden" }}>
+                          <div style={{ width: `${Math.round((s.total / maxLeads) * 100)}%`, height: "100%", background: T.navy, borderRadius: 4 }} />
+                        </div>
+                        <span style={{ fontWeight: 700, color: T.navy }}>{s.total}</span>
+                      </div>
+                    </td>
+                    <td style={{ padding: "10px 10px", fontWeight: 600, color: T.blue }}>{s.active}</td>
+                    <td style={{ padding: "10px 10px", fontWeight: 600, color: T.green }}>{s.disbursed}</td>
+                    <td style={{ padding: "10px 10px" }}>
+                      <span style={{ background: s.convRate >= 20 ? T.greenBg : s.convRate >= 10 ? T.amberBg : T.redBg, color: s.convRate >= 20 ? T.green : s.convRate >= 10 ? T.amber : T.red, padding: "2px 8px", borderRadius: 20, fontSize: 11, fontWeight: 700 }}>{s.convRate}%</span>
+                    </td>
+                    <td style={{ padding: "10px 10px", fontWeight: 600, color: T.amber }}>{s.todayFU}</td>
+                    <td style={{ padding: "10px 10px" }}>
+                      <span style={{ color: s.overdue > 0 ? T.red : T.green, fontWeight: 700 }}>{s.overdue}</span>
+                    </td>
+                    <td style={{ padding: "10px 10px" }}>
+                      <span style={{ color: s.noFU > 0 ? T.amber : T.green, fontWeight: 700 }}>{s.noFU}</span>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
+      </div>
+    </div>
+  );
 }
 
 function AdminDash({ store, onSel }) {
