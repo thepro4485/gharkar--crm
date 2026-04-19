@@ -17,16 +17,33 @@ const STYLE = `
 @import url('https://fonts.googleapis.com/css2?family=Playfair+Display:wght@500;700&family=DM+Sans:wght@300;400;500;600&display=swap');
 *{box-sizing:border-box;margin:0;padding:0}
 body{font-family:'DM Sans',sans-serif;background:${T.cream};color:${T.text}}
-input,select,textarea{font-family:'DM Sans',sans-serif;font-size:14px;background:${T.white};border:1px solid ${T.border};border-radius:8px;padding:9px 13px;width:100%;outline:none;color:${T.text};transition:border 0.2s}
-input:focus,select:focus,textarea:focus{border-color:${T.gold}}
-button{font-family:'DM Sans',sans-serif;cursor:pointer}
+input,select,textarea{font-family:'DM Sans',sans-serif;font-size:14px;background:${T.white};border:1px solid ${T.border};border-radius:10px;padding:10px 14px;width:100%;outline:none;color:${T.text};transition:border 0.2s,box-shadow 0.2s}
+input:focus,select:focus,textarea:focus{border-color:${T.gold};box-shadow:0 0 0 3px ${T.gold}22}
+button{font-family:'DM Sans',sans-serif;cursor:pointer;transition:all 0.18s ease}
+.posh-card{background:${T.white};border:1px solid ${T.border};border-radius:18px;padding:20px 22px;margin-bottom:16px;box-shadow:0 2px 16px rgba(11,20,55,0.06),0 1px 4px rgba(11,20,55,0.04);transition:box-shadow 0.2s ease}
+.posh-card:hover{box-shadow:0 6px 28px rgba(11,20,55,0.11),0 2px 8px rgba(11,20,55,0.06)}
+.posh-btn{display:inline-flex;align-items:center;gap:7px;padding:11px 24px;border:none;border-radius:12px;font-weight:600;font-size:14px;letter-spacing:0.2px;transition:all 0.18s ease}
+.posh-btn:hover{transform:translateY(-1px);filter:brightness(1.08);box-shadow:0 6px 20px rgba(0,0,0,0.18)}
+.posh-btn:active{transform:translateY(0)}
+.stat-card{background:${T.white};border:1px solid ${T.border};border-radius:16px;padding:18px 14px;text-align:center;box-shadow:0 2px 12px rgba(11,20,55,0.05);transition:all 0.2s ease}
+.stat-card:hover{transform:translateY(-2px);box-shadow:0 8px 24px rgba(11,20,55,0.1)}
+.tab-btn{padding:10px 16px;border:none;background:none;font-weight:400;cursor:pointer;white-space:nowrap;font-size:13px;transition:all 0.15s;border-bottom:2px solid transparent;letter-spacing:0.1px}
+.tab-btn.active{font-weight:600;border-bottom-width:2px}
 @keyframes fadeIn{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:translateY(0)}}
 @keyframes slideDown{from{opacity:0;transform:translateY(-12px)}to{opacity:1;transform:translateY(0)}}
 @keyframes pulse{0%,100%{opacity:1}50%{opacity:0.6}}
+@keyframes stepComplete{0%{transform:scale(1)}50%{transform:scale(1.04)}100%{transform:scale(1)}}
 .fade{animation:fadeIn 0.22s ease}
 .slide{animation:slideDown 0.2s ease}
 .pulse{animation:pulse 2s infinite}
+.step-done{animation:stepComplete 0.4s ease}
 ::-webkit-scrollbar{width:5px}::-webkit-scrollbar-thumb{background:${T.border};border-radius:4px}
+@media print{
+  header,.no-print{display:none!important}
+  body{background:#fff}
+  .posh-card{box-shadow:none;border:1px solid #ddd}
+  .print-page{padding:0}
+}
 `;
 
 const STEPS = [
@@ -1027,18 +1044,28 @@ function LeadDetail({ lead, store, onBack, onUpdate, onDelete, isAdmin, fieldOnl
   const allDone = step.actions.every(a => !!done[a]);
   const asgn = store.users.find(u => u.id === lead.assignedTo);
   const maxStep = fieldOnly ? Math.max(...LEAD_STEP_IDS) : 39;
-  const tabs = fieldOnly ? ["current", "notes", "history"] : ["current", "allsteps", "comm", "docchecklist", "aidocs", "notes", "history"];
+  const tabs = fieldOnly ? ["current", "notes", "history"] : ["current", "allsteps", "comm", "docchecklist", "aidocs", "detailsheet", "notes", "history"];
 
-  // FIX: use functional update to avoid stale closure mutation
+  const wasAllDone = useRef(allDone);
+  useEffect(() => {
+    if (!wasAllDone.current && allDone && lead.currentStep < maxStep && !fieldOnly) {
+      const t = setTimeout(() => nextS(), 900);
+      return () => clearTimeout(t);
+    }
+    wasAllDone.current = allDone;
+  }, [allDone]);
+
   function toggleA(action) {
     const prev = lead.stepsCompleted || {};
     const prevStep = prev[step.id] || {};
     const newVal = !prevStep[action];
-    const updated = {
-      ...prev,
-      [step.id]: { ...prevStep, [action]: newVal }
-    };
+    const updated = { ...prev, [step.id]: { ...prevStep, [action]: newVal } };
     onUpdate(lead.id, { stepsCompleted: updated });
+  }
+
+  function selectAll() {
+    const all = step.actions.reduce((acc, a) => ({ ...acc, [a]: true }), {});
+    onUpdate(lead.id, { stepsCompleted: { ...(lead.stepsCompleted || {}), [step.id]: all } });
   }
 
   function nextS() {
@@ -1094,7 +1121,7 @@ function LeadDetail({ lead, store, onBack, onUpdate, onDelete, isAdmin, fieldOnl
     </div>
     <div style={{ display: "flex", gap: 1, marginBottom: 14, borderBottom: `1px solid ${T.border}`, overflowX: "auto" }}>
       {tabs.map(t => <button key={t} onClick={() => setTab(t)} style={{ padding: "9px 14px", border: "none", background: "none", color: tab === t ? cm.color : T.textLight, fontWeight: tab === t ? 600 : 400, borderBottom: tab === t ? `2px solid ${cm.color}` : "2px solid transparent", cursor: "pointer", textTransform: "capitalize", whiteSpace: "nowrap", fontSize: 13 }}>
-        {t === "current" ? "Current Step" : t === "allsteps" ? "All 39 Steps" : t === "comm" ? "Communication" : t === "docchecklist" ? "📋 Doc Checklist" : t === "aidocs" ? "🤖 AI Docs" : t}
+        {t === "current" ? "Current Step" : t === "allsteps" ? "All 39 Steps" : t === "comm" ? "Communication" : t === "docchecklist" ? "📋 Docs" : t === "aidocs" ? "🤖 AI Docs" : t === "detailsheet" ? "🧧 Detail Sheet" : t === "notes" ? "Notes" : t === "history" ? "History" : t}
       </button>)}
     </div>
 
@@ -1115,21 +1142,38 @@ function LeadDetail({ lead, store, onBack, onUpdate, onDelete, isAdmin, fieldOnl
             <span>🏠</span><span><strong>Valuation follow-up required.</strong> Ensure valuer provides report within 2–3 days.</span>
           </div>
         )}
-        <div style={{ background: cm.bg, border: `1px solid ${cm.border}`, borderRadius: 14, padding: 18, marginBottom: 14 }}>
-          <div style={{ fontSize: 11, color: cm.color, fontWeight: 600, textTransform: "uppercase", letterSpacing: 0.8, marginBottom: 3 }}>Step {step.id} of {maxStep} · {cm.label}</div>
-          <div style={{ fontFamily: "'Playfair Display',serif", fontSize: 17, fontWeight: 700, color: cm.color, marginBottom: 10 }}>{step.label}</div>
-          <div style={{ fontSize: 13, color: T.text, lineHeight: 1.75, marginBottom: 14 }}>{step.desc}</div>
-          <div style={{ fontWeight: 600, fontSize: 13, color: cm.color, marginBottom: 8 }}>Actions to complete:</div>
+        <div style={{ background: cm.bg, border: `1px solid ${cm.border}`, borderRadius: 16, padding: 20, marginBottom: 14, boxShadow: `0 4px 20px ${cm.color}18` }}>
+          <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center", marginBottom:12 }}>
+            <div>
+              <div style={{ fontSize: 10, color: cm.color, fontWeight: 700, textTransform: "uppercase", letterSpacing: 1.2, marginBottom: 3 }}>Step {step.id} of {maxStep} · {cm.label}</div>
+              <div style={{ fontFamily: "'Playfair Display',serif", fontSize: 18, fontWeight: 700, color: cm.color }}>{step.label}</div>
+            </div>
+            {allDone && <div style={{ background: T.green, color:"#fff", borderRadius:10, padding:"6px 14px", fontSize:12, fontWeight:700 }}>✓ Complete</div>}
+          </div>
+          <div style={{ fontSize: 13, color: T.text, lineHeight: 1.8, marginBottom: 16, paddingBottom:14, borderBottom:`1px solid ${cm.border}` }}>{step.desc}</div>
+          <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center", marginBottom: 10 }}>
+            <div style={{ fontWeight: 700, fontSize: 12, color: cm.color, textTransform:"uppercase", letterSpacing:0.8 }}>Actions to complete</div>
+            <div onClick={selectAll} style={{ display:"flex", alignItems:"center", gap:6, cursor:"pointer", userSelect:"none" }}>
+              <div style={{ width:18, height:18, borderRadius:5, border:`2px solid ${allDone ? T.green : cm.color}`, background:allDone ? T.green : "transparent", display:"flex", alignItems:"center", justifyContent:"center", transition:"all 0.15s" }}>
+                {allDone && <svg width="10" height="8"><path d="M1 4l3 3 5-6" stroke="#fff" strokeWidth="2" fill="none" strokeLinecap="round"/></svg>}
+              </div>
+              <span style={{ fontSize:12, fontWeight:600, color: allDone ? T.green : cm.color }}>Select All</span>
+            </div>
+          </div>
           {step.actions.map((a, i) => {
-            // FIX: read fresh from lead prop each render
             const isDone = !!(lead.stepsCompleted?.[step.id]?.[a]);
-            return (<div key={i} onClick={() => toggleA(a)} style={{ display: "flex", gap: 10, alignItems: "flex-start", padding: "8px 0", borderTop: `0.5px solid ${cm.border}`, cursor: "pointer" }}>
-              <div style={{ minWidth: 22, height: 22, borderRadius: 6, border: `1.5px solid ${isDone ? cm.color : T.border}`, background: isDone ? cm.color : "transparent", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0, marginTop: 1, transition: "all 0.15s" }}>
+            return (<div key={i} onClick={() => toggleA(a)} style={{ display: "flex", gap: 12, alignItems: "flex-start", padding: "10px 0", borderTop: `0.5px solid ${cm.border}`, cursor: "pointer" }}>
+              <div style={{ minWidth: 22, height: 22, borderRadius: 7, border: `2px solid ${isDone ? T.green : T.border}`, background: isDone ? T.green : T.white, display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0, marginTop: 1, transition: "all 0.15s", boxShadow: isDone ? `0 2px 8px ${T.green}40` : "none" }}>
                 {isDone && <svg width="12" height="10"><path d="M1 5l4 4 6-7" stroke="#fff" strokeWidth="2" fill="none" strokeLinecap="round" /></svg>}
               </div>
-              <span style={{ fontSize: 13, color: isDone ? T.textLight : T.text, textDecoration: isDone ? "line-through" : "none", lineHeight: 1.6 }}>{a}</span>
+              <span style={{ fontSize: 13, color: isDone ? T.textLight : T.text, textDecoration: isDone ? "line-through" : "none", lineHeight: 1.7, transition:"all 0.15s" }}>{a}</span>
             </div>);
           })}
+          {allDone && lead.currentStep < maxStep && (
+            <div style={{ marginTop:14, padding:"10px 14px", background:`${T.green}15`, borderRadius:10, fontSize:13, color:T.green, fontWeight:600, textAlign:"center", border:`1px solid ${T.green}30` }}>
+              ✓ All done! Advancing to next step automatically…
+            </div>
+          )}
         </div>
         {lead.currentStep < maxStep && (
           <Card>
@@ -1215,6 +1259,7 @@ function LeadDetail({ lead, store, onBack, onUpdate, onDelete, isAdmin, fieldOnl
 
     {tab === "docchecklist" && !fieldOnly && <DocChecklistTab lead={lead} onUpdate={onUpdate} />}
     {tab === "aidocs" && !fieldOnly && <AiDocsTab lead={lead} />}
+    {tab === "detailsheet" && !fieldOnly && <DetailSheetTab lead={lead} onUpdate={onUpdate} />}
 
     {tab === "notes" && (
       <div className="fade">
@@ -1773,12 +1818,137 @@ function EMICalculator() {
   );
 }
 
+// ─── DETAIL SHEET TAB ────────────────────────────────────────────────────────
+function DetailSheetTab({ lead, onUpdate }) {
+  const hasCoApp = lead.coApplicant && lead.coApplicant.trim().toLowerCase() !== "none" && lead.coApplicant.trim() !== "";
+  const [form, setForm] = useState({
+    address: lead.address || "",
+    marital: lead.marital || "Unmarried",
+    spouseName: lead.spouseName || "",
+    children: lead.children || "0",
+    existingLoans: lead.existingLoans || "0",
+    existingLoanDetails: lead.existingLoanDetails || "",
+    coAddress: lead.coAddress || "",
+    coMarital: lead.coMarital || "Unmarried",
+    coSpouseName: lead.coSpouseName || "",
+    coChildren: lead.coChildren || "0",
+    coExistingLoans: lead.coExistingLoans || "0",
+    coExistingLoanDetails: lead.coExistingLoanDetails || "",
+    coPhone: lead.coPhone || "",
+    coEmail: lead.coEmail || "",
+    coRelation: lead.coRelation || "",
+  });
+  function upd(k, v) { setForm(f => ({ ...f, [k]: v })); }
+  function save() { onUpdate(lead.id, form); alert("Detail Sheet saved!"); }
+
+  const RF = ({ label, value }) => (
+    <div style={{ paddingBottom: 12 }}>
+      <div style={{ fontSize: 10, fontWeight: 700, color: T.textLight, textTransform: "uppercase", letterSpacing: 1, marginBottom: 3 }}>{label}</div>
+      <div style={{ fontSize: 14, fontWeight: 500, color: T.text }}>{value || "—"}</div>
+    </div>
+  );
+
+  const Radio = ({ label, field, options }) => (
+    <div style={{ marginBottom: 14 }}>
+      <div style={{ fontSize: 11, fontWeight: 700, color: T.textMid, textTransform: "uppercase", letterSpacing: 0.8, marginBottom: 8 }}>{label}</div>
+      <div style={{ display: "flex", gap: 12 }}>
+        {options.map(o => (
+          <label key={o} style={{ display: "flex", alignItems: "center", gap: 7, cursor: "pointer", fontSize: 13, fontWeight: form[field] === o ? 600 : 400, color: form[field] === o ? T.navy : T.textMid }}>
+            <div style={{ width: 18, height: 18, borderRadius: "50%", border: `2px solid ${form[field] === o ? T.gold : T.border}`, background: form[field] === o ? T.gold : "transparent", display: "flex", alignItems: "center", justifyContent: "center", transition: "all 0.15s" }} onClick={() => upd(field, o)}>
+              {form[field] === o && <div style={{ width: 8, height: 8, borderRadius: "50%", background: T.white }} />}
+            </div>
+            {o}
+          </label>
+        ))}
+      </div>
+    </div>
+  );
+
+  const Sec = ({ title, accent, children }) => (
+    <div className="posh-card" style={{ marginBottom: 16 }}>
+      <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 18, paddingBottom: 14, borderBottom: `1px solid ${T.border}` }}>
+        <div style={{ width: 4, height: 28, borderRadius: 2, background: accent || T.gold }} />
+        <div style={{ fontFamily: "'Playfair Display',serif", fontSize: 16, fontWeight: 700, color: T.navy }}>{title}</div>
+      </div>
+      {children}
+    </div>
+  );
+
+  return (
+    <div className="fade print-page">
+      {/* Header */}
+      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 20 }} className="no-print">
+        <div>
+          <div style={{ fontFamily: "'Playfair Display',serif", fontSize: 20, fontWeight: 700, color: T.navy }}>Client Detail Sheet</div>
+          <div style={{ fontSize: 12, color: T.textLight, marginTop: 2 }}>Auto-filled from lead. Complete additional fields below.</div>
+        </div>
+        <div style={{ display: "flex", gap: 10 }}>
+          <button onClick={save} className="posh-btn" style={{ background: T.navy, color: T.gold }}>Save Sheet</button>
+          <button onClick={() => window.print()} className="posh-btn" style={{ background: T.gold, color: T.navy }}>🖨️ Print</button>
+        </div>
+      </div>
+
+      {/* Applicant */}
+      <Sec title="Primary Applicant" accent={T.gold}>
+        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 16, marginBottom: 16 }}>
+          <RF label="Full Name" value={lead.name} />
+          <RF label="Mobile" value={lead.phone} />
+          <RF label="Email" value={lead.email} />
+          <RF label="Loan Type" value={lead.loanType} />
+          <RF label="Loan Amount" value={lead.loanAmount ? `₹${Number(lead.loanAmount).toLocaleString("en-IN")}` : null} />
+          <RF label="Employment Type" value={lead.employmentType} />
+        </div>
+        <F l="Current Residential Address"><textarea value={form.address} onChange={e => upd("address", e.target.value)} rows={2} placeholder="Full current address..." /></F>
+        <div style={{ marginTop: 14 }} />
+        <Radio label="Marital Status" field="marital" options={["Unmarried", "Married"]} />
+        {form.marital === "Married" && (
+          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10, marginBottom: 14 }}>
+            <F l="Spouse Full Name"><input value={form.spouseName} onChange={e => upd("spouseName", e.target.value)} placeholder="Spouse name" /></F>
+            <F l="Number of Children"><input type="number" min="0" value={form.children} onChange={e => upd("children", e.target.value)} /></F>
+          </div>
+        )}
+        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
+          <F l="Number of Existing Loans"><input type="number" min="0" value={form.existingLoans} onChange={e => upd("existingLoans", e.target.value)} /></F>
+          <F l="Existing Loan Details (bank / EMI)"><input value={form.existingLoanDetails} onChange={e => upd("existingLoanDetails", e.target.value)} placeholder="e.g. HDFC Car Loan ₹8,000/mo" /></F>
+        </div>
+      </Sec>
+
+      {/* Co-applicant — only show if co-applicant is set */}
+      {hasCoApp && (
+        <Sec title={`Co-Applicant — ${lead.coApplicant}`} accent={T.blue}>
+          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 16, marginBottom: 16 }}>
+            <RF label="Co-Applicant Name" value={lead.coApplicant} />
+            <div><F l="Mobile"><input value={form.coPhone} onChange={e => upd("coPhone", e.target.value)} placeholder="Co-applicant mobile" /></F></div>
+            <div><F l="Email"><input value={form.coEmail} onChange={e => upd("coEmail", e.target.value)} placeholder="Co-applicant email" /></F></div>
+            <div><F l="Relationship to Applicant"><input value={form.coRelation} onChange={e => upd("coRelation", e.target.value)} placeholder="e.g. Spouse, Parent, Sibling" /></F></div>
+          </div>
+          <F l="Co-Applicant Current Residential Address"><textarea value={form.coAddress} onChange={e => upd("coAddress", e.target.value)} rows={2} placeholder="Full current address..." /></F>
+          <div style={{ marginTop: 14 }} />
+          <Radio label="Marital Status" field="coMarital" options={["Unmarried", "Married"]} />
+          {form.coMarital === "Married" && (
+            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10, marginBottom: 14 }}>
+              <F l="Spouse Full Name"><input value={form.coSpouseName} onChange={e => upd("coSpouseName", e.target.value)} placeholder="Spouse name" /></F>
+              <F l="Number of Children"><input type="number" min="0" value={form.coChildren} onChange={e => upd("coChildren", e.target.value)} /></F>
+            </div>
+          )}
+          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
+            <F l="Number of Existing Loans"><input type="number" min="0" value={form.coExistingLoans} onChange={e => upd("coExistingLoans", e.target.value)} /></F>
+            <F l="Existing Loan Details (bank / EMI)"><input value={form.coExistingLoanDetails} onChange={e => upd("coExistingLoanDetails", e.target.value)} placeholder="e.g. SBI Home Loan ₹22,000/mo" /></F>
+          </div>
+        </Sec>
+      )}
+
+      <button onClick={save} className="posh-btn no-print" style={{ background: T.navy, color: T.gold, width: "100%", justifyContent: "center", marginTop: 4 }}>Save Detail Sheet</button>
+    </div>
+  );
+}
+
 // ─── PRIMITIVES ───────────────────────────────────────────────────────────────
-const LBL = { fontSize: 12, fontWeight: 600, color: T.textMid, textTransform: "uppercase", letterSpacing: 0.8, display: "block", marginBottom: 5 };
-function ST({ children }) { return <div style={{ fontFamily: "'Playfair Display',serif", fontSize: 21, fontWeight: 700, color: T.navy, marginBottom: 18 }}>{children}</div>; }
-function Card({ title, children }) { return <div style={{ background: T.white, border: `1px solid ${T.border}`, borderRadius: 13, padding: 16, marginBottom: 14 }}>{title && <div style={{ fontWeight: 600, fontSize: 15, color: T.text, marginBottom: 12 }}>{title}</div>}{children}</div>; }
-function Alrt({ c, bg, title, children }) { return <div style={{ background: bg, border: `1px solid ${c}40`, borderRadius: 12, padding: "12px 16px", marginBottom: 14 }}><div style={{ fontWeight: 600, fontSize: 13, color: c, marginBottom: 8 }}>{title}</div>{children}</div>; }
-function Tg({ c, children }) { return <span style={{ fontSize: 11, background: `${c}18`, color: c, padding: "2px 9px", borderRadius: 20, fontWeight: 600, display: "inline-block", marginLeft: 4 }}>{children}</span>; }
-function Btn({ onClick, c, children }) { return <button onClick={onClick} style={{ padding: "10px 22px", background: c, color: "#fff", border: "none", borderRadius: 10, fontWeight: 600, fontSize: 14, cursor: "pointer" }}>{children}</button>; }
+const LBL = { fontSize: 11, fontWeight: 700, color: T.textMid, textTransform: "uppercase", letterSpacing: 0.9, display: "block", marginBottom: 6 };
+function ST({ children }) { return <div style={{ fontFamily: "'Playfair Display',serif", fontSize: 22, fontWeight: 700, color: T.navy, marginBottom: 20, paddingBottom: 12, borderBottom: `2px solid ${T.gold}40`, display:"flex", alignItems:"center", gap:10 }}>{children}</div>; }
+function Card({ title, children, accent }) { return <div className="posh-card">{accent && <div style={{ height:3, background:`linear-gradient(90deg,${accent},${accent}30)`, borderRadius:"4px 4px 0 0", margin:"-20px -22px 16px" }} />}{title && <div style={{ fontWeight: 700, fontSize: 15, color: T.navy, marginBottom: 14, display:"flex", alignItems:"center", gap:8 }}>{title}</div>}{children}</div>; }
+function Alrt({ c, bg, title, children }) { return <div style={{ background: bg, border: `1px solid ${c}35`, borderRadius: 14, padding: "14px 18px", marginBottom: 14, borderLeft:`4px solid ${c}` }}><div style={{ fontWeight: 700, fontSize: 13, color: c, marginBottom: 8 }}>{title}</div>{children}</div>; }
+function Tg({ c, children }) { return <span style={{ fontSize: 11, background: `${c}15`, color: c, padding: "3px 10px", borderRadius: 20, fontWeight: 700, display: "inline-block", border:`1px solid ${c}25` }}>{children}</span>; }
+function Btn({ onClick, c, children, full }) { return <button onClick={onClick} className="posh-btn" style={{ background: c, color: "#fff", width: full ? "100%" : undefined, justifyContent: full ? "center" : undefined }}>{children}</button>; }
 function Grid({ cols, gap, mb, children }) { return <div style={{ display: "grid", gridTemplateColumns: cols, gap, marginBottom: mb }}>{children}</div>; }
-function F({ l, children }) { return <div><label style={LBL}>{l}</label>{children}</div>; }
+function F({ l, children }) { return <div style={{ marginBottom: 2 }}><label style={LBL}>{l}</label>{children}</div>; }
