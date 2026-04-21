@@ -144,14 +144,14 @@ const DOC_REQUIREMENTS = {
 };
 
 const WA_TEMPLATES = [
-  { id:"welcome",  icon:"👋", label:"Welcome",       msg: l => `Dear ${l.name},\n\nThank you for reaching out to GharKar for your ${l.loanType||"home loan"} requirement.\n\nOur team will connect with you shortly to understand your requirements and guide you through the entire loan process.\n\nBest regards,\nGharKar Team` },
-  { id:"doclist",  icon:"📋", label:"Doc List",      msg: l => `Dear ${l.name},\n\nKindly arrange the following documents for your ${l.loanType||"home loan"} application:\n\n📁 *KYC:* Aadhaar (front & back), PAN Card, Passport photos x2\n💰 *Income:* ${l.employmentType==="Salaried"?"3 months salary slips, Form 16, 6 months bank statements":"ITR last 3 years, P&L + Balance Sheet, 12 months bank statements"}\n\nPlease share at the earliest for faster processing.\n\nGharKar Team` },
-  { id:"missed",   icon:"📞", label:"Missed Call",   msg: l => `Dear ${l.name},\n\nWe tried reaching you regarding your home loan enquiry but couldn't connect.\n\nPlease call us back at your convenience, or let us know a good time to reach you.\n\nGharKar Team` },
-  { id:"sanction", icon:"🎉", label:"Sanction!",     msg: l => `Dear ${l.name},\n\n*Congratulations!* 🎉\n\nYour home loan application has been *sanctioned* by the bank.\n\nWe will now initiate the disbursement process. Our team will contact you shortly with the next steps.\n\nThank you for choosing GharKar!\nGharKar Team` },
-  { id:"disb",     icon:"🏦", label:"Disbursement",  msg: l => `Dear ${l.name},\n\nThis is a reminder for your home loan *disbursement appointment*.\n\nPlease carry all original documents as discussed. Contact us immediately for any queries.\n\nGharKar Team` },
-  { id:"review",   icon:"⭐", label:"Review Request",msg: l => `Dear ${l.name},\n\nCongratulations on your successful home loan disbursement! 🏠\n\nIt was our pleasure to serve you. We would be grateful if you could spare 2 minutes to leave us a *Google Review* — it helps us serve more families like yours.\n\nThank you!\nGharKar Team` },
-  { id:"reengage", icon:"🔄", label:"Re-engage",     msg: l => `Dear ${l.name},\n\nHope you are doing well!\n\nWe noticed we haven't been in touch recently regarding your home loan requirement. Interest rates are competitive right now — this could be a great time to proceed.\n\nWould you like us to revisit your case? We are ready to assist.\n\nGharKar Team` },
-  { id:"docremind",icon:"📂", label:"Doc Reminder",  msg: l => `Dear ${l.name},\n\nGentle reminder — we are waiting for the remaining documents to process your home loan application further.\n\nKindly share the pending documents at the earliest to avoid delays.\n\nGharKar Team` },
+  { id: "welcome", icon: "👋", label: "Welcome", msg: l => `Dear ${l.name},\n\nThank you for reaching out to GharKar for your ${l.loanType || "home loan"} requirement.\n\nOur team will connect with you shortly to understand your requirements and guide you through the entire loan process.\n\nBest regards,\nGharKar Team` },
+  { id: "doclist", icon: "📋", label: "Doc List", msg: l => `Dear ${l.name},\n\nKindly arrange the following documents for your ${l.loanType || "home loan"} application:\n\n📁 *KYC:* Aadhaar (front & back), PAN Card, Passport photos x2\n💰 *Income:* ${l.employmentType === "Salaried" ? "3 months salary slips, Form 16, 6 months bank statements" : "ITR last 3 years, P&L + Balance Sheet, 12 months bank statements"}\n\nPlease share at the earliest for faster processing.\n\nGharKar Team` },
+  { id: "missed", icon: "📞", label: "Missed Call", msg: l => `Dear ${l.name},\n\nWe tried reaching you regarding your home loan enquiry but couldn't connect.\n\nPlease call us back at your convenience, or let us know a good time to reach you.\n\nGharKar Team` },
+  { id: "sanction", icon: "🎉", label: "Sanction!", msg: l => `Dear ${l.name},\n\n*Congratulations!* 🎉\n\nYour home loan application has been *sanctioned* by the bank.\n\nWe will now initiate the disbursement process. Our team will contact you shortly with the next steps.\n\nThank you for choosing GharKar!\nGharKar Team` },
+  { id: "disb", icon: "🏦", label: "Disbursement", msg: l => `Dear ${l.name},\n\nThis is a reminder for your home loan *disbursement appointment*.\n\nPlease carry all original documents as discussed. Contact us immediately for any queries.\n\nGharKar Team` },
+  { id: "review", icon: "⭐", label: "Review Request", msg: l => `Dear ${l.name},\n\nCongratulations on your successful home loan disbursement! 🏠\n\nIt was our pleasure to serve you. We would be grateful if you could spare 2 minutes to leave us a *Google Review* — it helps us serve more families like yours.\n\nThank you!\nGharKar Team` },
+  { id: "reengage", icon: "🔄", label: "Re-engage", msg: l => `Dear ${l.name},\n\nHope you are doing well!\n\nWe noticed we haven't been in touch recently regarding your home loan requirement. Interest rates are competitive right now — this could be a great time to proceed.\n\nWould you like us to revisit your case? We are ready to assist.\n\nGharKar Team` },
+  { id: "docremind", icon: "📂", label: "Doc Reminder", msg: l => `Dear ${l.name},\n\nGentle reminder — we are waiting for the remaining documents to process your home loan application further.\n\nKindly share the pending documents at the earliest to avoid delays.\n\nGharKar Team` },
 ];
 
 const SK = "hlcrm_v7";
@@ -176,58 +176,58 @@ const GEMINI_KEY = "AIzaSyC93b-mQ3Q8VC3V3kvfFtOngns3AH2Y2gc";
 async function analyseDocumentsAI(employmentType, currentStep, receivedText, loanDetails) {
   const docSet = DOC_REQUIREMENTS[employmentType] || DOC_REQUIREMENTS["Salaried"];
   const allDocs = Object.entries(docSet).flatMap(([cat, docs]) => docs.map(d => `[${cat}] ${d}`));
-  const prompt = `You are an expert home loan processor in India. Analyse the documents received and identify what is present, missing, and any concerns.\nBORROWER: ${loanDetails.name || "Client"}, Employment: ${employmentType}, Loan: ${loanDetails.loanType || "Home Loan"}, Amount: Rs.${Number(loanDetails.loanAmount||0).toLocaleString("en-IN")}\nPROCESS STEP: ${currentStep}\nREQUIRED DOCUMENTS:\n${allDocs.map((d,i)=>`${i+1}. ${d}`).join("\n")}\nDOCUMENTS RECEIVED (described by loan officer):\n${receivedText}\nRespond ONLY in this exact JSON format:{"confirmed":["names of docs clearly present"],"missing":["names of docs not mentioned"],"concerns":["any red flags or issues"],"nextAction":"specific next step the officer should take now","score":0}`;
+  const prompt = `You are an expert home loan processor in India. Analyse the documents received and identify what is present, missing, and any concerns.\nBORROWER: ${loanDetails.name || "Client"}, Employment: ${employmentType}, Loan: ${loanDetails.loanType || "Home Loan"}, Amount: Rs.${Number(loanDetails.loanAmount || 0).toLocaleString("en-IN")}\nPROCESS STEP: ${currentStep}\nREQUIRED DOCUMENTS:\n${allDocs.map((d, i) => `${i + 1}. ${d}`).join("\n")}\nDOCUMENTS RECEIVED (described by loan officer):\n${receivedText}\nRespond ONLY in this exact JSON format:{"confirmed":["names of docs clearly present"],"missing":["names of docs not mentioned"],"concerns":["any red flags or issues"],"nextAction":"specific next step the officer should take now","score":0}`;
   try {
-    const res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${GEMINI_KEY}`,{
-      method:"POST", headers:{"Content-Type":"application/json"},
-      body:JSON.stringify({contents:[{parts:[{text:prompt}]}],generationConfig:{temperature:0.1,maxOutputTokens:1024}})
+    const res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${GEMINI_KEY}`, {
+      method: "POST", headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ contents: [{ parts: [{ text: prompt }] }], generationConfig: { temperature: 0.1, maxOutputTokens: 1024 } })
     });
-    if(!res.ok) throw new Error("API error");
+    if (!res.ok) throw new Error("API error");
     const data = await res.json();
-    const text = data.candidates?.[0]?.content?.parts?.[0]?.text||"";
+    const text = data.candidates?.[0]?.content?.parts?.[0]?.text || "";
     const match = text.match(/\{[\s\S]*\}/);
-    if(!match) throw new Error("No JSON");
-    return {source:"gemini",...JSON.parse(match[0])};
-  } catch(e) {
-    console.warn("Gemini fallback:",e.message);
-    return ruleBasedDocAnalysis(employmentType,receivedText);
+    if (!match) throw new Error("No JSON");
+    return { source: "gemini", ...JSON.parse(match[0]) };
+  } catch (e) {
+    console.warn("Gemini fallback:", e.message);
+    return ruleBasedDocAnalysis(employmentType, receivedText);
   }
 }
 
 function ruleBasedDocAnalysis(employmentType, receivedText) {
-  const docSet = DOC_REQUIREMENTS[employmentType]||DOC_REQUIREMENTS["Salaried"];
+  const docSet = DOC_REQUIREMENTS[employmentType] || DOC_REQUIREMENTS["Salaried"];
   const allDocs = Object.values(docSet).flat();
   const txt = receivedText.toLowerCase();
   const KW = {
-    "aadhaar":["aadhaar","aadhar","uid"],"pan":["pan card"," pan ","pan-"],
-    "salary slip":["salary slip","payslip","pay slip"],"form 16":["form 16","form16"],
-    "bank statement":["bank statement","bank stmt","account statement"],
-    "it return":["itr","it return","income tax return"],"offer":["offer letter","appointment letter"],
-    "p&l":["p&l","profit and loss","profit & loss"],"balance sheet":["balance sheet"],
-    "gst":["gst certificate","gstin"],"passport":["passport"],"oci":["oci card","pio card"],
-    "work permit":["work permit","labour card"],"moa":["moa","memorandum"],
-    "aoa":["aoa","articles of association"],"partnership deed":["partnership deed"],
-    "board resolution":["board resolution"],"encumbrance":["encumbrance","ec "],
-    "noc":["noc ","no objection"],"nach":["nach","ecs mandate"],
-    "demand letter":["demand letter"],"title deed":["title deed","index ii"],
-    "sale agreement":["sale agreement","allotment letter"],"coi":["certificate of incorporation","coi"],
+    "aadhaar": ["aadhaar", "aadhar", "uid"], "pan": ["pan card", " pan ", "pan-"],
+    "salary slip": ["salary slip", "payslip", "pay slip"], "form 16": ["form 16", "form16"],
+    "bank statement": ["bank statement", "bank stmt", "account statement"],
+    "it return": ["itr", "it return", "income tax return"], "offer": ["offer letter", "appointment letter"],
+    "p&l": ["p&l", "profit and loss", "profit & loss"], "balance sheet": ["balance sheet"],
+    "gst": ["gst certificate", "gstin"], "passport": ["passport"], "oci": ["oci card", "pio card"],
+    "work permit": ["work permit", "labour card"], "moa": ["moa", "memorandum"],
+    "aoa": ["aoa", "articles of association"], "partnership deed": ["partnership deed"],
+    "board resolution": ["board resolution"], "encumbrance": ["encumbrance", "ec "],
+    "noc": ["noc ", "no objection"], "nach": ["nach", "ecs mandate"],
+    "demand letter": ["demand letter"], "title deed": ["title deed", "index ii"],
+    "sale agreement": ["sale agreement", "allotment letter"], "coi": ["certificate of incorporation", "coi"],
   };
-  const confirmed=[],missing=[];
-  allDocs.forEach(doc=>{
-    const dl=doc.toLowerCase();
-    let found=txt.includes(dl.slice(0,12));
-    if(!found){for(const[key,pats]of Object.entries(KW)){if(dl.includes(key)&&pats.some(p=>txt.includes(p))){found=true;break;}}}
-    if(found)confirmed.push(doc);else missing.push(doc);
+  const confirmed = [], missing = [];
+  allDocs.forEach(doc => {
+    const dl = doc.toLowerCase();
+    let found = txt.includes(dl.slice(0, 12));
+    if (!found) { for (const [key, pats] of Object.entries(KW)) { if (dl.includes(key) && pats.some(p => txt.includes(p))) { found = true; break; } } }
+    if (found) confirmed.push(doc); else missing.push(doc);
   });
-  const concerns=[];
-  if(missing.length>allDocs.length*0.6)concerns.push("Over 60% of required documents not yet received — do not proceed to bank login.");
-  if(!txt.includes("pan")&&!txt.includes("aadhaar")&&!txt.includes("aadhar"))concerns.push("Basic KYC (PAN + Aadhaar) not confirmed — mandatory for all cases.");
-  if(txt.includes("expired")||txt.includes("expiry"))concerns.push("Document expiry mentioned — verify all validity dates.");
-  const score=Math.round((confirmed.length/allDocs.length)*100);
-  let nextAction="Share complete document list with client and follow up within 2 days.";
-  if(score>=80)nextAction="Most documents collected. Prepare OCR sheet and initiate bank login.";
-  else if(score>=50)nextAction="Send query file for pending documents. Follow up every 2 days.";
-  return{source:"rule-engine",confirmed,missing,concerns,nextAction,score};
+  const concerns = [];
+  if (missing.length > allDocs.length * 0.6) concerns.push("Over 60% of required documents not yet received — do not proceed to bank login.");
+  if (!txt.includes("pan") && !txt.includes("aadhaar") && !txt.includes("aadhar")) concerns.push("Basic KYC (PAN + Aadhaar) not confirmed — mandatory for all cases.");
+  if (txt.includes("expired") || txt.includes("expiry")) concerns.push("Document expiry mentioned — verify all validity dates.");
+  const score = Math.round((confirmed.length / allDocs.length) * 100);
+  let nextAction = "Share complete document list with client and follow up within 2 days.";
+  if (score >= 80) nextAction = "Most documents collected. Prepare OCR sheet and initiate bank login.";
+  else if (score >= 50) nextAction = "Send query file for pending documents. Follow up every 2 days.";
+  return { source: "rule-engine", confirmed, missing, concerns, nextAction, score };
 }
 
 // ─── REMINDER ENGINE ─────────────────────────────────────────────────────────
@@ -419,9 +419,9 @@ export default function App() {
   function login(u, p) {
     const cleanU = (u || '').trim().toLowerCase();
     const cleanP = (p || '').trim();
-    const user = store.users.find(x => 
-      (x.username || '').trim().toLowerCase() === cleanU && 
-      (x.password || '').trim() === cleanP && 
+    const user = store.users.find(x =>
+      (x.username || '').trim().toLowerCase() === cleanU &&
+      (x.password || '').trim() === cleanP &&
       x.active !== false
     );
     if (user) {
@@ -433,19 +433,21 @@ export default function App() {
   function logout() { setSession(null); }
 
   if (loading) return (
-    <div style={{ height:'100vh', display:'flex', flexDirection:'column', alignItems:'center', justifyContent:'center', background:`linear-gradient(135deg,${T.navy} 0%,${T.navyMid} 60%,${T.navyLight} 100%)` }}>
+    <div style={{ height: '100vh', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', background: `linear-gradient(135deg,${T.navy} 0%,${T.navyMid} 60%,${T.navyLight} 100%)` }}>
       <style>{STYLE}</style>
-      <div style={{ fontFamily:"'Playfair Display',serif", fontSize:28, fontWeight:700, color:T.gold, marginBottom:12 }}>GharKar CRM</div>
-      <div style={{ display:'flex', gap:6, marginBottom:16 }}>
-        {[0,1,2].map(i => <div key={i} className="pulse" style={{ width:8, height:8, borderRadius:'50%', background:T.gold, animationDelay:`${i*0.2}s` }} />)}
+      <div style={{ fontFamily: "'Playfair Display',serif", fontSize: 28, fontWeight: 700, color: T.gold, marginBottom: 12 }}>GharKar CRM</div>
+      <div style={{ display: 'flex', gap: 6, marginBottom: 16 }}>
+        {[0, 1, 2].map(i => <div key={i} className="pulse" style={{ width: 8, height: 8, borderRadius: '50%', background: T.gold, animationDelay: `${i * 0.2}s` }} />)}
       </div>
-      <div style={{ color:'rgba(255,255,255,0.5)', fontSize:14 }}>Connecting to database…</div>
+      <div style={{ color: 'rgba(255,255,255,0.5)', fontSize: 14 }}>Connecting to database…</div>
     </div>
   );
   if (!session) return <LoginPage onLogin={login} />;
   if (session.role === "admin") return <AdminApp store={store} persist={persist} session={session} onLogout={logout} />;
   if (session.role === "field") return <FieldApp store={store} persist={persist} session={session} onLogout={logout} />;
   if (session.role === "partner") return <PartnerApp store={store} session={session} onLogout={logout} />;
+  if (session.role === "developer") return <DeveloperApp store={store} persist={persist} session={session} onLogout={logout} />;
+  if (session.role === "agent") return <AgentApp store={store} persist={persist} session={session} onLogout={logout} />;
   return <ExecutiveApp store={store} persist={persist} session={session} onLogout={logout} />;
 }
 
@@ -471,12 +473,20 @@ function LoginPage({ onLogin }) {
             <div style={{ fontFamily: "'Playfair Display',serif", fontSize: 19, fontWeight: 700, color: "rgba(255,255,255,0.9)", marginBottom: 4 }}>Field Agent Login</div>
             <div style={{ fontSize: 13, color: "rgba(255,255,255,0.45)" }}>Field Representatives — Lead capturing, enquiry, and FIR questionnaire only</div>
           </button>
+          <button onClick={() => setMode("developer")} style={{ background: "transparent", border: "1.5px solid rgba(255,255,255,0.22)", borderRadius: 16, padding: "22px 26px", color: T.white, textAlign: "left", cursor: "pointer" }}>
+            <div style={{ fontFamily: "'Playfair Display',serif", fontSize: 19, fontWeight: 700, color: "rgba(255,255,255,0.9)", marginBottom: 4 }}>Developer Login</div>
+            <div style={{ fontSize: 13, color: "rgba(255,255,255,0.45)" }}>Developers / Builders — Inventory management access</div>
+          </button>
+          <button onClick={() => setMode("agent")} style={{ background: "transparent", border: "1.5px solid rgba(255,255,255,0.22)", borderRadius: 16, padding: "22px 26px", color: T.white, textAlign: "left", cursor: "pointer" }}>
+            <div style={{ fontFamily: "'Playfair Display',serif", fontSize: 19, fontWeight: 700, color: "rgba(255,255,255,0.9)", marginBottom: 4 }}>Agent Login</div>
+            <div style={{ fontSize: 13, color: "rgba(255,255,255,0.45)" }}>Post-Sales Agents — Access to post-sales tracking and handover</div>
+          </button>
           <button onClick={() => setMode("exec")} style={{ background: "none", border: "none", color: "rgba(255,255,255,0.3)", fontSize: 12, marginTop: 4, textDecoration: "underline", cursor: "pointer" }}>Admin? Use Executive login with admin credentials</button>
         </div>
       ) : (
         <div style={{ background: T.white, borderRadius: 20, padding: "32px 28px", width: "100%", maxWidth: 380, boxShadow: "0 24px 64px rgba(0,0,0,0.35)" }} className="fade">
           <button onClick={() => { setMode(null); setErr(""); }} style={{ background: "none", border: "none", color: T.textMid, fontSize: 13, marginBottom: 20, cursor: "pointer", padding: 0 }}>← Back</button>
-          <div style={{ fontFamily: "'Playfair Display',serif", fontSize: 21, fontWeight: 700, color: T.navy, marginBottom: 4 }}>{mode === "field" ? "Field Agent" : "Executive"} Sign In</div>
+          <div style={{ fontFamily: "'Playfair Display',serif", fontSize: 21, fontWeight: 700, color: T.navy, marginBottom: 4 }}>{mode === "field" ? "Field Agent" : mode === "developer" ? "Developer" : mode === "agent" ? "Agent" : "Executive"} Sign In</div>
           <div style={{ fontSize: 13, color: T.textLight, marginBottom: 24 }}>Enter your credentials provided by your manager</div>
           <label style={LBL}>Username</label>
           <input value={u} onChange={e => setU(e.target.value)} placeholder="your.username" style={{ marginBottom: 12 }} onKeyDown={e => e.key === "Enter" && submit()} />
@@ -544,12 +554,12 @@ function Shell({ session, onLogout, navItems, children, activeNav, setActiveNav,
         </div>
         <div style={{ display: "flex", alignItems: "center", gap: 8, flexShrink: 0 }}>
           {session.role === "field" && (
-            <button onClick={() => alert(`✅ Punched in successfully at ${new Date().toLocaleTimeString('en-IN', {hour:'2-digit',minute:'2-digit'})}.\nLocation captured.`)} style={{ background: T.greenBg, border: `1px solid ${T.green}50`, borderRadius: 7, color: T.green, fontSize: 12, fontWeight: 600, padding: "5px 10px", cursor: "pointer" }}>Punch In</button>
+            <button onClick={() => alert(`✅ Punched in successfully at ${new Date().toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' })}.\nLocation captured.`)} style={{ background: T.greenBg, border: `1px solid ${T.green}50`, borderRadius: 7, color: T.green, fontSize: 12, fontWeight: 600, padding: "5px 10px", cursor: "pointer" }}>Punch In</button>
           )}
           <NotifBell count={myNotifs.length} onClick={() => setShowNotifs(v => !v)} />
           <div style={{ textAlign: "right", display: window.innerWidth > 500 ? "block" : "none" }}>
             <div style={{ fontSize: 13, fontWeight: 600, color: T.white }}>{session.name}</div>
-            <div style={{ fontSize: 10, color: rc, textTransform: "capitalize" }}>{session.role === "field" ? "Field Agent" : session.role === "admin" ? "Administrator" : session.role === "partner" ? "Channel Partner" : "Executive"}</div>
+            <div style={{ fontSize: 10, color: rc, textTransform: "capitalize" }}>{session.role === "field" ? "Field Agent" : session.role === "admin" ? "Administrator" : session.role === "partner" ? "Channel Partner" : session.role === "developer" ? "Developer" : session.role === "agent" ? "Agent" : "Executive"}</div>
           </div>
           <button onClick={onLogout} style={{ background: "rgba(255,255,255,0.08)", border: "0.5px solid rgba(255,255,255,0.15)", borderRadius: 7, color: "rgba(255,255,255,0.65)", fontSize: 12, padding: "5px 10px", cursor: "pointer" }}>Out</button>
         </div>
@@ -560,7 +570,7 @@ function Shell({ session, onLogout, navItems, children, activeNav, setActiveNav,
 }
 
 // ─── ADMIN APP ────────────────────────────────────────────────────────────────
-const AN = [{ id:"dashboard",label:"Dashboard" },{ id:"kpf",label:"📊 KPF" },{ id:"users",label:"Users" },{ id:"leads",label:"All Leads" },{ id:"logs",label:"Daily Logs" },{ id:"pipeline",label:"Pipeline" },{ id:"escalations",label:"Escalations" },{ id:"external",label:"External Follow-Ups" },{ id:"calculator",label:"🧮 Calculator" },{ id:"inventory",label:"🏗️ Inventory" },{ id:"hr",label:"🤝 HR" },{ id:"marketing",label:"📢 Marketing" },{ id:"postsales",label:"🔑 Post-Sales" }];
+const AN = [{ id: "dashboard", label: "Dashboard" }, { id: "kpf", label: "📊 KPF" }, { id: "users", label: "Users" }, { id: "leads", label: "All Leads" }, { id: "logs", label: "Daily Logs" }, { id: "pipeline", label: "Pipeline" }, { id: "escalations", label: "Escalations" }, { id: "external", label: "External Follow-Ups" }, { id: "calculator", label: "🧮 Calculator" }, { id: "inventory", label: "🏗️ Inventory" }, { id: "hr", label: "🤝 HR" }, { id: "marketing", label: "📢 Marketing" }, { id: "postsales", label: "🔑 Post-Sales" }];
 function AdminApp({ store, persist, session, onLogout }) {
   const [nav, setNav] = useState("dashboard");
   const [sel, setSel] = useState(null);
@@ -585,6 +595,24 @@ function AdminApp({ store, persist, session, onLogout }) {
     {nav === "inventory" && <InventoryModule />}
     {nav === "hr" && <HRModule store={store} />}
     {nav === "marketing" && <MarketingModule />}
+    {nav === "postsales" && <PostSalesModule store={store} />}
+  </Shell>);
+}
+
+// ─── DEVELOPER APP ────────────────────────────────────────────────────────────
+const DEV_AN = [{ id: "inventory", label: "🏗️ Inventory" }];
+function DeveloperApp({ store, persist, session, onLogout }) {
+  const [nav, setNav] = useState("inventory");
+  return (<Shell session={session} onLogout={onLogout} navItems={DEV_AN} activeNav={nav} setActiveNav={setNav} store={store} persist={persist}>
+    {nav === "inventory" && <InventoryModule />}
+  </Shell>);
+}
+
+// ─── AGENT APP ────────────────────────────────────────────────────────────────
+const AGENT_AN = [{ id: "postsales", label: "🔑 Post-Sales" }];
+function AgentApp({ store, persist, session, onLogout }) {
+  const [nav, setNav] = useState("postsales");
+  return (<Shell session={session} onLogout={onLogout} navItems={AGENT_AN} activeNav={nav} setActiveNav={setNav} store={store} persist={persist}>
     {nav === "postsales" && <PostSalesModule store={store} />}
   </Shell>);
 }
@@ -840,7 +868,7 @@ function AdminDash({ store, onSel }) {
         const ml = leads.filter(l => l.assignedTo === u.id); const log = (store.dailyLogs || {})[u.id]?.[td()];
         const myEsc = (store.escalations || []).filter(e => e.staffId === u.id && e.date === td()).length;
         return (<div key={u.id} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "10px 0", borderTop: `0.5px solid ${T.border}`, opacity: u.active === false ? 0.45 : 1 }}>
-          <div><div style={{ fontWeight: 500, fontSize: 14, color: T.text }}>{u.name} <Tg c={u.role === "field" ? "#5C6BC0" : u.role === "partner" ? "#0F6E56" : T.navy}>{u.role === "field" ? "Field" : u.role === "partner" ? "Partner" : "Executive"}</Tg>{u.active === false && <Tg c={T.red}>Inactive</Tg>}</div>
+          <div><div style={{ fontWeight: 500, fontSize: 14, color: T.text }}>{u.name} <Tg c={u.role === "field" ? "#5C6BC0" : u.role === "partner" ? "#0F6E56" : u.role === "developer" ? T.amber : u.role === "agent" ? T.purple : T.navy}>{u.role === "field" ? "Field" : u.role === "partner" ? "Partner" : u.role === "developer" ? "Developer" : u.role === "agent" ? "Agent" : "Executive"}</Tg>{u.active === false && <Tg c={T.red}>Inactive</Tg>}</div>
             <div style={{ fontSize: 12, color: T.textLight }}>@{u.username} · {ml.length} leads · {ml.filter(l => l.currentStep < 38).length} active{myEsc > 0 ? ` · ⚠️ ${myEsc} escalation` : ""}</div></div>
           <div style={{ fontSize: 12, color: log ? T.green : T.textLight }}>{log ? "✓ Log submitted today" : "No log today"}</div>
         </div>);
@@ -887,6 +915,8 @@ function ManageUsers({ store, persist }) {
           <option value="executive">Executive (Full CRM — all 38 steps)</option>
           <option value="field">Field Agent (Lead capture & enquiry only)</option>
           <option value="partner">Channel Partner (view own leads status only)</option>
+          <option value="developer">Developer (Inventory access only)</option>
+          <option value="agent">Post-Sales Agent (Post-sales access only)</option>
         </select></F>
       </Grid>
       {f.role === "partner" && <div style={{ marginBottom: 10 }}><F l="Partner Code (optional)"><input value={f.partnerCode} onChange={e => setF(x => ({ ...x, partnerCode: e.target.value }))} placeholder="e.g. CP001" /></F></div>}
@@ -898,7 +928,7 @@ function ManageUsers({ store, persist }) {
       {users.map(u => (
         <div key={u.id} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "12px 0", borderTop: `0.5px solid ${T.border}`, opacity: u.active === false ? 0.5 : 1 }}>
           <div>
-            <div style={{ fontWeight: 500, fontSize: 14, color: T.text }}>{u.name} <Tg c={u.role === "field" ? "#5C6BC0" : u.role === "partner" ? "#0F6E56" : T.navy}>{u.role === "field" ? "Field Agent" : u.role === "partner" ? "Channel Partner" : "Executive"}</Tg></div>
+            <div style={{ fontWeight: 500, fontSize: 14, color: T.text }}>{u.name} <Tg c={u.role === "field" ? "#5C6BC0" : u.role === "partner" ? "#0F6E56" : u.role === "developer" ? T.amber : u.role === "agent" ? T.purple : T.navy}>{u.role === "field" ? "Field Agent" : u.role === "partner" ? "Channel Partner" : u.role === "developer" ? "Developer" : u.role === "agent" ? "Agent" : "Executive"}</Tg></div>
             <div style={{ fontSize: 12, color: T.textLight }}>@{u.username}{u.partnerCode ? ` · Code: ${u.partnerCode}` : ""} · Created {u.createdAt} · {(store.leads || []).filter(l => l.assignedTo === u.id).length} leads</div>
           </div>
           <div style={{ display: "flex", gap: 6 }}>
@@ -920,7 +950,7 @@ function AdminLogs({ store }) {
   return (<div className="fade">
     <ST>Daily Logs</ST>
     <select value={selU} onChange={e => setSelU(e.target.value)} style={{ maxWidth: 280, marginBottom: 16 }}>
-      {users.map(u => <option key={u.id} value={u.id}>{u.name} ({u.role === "field" ? "Field" : u.role === "partner" ? "Partner" : "Executive"})</option>)}
+      {users.map(u => <option key={u.id} value={u.id}>{u.name} ({u.role === "field" ? "Field" : u.role === "partner" ? "Partner" : u.role === "developer" ? "Developer" : u.role === "agent" ? "Agent" : "Executive"})</option>)}
     </select>
     {dates.length === 0 && selU && <div style={{ fontSize: 13, color: T.textLight }}>No logs submitted by {user?.name} yet.</div>}
     {dates.map(d => (
@@ -1081,7 +1111,7 @@ function ExternalFollowups({ store, persist }) {
 }
 
 // ─── EXECUTIVE APP ────────────────────────────────────────────────────────────
-const EN = [{ id:"today",label:"Today" },{ id:"leads",label:"My Leads" },{ id:"add",label:"Add Lead" },{ id:"followups",label:"Follow-Ups" },{ id:"guide",label:"Process Guide" },{ id:"external",label:"External" },{ id:"log",label:"Daily Log" },{ id:"calculator",label:"🧲 Calculator" },{ id:"inventory",label:"🏗️ Inventory" }];
+const EN = [{ id: "today", label: "Today" }, { id: "leads", label: "My Leads" }, { id: "add", label: "Add Lead" }, { id: "followups", label: "Follow-Ups" }, { id: "guide", label: "Process Guide" }, { id: "external", label: "External" }, { id: "log", label: "Daily Log" }, { id: "calculator", label: "🧲 Calculator" }, { id: "inventory", label: "🏗️ Inventory" }];
 function ExecutiveApp({ store, persist, session, onLogout }) {
   const [nav, setNav] = useState("today"); const [sel, setSel] = useState(null);
   const myLeads = (store.leads || []).filter(l => l.assignedTo === session.id);
@@ -1367,21 +1397,21 @@ function LeadDetail({ lead, store, onBack, onUpdate, onDelete, isAdmin, fieldOnl
           </div>
         )}
         <div style={{ background: cm.bg, border: `1px solid ${cm.border}`, borderRadius: 16, padding: 20, marginBottom: 14, boxShadow: `0 4px 20px ${cm.color}18` }}>
-          <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center", marginBottom:12 }}>
+          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 12 }}>
             <div>
               <div style={{ fontSize: 10, color: cm.color, fontWeight: 700, textTransform: "uppercase", letterSpacing: 1.2, marginBottom: 3 }}>Step {step.id} of {maxStep} · {cm.label}</div>
               <div style={{ fontFamily: "'Playfair Display',serif", fontSize: 18, fontWeight: 700, color: cm.color }}>{step.label}</div>
             </div>
-            {allDone && <div style={{ background: T.green, color:"#fff", borderRadius:10, padding:"6px 14px", fontSize:12, fontWeight:700 }}>✓ Complete</div>}
+            {allDone && <div style={{ background: T.green, color: "#fff", borderRadius: 10, padding: "6px 14px", fontSize: 12, fontWeight: 700 }}>✓ Complete</div>}
           </div>
-          <div style={{ fontSize: 13, color: T.text, lineHeight: 1.8, marginBottom: 16, paddingBottom:14, borderBottom:`1px solid ${cm.border}` }}>{step.desc}</div>
-          <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center", marginBottom: 10 }}>
-            <div style={{ fontWeight: 700, fontSize: 12, color: cm.color, textTransform:"uppercase", letterSpacing:0.8 }}>Actions to complete</div>
-            <div onClick={selectAll} style={{ display:"flex", alignItems:"center", gap:6, cursor:"pointer", userSelect:"none" }}>
-              <div style={{ width:18, height:18, borderRadius:5, border:`2px solid ${allDone ? T.green : cm.color}`, background:allDone ? T.green : "transparent", display:"flex", alignItems:"center", justifyContent:"center", transition:"all 0.15s" }}>
-                {allDone && <svg width="10" height="8"><path d="M1 4l3 3 5-6" stroke="#fff" strokeWidth="2" fill="none" strokeLinecap="round"/></svg>}
+          <div style={{ fontSize: 13, color: T.text, lineHeight: 1.8, marginBottom: 16, paddingBottom: 14, borderBottom: `1px solid ${cm.border}` }}>{step.desc}</div>
+          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 10 }}>
+            <div style={{ fontWeight: 700, fontSize: 12, color: cm.color, textTransform: "uppercase", letterSpacing: 0.8 }}>Actions to complete</div>
+            <div onClick={selectAll} style={{ display: "flex", alignItems: "center", gap: 6, cursor: "pointer", userSelect: "none" }}>
+              <div style={{ width: 18, height: 18, borderRadius: 5, border: `2px solid ${allDone ? T.green : cm.color}`, background: allDone ? T.green : "transparent", display: "flex", alignItems: "center", justifyContent: "center", transition: "all 0.15s" }}>
+                {allDone && <svg width="10" height="8"><path d="M1 4l3 3 5-6" stroke="#fff" strokeWidth="2" fill="none" strokeLinecap="round" /></svg>}
               </div>
-              <span style={{ fontSize:12, fontWeight:600, color: allDone ? T.green : cm.color }}>Select All</span>
+              <span style={{ fontSize: 12, fontWeight: 600, color: allDone ? T.green : cm.color }}>Select All</span>
             </div>
           </div>
           {step.actions.map((a, i) => {
@@ -1390,11 +1420,11 @@ function LeadDetail({ lead, store, onBack, onUpdate, onDelete, isAdmin, fieldOnl
               <div style={{ minWidth: 22, height: 22, borderRadius: 7, border: `2px solid ${isDone ? T.green : T.border}`, background: isDone ? T.green : T.white, display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0, marginTop: 1, transition: "all 0.15s", boxShadow: isDone ? `0 2px 8px ${T.green}40` : "none" }}>
                 {isDone && <svg width="12" height="10"><path d="M1 5l4 4 6-7" stroke="#fff" strokeWidth="2" fill="none" strokeLinecap="round" /></svg>}
               </div>
-              <span style={{ fontSize: 13, color: isDone ? T.textLight : T.text, textDecoration: isDone ? "line-through" : "none", lineHeight: 1.7, transition:"all 0.15s" }}>{a}</span>
+              <span style={{ fontSize: 13, color: isDone ? T.textLight : T.text, textDecoration: isDone ? "line-through" : "none", lineHeight: 1.7, transition: "all 0.15s" }}>{a}</span>
             </div>);
           })}
           {allDone && lead.currentStep < maxStep && (
-            <div style={{ marginTop:14, padding:"10px 14px", background:`${T.green}15`, borderRadius:10, fontSize:13, color:T.green, fontWeight:600, textAlign:"center", border:`1px solid ${T.green}30` }}>
+            <div style={{ marginTop: 14, padding: "10px 14px", background: `${T.green}15`, borderRadius: 10, fontSize: 13, color: T.green, fontWeight: 600, textAlign: "center", border: `1px solid ${T.green}30` }}>
               ✓ All done! Advancing to next step automatically…
             </div>
           )}
@@ -1460,7 +1490,7 @@ function LeadDetail({ lead, store, onBack, onUpdate, onDelete, isAdmin, fieldOnl
                   <div style={{ fontSize: 13, color: "#111b21", lineHeight: 1.5, whiteSpace: "pre-wrap", marginBottom: 12 }}>{c.msg}</div>
                   <div style={{ fontSize: 10, color: "#667781", position: "absolute", bottom: 4, right: 8, display: "flex", alignItems: "center", gap: 4 }}>
                     {c.time}
-                    <svg viewBox="0 0 16 15" width="14" height="13" fill="#53bdeb"><path d="M15.01 3.316l-.478-.372a.365.365 0 0 0-.51.063L8.666 9.879a.32.32 0 0 1-.484.033l-.358-.325a.319.319 0 0 0-.484.032l-.378.483a.418.418 0 0 0 .036.541l1.32 1.266c.143.14.361.125.484-.033l6.272-8.048a.366.366 0 0 0-.064-.512zm-4.1 0l-.478-.372a.365.365 0 0 0-.51.063L4.566 9.879a.32.32 0 0 1-.484.033L1.891 7.769a.366.366 0 0 0-.515.006l-.423.433a.364.364 0 0 0 .006.514l3.258 3.185c.143.14.361.125.484-.033l6.272-8.048a.365.365 0 0 0-.063-.51z"/></svg>
+                    <svg viewBox="0 0 16 15" width="14" height="13" fill="#53bdeb"><path d="M15.01 3.316l-.478-.372a.365.365 0 0 0-.51.063L8.666 9.879a.32.32 0 0 1-.484.033l-.358-.325a.319.319 0 0 0-.484.032l-.378.483a.418.418 0 0 0 .036.541l1.32 1.266c.143.14.361.125.484-.033l6.272-8.048a.366.366 0 0 0-.064-.512zm-4.1 0l-.478-.372a.365.365 0 0 0-.51.063L4.566 9.879a.32.32 0 0 1-.484.033L1.891 7.769a.366.366 0 0 0-.515.006l-.423.433a.364.364 0 0 0 .006.514l3.258 3.185c.143.14.361.125.484-.033l6.272-8.048a.365.365 0 0 0-.063-.51z" /></svg>
                   </div>
                 </div>
               );
@@ -1491,21 +1521,23 @@ function LeadDetail({ lead, store, onBack, onUpdate, onDelete, isAdmin, fieldOnl
         <div style={{ background: "#f0f2f5", padding: "12px 16px", display: "flex", alignItems: "center", gap: 12 }}>
           <div style={{ fontSize: 24, color: "#54656f", cursor: "pointer" }}>😊</div>
           <div style={{ fontSize: 22, color: "#54656f", cursor: "pointer", transform: "rotate(45deg)" }}>📎</div>
-          <input 
-            value={commNote} 
-            onChange={e => setCommNote(e.target.value)} 
-            placeholder="Type a message" 
-            onKeyDown={e => { if (e.key === 'Enter') { 
-              if (!commNote.trim()) return;
-              const msg = commNote.trim();
-              const commLog = [...(lead.commLog || []), { type: "WhatsApp", msg, date: td(), time: new Date().toLocaleTimeString("en-IN", { hour: "2-digit", minute: "2-digit" }), by: asgn?.name || "System" }];
-              onUpdate(lead.id, { commLog });
-              setCommNote("");
-              const phone = (lead.phone || "").replace(/\D/g, "");
-              const intlPhone = phone.length === 10 ? `91${phone}` : phone;
-              window.open(`https://wa.me/${intlPhone}?text=${encodeURIComponent(msg)}`, "_blank");
-            }}}
-            style={{ flex: 1, border: "none", borderRadius: 8, padding: "12px 16px", fontSize: 14, background: "#fff", outline: "none", boxShadow: "none", color: "#111b21" }} 
+          <input
+            value={commNote}
+            onChange={e => setCommNote(e.target.value)}
+            placeholder="Type a message"
+            onKeyDown={e => {
+              if (e.key === 'Enter') {
+                if (!commNote.trim()) return;
+                const msg = commNote.trim();
+                const commLog = [...(lead.commLog || []), { type: "WhatsApp", msg, date: td(), time: new Date().toLocaleTimeString("en-IN", { hour: "2-digit", minute: "2-digit" }), by: asgn?.name || "System" }];
+                onUpdate(lead.id, { commLog });
+                setCommNote("");
+                const phone = (lead.phone || "").replace(/\D/g, "");
+                const intlPhone = phone.length === 10 ? `91${phone}` : phone;
+                window.open(`https://wa.me/${intlPhone}?text=${encodeURIComponent(msg)}`, "_blank");
+              }
+            }}
+            style={{ flex: 1, border: "none", borderRadius: 8, padding: "12px 16px", fontSize: 14, background: "#fff", outline: "none", boxShadow: "none", color: "#111b21" }}
           />
           <button onClick={() => {
             if (!commNote.trim()) return;
@@ -2273,6 +2305,11 @@ function FinancialsTab({ lead, onUpdate }) {
 // ─── CAMPAIGNS TAB ──────────────────────────────────────────────────────────────
 function CampaignsTab({ lead, onUpdate }) {
   const activeCamp = lead.activeCampaign;
+  const automations = lead.automations || { aiCalling: false, autoWhatsapp: false, chatbots: false };
+
+  function toggleAutomation(key) {
+    onUpdate(lead.id, { automations: { ...automations, [key]: !automations[key] } });
+  }
 
   function setCamp(name) {
     onUpdate(lead.id, { activeCampaign: name, campaignStartDate: td() });
@@ -2312,6 +2349,28 @@ function CampaignsTab({ lead, onUpdate }) {
         </div>
       )}
     </Card>
+
+    <Card title="Marketing & Communication Automator">
+      <div style={{ fontSize: 13, color: T.textLight, marginBottom: 16 }}>Predefine actions based on customer behavior. AI will automatically call or message them on your behalf.</div>
+      
+      <div style={{ display: "grid", gap: 12 }}>
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", border: `1px solid ${automations.aiCalling ? T.green : T.border}`, background: automations.aiCalling ? T.greenBg : T.white, padding: 14, borderRadius: 10 }}>
+          <div>
+            <div style={{ fontWeight: 600, color: automations.aiCalling ? T.green : T.navy, fontSize: 14 }}>🤖 AI Calling for Auto Follow-Ups</div>
+            <div style={{ fontSize: 12, color: T.textLight, marginTop: 4 }}>AI automatically calls the lead if they miss a scheduled site visit or become inactive.</div>
+          </div>
+          <Btn onClick={() => toggleAutomation("aiCalling")} c={automations.aiCalling ? T.red : T.navy}>{automations.aiCalling ? "Deactivate" : "Activate AI"}</Btn>
+        </div>
+
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", border: `1px solid ${automations.autoWhatsapp ? T.green : T.border}`, background: automations.autoWhatsapp ? T.greenBg : T.white, padding: 14, borderRadius: 10 }}>
+          <div>
+            <div style={{ fontWeight: 600, color: automations.autoWhatsapp ? T.green : T.navy, fontSize: 14 }}>📱 Auto WhatsApp Communications</div>
+            <div style={{ fontSize: 12, color: T.textLight, marginTop: 4 }}>Send an immediate automated brochure and welcome text when lead status changes to "Contacted".</div>
+          </div>
+          <Btn onClick={() => toggleAutomation("autoWhatsapp")} c={automations.autoWhatsapp ? T.red : T.navy}>{automations.autoWhatsapp ? "Deactivate" : "Activate Bot"}</Btn>
+        </div>
+      </div>
+    </Card>
   </div>);
 }
 
@@ -2319,7 +2378,7 @@ function CampaignsTab({ lead, onUpdate }) {
 function InventoryModule() {
   const [proj, setProj] = useState("GharKar Heights");
   const [units, setUnits] = useState(() => Array.from({ length: 40 }, (_, i) => ({ id: `A-${101 + i}`, status: Math.random() > 0.7 ? "sold" : Math.random() > 0.8 ? "blocked" : "available" })));
-  
+
   const [costSheet, setCostSheet] = useState({ unit: "A-101", basePrice: "4500000", addons: "350000", show: false });
 
   function toggleUnit(id) {
@@ -2339,7 +2398,7 @@ function InventoryModule() {
     const stampDuty = agreementValue * 0.06; // 6%
     const gst = agreementValue * 0.05; // 5%
     const total = agreementValue + stampDuty + gst;
-    
+
     return (<div style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.5)", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 9999 }}>
       <div style={{ background: T.white, padding: 30, borderRadius: 16, width: 450, boxShadow: "0 10px 40px rgba(0,0,0,0.2)" }}>
         <ST>GharKar Cost Sheet</ST>
@@ -2375,9 +2434,9 @@ function InventoryModule() {
     <Card title="Digital Layouts & Availability">
       <div style={{ fontSize: 13, color: T.textLight, marginBottom: 10 }}>Click a unit to toggle its status: Available ➔ Blocked ➔ Sold</div>
       <div style={{ display: "flex", gap: 14, marginBottom: 16, fontSize: 13 }}>
-        <span style={{ color: T.green }}><span style={{ display:"inline-block", width:10,height:10,background:T.greenBg,marginRight:4,borderRadius:2 }} />Available</span>
-        <span style={{ color: T.amber }}><span style={{ display:"inline-block", width:10,height:10,background:"#FFF8E1",marginRight:4,borderRadius:2 }} />Blocked</span>
-        <span style={{ color: T.red }}><span style={{ display:"inline-block", width:10,height:10,background:"#FFEBEE",marginRight:4,borderRadius:2 }} />Sold</span>
+        <span style={{ color: T.green }}><span style={{ display: "inline-block", width: 10, height: 10, background: T.greenBg, marginRight: 4, borderRadius: 2 }} />Available</span>
+        <span style={{ color: T.amber }}><span style={{ display: "inline-block", width: 10, height: 10, background: "#FFF8E1", marginRight: 4, borderRadius: 2 }} />Blocked</span>
+        <span style={{ color: T.red }}><span style={{ display: "inline-block", width: 10, height: 10, background: "#FFEBEE", marginRight: 4, borderRadius: 2 }} />Sold</span>
       </div>
       <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(60px, 1fr))", gap: 8 }}>
         {units.map(u => (
@@ -2499,7 +2558,7 @@ function MarketingModule() {
           <Btn onClick={addOffer} c={T.navy}>Add</Btn>
         </div>
         <input value={newOffer.desc} onChange={e => setNewOffer(x => ({ ...x, desc: e.target.value }))} placeholder="Description (e.g. Close 3 bookings to win...)" style={{ width: "100%", marginBottom: 12 }} />
-        
+
         <div style={{ display: "grid", gap: 8, maxHeight: 200, overflowY: "auto" }}>
           {offers.map(o => (
             <div key={o.id} style={{ border: `1px solid ${T.blue}40`, background: `${T.blue}10`, padding: 12, borderRadius: 8 }}>
@@ -2609,10 +2668,10 @@ function PostSalesModule({ store }) {
 
 // ─── PRIMITIVES ───────────────────────────────────────────────────────────────
 const LBL = { fontSize: 11, fontWeight: 700, color: T.textMid, textTransform: "uppercase", letterSpacing: 0.9, display: "block", marginBottom: 6 };
-function ST({ children }) { return <div style={{ fontFamily: "'Playfair Display',serif", fontSize: 22, fontWeight: 700, color: T.navy, marginBottom: 20, paddingBottom: 12, borderBottom: `2px solid ${T.gold}40`, display:"flex", alignItems:"center", gap:10 }}>{children}</div>; }
-function Card({ title, children, accent }) { return <div className="posh-card">{accent && <div style={{ height:3, background:`linear-gradient(90deg,${accent},${accent}30)`, borderRadius:"4px 4px 0 0", margin:"-20px -22px 16px" }} />}{title && <div style={{ fontWeight: 700, fontSize: 15, color: T.navy, marginBottom: 14, display:"flex", alignItems:"center", gap:8 }}>{title}</div>}{children}</div>; }
-function Alrt({ c, bg, title, children }) { return <div style={{ background: bg, border: `1px solid ${c}35`, borderRadius: 14, padding: "14px 18px", marginBottom: 14, borderLeft:`4px solid ${c}` }}><div style={{ fontWeight: 700, fontSize: 13, color: c, marginBottom: 8 }}>{title}</div>{children}</div>; }
-function Tg({ c, children }) { return <span style={{ fontSize: 11, background: `${c}15`, color: c, padding: "3px 10px", borderRadius: 20, fontWeight: 700, display: "inline-block", border:`1px solid ${c}25` }}>{children}</span>; }
+function ST({ children }) { return <div style={{ fontFamily: "'Playfair Display',serif", fontSize: 22, fontWeight: 700, color: T.navy, marginBottom: 20, paddingBottom: 12, borderBottom: `2px solid ${T.gold}40`, display: "flex", alignItems: "center", gap: 10 }}>{children}</div>; }
+function Card({ title, children, accent }) { return <div className="posh-card">{accent && <div style={{ height: 3, background: `linear-gradient(90deg,${accent},${accent}30)`, borderRadius: "4px 4px 0 0", margin: "-20px -22px 16px" }} />}{title && <div style={{ fontWeight: 700, fontSize: 15, color: T.navy, marginBottom: 14, display: "flex", alignItems: "center", gap: 8 }}>{title}</div>}{children}</div>; }
+function Alrt({ c, bg, title, children }) { return <div style={{ background: bg, border: `1px solid ${c}35`, borderRadius: 14, padding: "14px 18px", marginBottom: 14, borderLeft: `4px solid ${c}` }}><div style={{ fontWeight: 700, fontSize: 13, color: c, marginBottom: 8 }}>{title}</div>{children}</div>; }
+function Tg({ c, children }) { return <span style={{ fontSize: 11, background: `${c}15`, color: c, padding: "3px 10px", borderRadius: 20, fontWeight: 700, display: "inline-block", border: `1px solid ${c}25` }}>{children}</span>; }
 function Btn({ onClick, c, children, full }) { return <button onClick={onClick} className="posh-btn" style={{ background: c, color: "#fff", width: full ? "100%" : undefined, justifyContent: full ? "center" : undefined }}>{children}</button>; }
 function Grid({ cols, gap, mb, children }) { return <div style={{ display: "grid", gridTemplateColumns: cols, gap, marginBottom: mb }}>{children}</div>; }
 function F({ l, children }) { return <div style={{ marginBottom: 2 }}><label style={LBL}>{l}</label>{children}</div>; }
