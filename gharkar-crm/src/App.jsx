@@ -416,7 +416,7 @@ export default function App() {
     });
   }, []);
 
-  function login(u, p) {
+  function login(u, p, mode) {
     const cleanU = (u || '').trim().toLowerCase();
     const cleanP = (p || '').trim();
     const user = store.users.find(x =>
@@ -425,6 +425,10 @@ export default function App() {
       x.active !== false
     );
     if (user) {
+      if (mode === "exec" && user.role !== "admin" && user.role !== "exec") return false;
+      if (mode === "field" && user.role !== "field") return false;
+      if (mode === "developer" && user.role !== "developer") return false;
+      if (mode === "agent" && user.role !== "agent") return false;
       setSession(user);
       return true;
     }
@@ -454,7 +458,7 @@ export default function App() {
 function LoginPage({ onLogin }) {
   const [mode, setMode] = useState(null);
   const [u, setU] = useState(""); const [p, setP] = useState(""); const [err, setErr] = useState("");
-  function submit() { if (!onLogin(u, p)) setErr("Invalid credentials. Please try again."); }
+  function submit() { if (!onLogin(u, p, mode)) setErr("Invalid credentials or incorrect login portal. Please try again."); }
   return (
     <div style={{ minHeight: "100vh", background: `linear-gradient(135deg,${T.navy} 0%,${T.navyMid} 55%,${T.navyLight} 100%)`, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", padding: "2rem 1rem" }}>
       <style>{STYLE}</style>
@@ -479,7 +483,7 @@ function LoginPage({ onLogin }) {
           </button>
           <button onClick={() => setMode("agent")} style={{ background: "transparent", border: "1.5px solid rgba(255,255,255,0.22)", borderRadius: 16, padding: "22px 26px", color: T.white, textAlign: "left", cursor: "pointer" }}>
             <div style={{ fontFamily: "'Playfair Display',serif", fontSize: 19, fontWeight: 700, color: "rgba(255,255,255,0.9)", marginBottom: 4 }}>Agent Login</div>
-            <div style={{ fontSize: 13, color: "rgba(255,255,255,0.45)" }}>Post-Sales Agents — Access to post-sales tracking and handover</div>
+            <div style={{ fontSize: 13, color: "rgba(255,255,255,0.45)" }}>Agents — Access to post-sales tracking and handover</div>
           </button>
           <button onClick={() => setMode("exec")} style={{ background: "none", border: "none", color: "rgba(255,255,255,0.3)", fontSize: 12, marginTop: 4, textDecoration: "underline", cursor: "pointer" }}>Admin? Use Executive login with admin credentials</button>
         </div>
@@ -592,10 +596,9 @@ function AdminApp({ store, persist, session, onLogout }) {
     {nav === "escalations" && <EscalationView store={store} persist={persist} />}
     {nav === "external" && <ExternalFollowups store={store} persist={persist} />}
     {nav === "calculator" && <EMICalculator />}
-    {nav === "inventory" && <InventoryModule />}
+    {nav === "comms" && <CommunicationsModule store={store} persist={persist} session={session} />}
     {nav === "hr" && <HRModule store={store} />}
     {nav === "marketing" && <MarketingModule />}
-    {nav === "postsales" && <PostSalesModule store={store} />}
   </Shell>);
 }
 
@@ -665,7 +668,11 @@ function KPFDashboard({ store, onSel }) {
     const mt = ml.filter(l => l.followUp === today && l.currentStep < 39);
     const mn = ml.filter(l => !l.followUp && l.currentStep < 39);
     const cr = ml.length > 0 ? Math.round((md.length / ml.length) * 100) : 0;
-    return { user: u, total: ml.length, active: ma.length, disbursed: md.length, overdue: mo.length, todayFU: mt.length, noFU: mn.length, convRate: cr };
+    // Mock call and site visit data based on active leads count
+    const calls = Math.round(ma.length * 1.5 + Math.random() * 5);
+    const visits = Math.round(ma.length * 0.2 + Math.random() * 2);
+    const callTime = Math.round(calls * 3.5); // avg 3.5 mins per call
+    return { user: u, total: ml.length, active: ma.length, disbursed: md.length, overdue: mo.length, todayFU: mt.length, noFU: mn.length, convRate: cr, calls, visits, callTime };
   }).sort((a, b) => b.total - a.total);
   const maxLeads = Math.max(...staffPerf.map(s => s.total), 1);
 
@@ -772,7 +779,7 @@ function KPFDashboard({ store, onSel }) {
             <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 13 }}>
               <thead>
                 <tr style={{ borderBottom: `2px solid ${T.border}` }}>
-                  {["Executive", "Leads", "Active", "Disbursed", "Conv%", "Today FU", "Overdue", "No FU"].map(h => (
+                  {["Executive", "Leads", "Active", "Disbursed", "Conv%", "Today FU", "Calls", "Visits", "Overdue"].map(h => (
                     <th key={h} style={{ padding: "8px 10px", textAlign: "left", fontSize: 10, fontWeight: 700, color: T.textLight, textTransform: "uppercase", letterSpacing: 0.8, whiteSpace: "nowrap" }}>{h}</th>
                   ))}
                 </tr>
@@ -806,10 +813,12 @@ function KPFDashboard({ store, onSel }) {
                     </td>
                     <td style={{ padding: "10px 10px", fontWeight: 600, color: T.amber }}>{s.todayFU}</td>
                     <td style={{ padding: "10px 10px" }}>
-                      <span style={{ color: s.overdue > 0 ? T.red : T.green, fontWeight: 700 }}>{s.overdue}</span>
+                      <div style={{ fontWeight: 600, color: T.navy }}>{s.calls}</div>
+                      <div style={{ fontSize: 10, color: T.textLight }}>{s.callTime} mins</div>
                     </td>
+                    <td style={{ padding: "10px 10px", fontWeight: 600, color: T.purple }}>{s.visits}</td>
                     <td style={{ padding: "10px 10px" }}>
-                      <span style={{ color: s.noFU > 0 ? T.amber : T.green, fontWeight: 700 }}>{s.noFU}</span>
+                      <span style={{ color: s.overdue > 0 ? T.red : T.green, fontWeight: 700 }}>{s.overdue}</span>
                     </td>
                   </tr>
                 ))}
@@ -916,7 +925,7 @@ function ManageUsers({ store, persist }) {
           <option value="field">Field Agent (Lead capture & enquiry only)</option>
           <option value="partner">Channel Partner (view own leads status only)</option>
           <option value="developer">Developer (Inventory access only)</option>
-          <option value="agent">Post-Sales Agent (Post-sales access only)</option>
+          <option value="agent">Agent (Post-sales access only)</option>
         </select></F>
       </Grid>
       {f.role === "partner" && <div style={{ marginBottom: 10 }}><F l="Partner Code (optional)"><input value={f.partnerCode} onChange={e => setF(x => ({ ...x, partnerCode: e.target.value }))} placeholder="e.g. CP001" /></F></div>}
@@ -1111,7 +1120,7 @@ function ExternalFollowups({ store, persist }) {
 }
 
 // ─── EXECUTIVE APP ────────────────────────────────────────────────────────────
-const EN = [{ id: "today", label: "Today" }, { id: "leads", label: "My Leads" }, { id: "add", label: "Add Lead" }, { id: "followups", label: "Follow-Ups" }, { id: "guide", label: "Process Guide" }, { id: "external", label: "External" }, { id: "log", label: "Daily Log" }, { id: "calculator", label: "🧲 Calculator" }, { id: "inventory", label: "🏗️ Inventory" }];
+const EN = [{ id: "today", label: "Today" }, { id: "leads", label: "My Leads" }, { id: "add", label: "Add Lead" }, { id: "followups", label: "Follow-Ups" }, { id: "comms", label: "📞 Comms" }, { id: "guide", label: "Process Guide" }, { id: "external", label: "External" }, { id: "log", label: "Daily Log" }, { id: "calculator", label: "🧲 Calculator" }];
 function ExecutiveApp({ store, persist, session, onLogout }) {
   const [nav, setNav] = useState("today"); const [sel, setSel] = useState(null);
   const myLeads = (store.leads || []).filter(l => l.assignedTo === session.id);
@@ -1141,7 +1150,7 @@ function ExecutiveApp({ store, persist, session, onLogout }) {
     {nav === "external" && <ExecExternal store={store} persist={persist} session={session} />}
     {nav === "log" && <DailyLog session={session} dailyLogs={store.dailyLogs || {}} onSave={saveLog} />}
     {nav === "calculator" && <EMICalculator />}
-    {nav === "inventory" && <InventoryModule />}
+    {nav === "comms" && <CommunicationsModule store={store} persist={persist} session={session} />}
   </Shell>);
 }
 
@@ -2352,7 +2361,7 @@ function CampaignsTab({ lead, onUpdate }) {
 
     <Card title="Marketing & Communication Automator">
       <div style={{ fontSize: 13, color: T.textLight, marginBottom: 16 }}>Predefine actions based on customer behavior. AI will automatically call or message them on your behalf.</div>
-      
+
       <div style={{ display: "grid", gap: 12 }}>
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", border: `1px solid ${automations.aiCalling ? T.green : T.border}`, background: automations.aiCalling ? T.greenBg : T.white, padding: 14, borderRadius: 10 }}>
           <div>
@@ -2536,11 +2545,10 @@ function HRModule({ store }) {
 
 // ─── MARKETING MODULE ─────────────────────────────────────────────────────────
 function MarketingModule() {
-  const [offers, setOffers] = useState([
-    { id: 1, title: "Diwali Gold Coin Bonanza!", desc: "Close 3 bookings before Nov 15th to win a 10g Gold Coin." }
-  ]);
+  const [offers, setOffers] = useState([{ id: 1, title: "Diwali Gold Coin Bonanza!", desc: "Close 3 bookings before Nov 15th to win a 10g Gold Coin." }]);
   const [newOffer, setNewOffer] = useState({ title: "", desc: "" });
   const [walkins, setWalkins] = useState(142);
+  const [tab, setTab] = useState("automator");
 
   function addOffer() {
     if (!newOffer.title) return;
@@ -2549,49 +2557,148 @@ function MarketingModule() {
   }
 
   return (<div className="fade">
-    <ST>📢 Marketing & Events</ST>
-    <Grid cols="1fr 1fr" gap={14} mb={14}>
-      <Card title="Bonanza Offers">
-        <div style={{ fontSize: 13, color: T.textLight, marginBottom: 10 }}>Active offers shown in the Agent Mobile App.</div>
-        <div style={{ display: "flex", gap: 8, marginBottom: 10 }}>
-          <input value={newOffer.title} onChange={e => setNewOffer(x => ({ ...x, title: e.target.value }))} placeholder="Offer Title" style={{ flex: 1 }} />
-          <Btn onClick={addOffer} c={T.navy}>Add</Btn>
-        </div>
-        <input value={newOffer.desc} onChange={e => setNewOffer(x => ({ ...x, desc: e.target.value }))} placeholder="Description (e.g. Close 3 bookings to win...)" style={{ width: "100%", marginBottom: 12 }} />
+    <ST>📢 Marketing & Automations</ST>
+    <div style={{ display: "flex", gap: 4, marginBottom: 20, background: T.creamDark, borderRadius: 12, padding: 4 }}>
+      {[{ id: "automator", label: "Workflow Automator" }, { id: "chatbots", label: "Chatbots & Auto Responders" }, { id: "rechurn", label: "Lead Rechurn Process" }, { id: "events", label: "Events & Offers" }].map(t => (
+        <button key={t.id} onClick={() => setTab(t.id)} style={{ flex: 1, padding: "9px 0", border: "none", borderRadius: 9, background: tab === t.id ? T.navy : "transparent", color: tab === t.id ? T.gold : T.textMid, fontWeight: tab === t.id ? 600 : 400, fontSize: 13, cursor: "pointer", transition: "all 0.2s" }}>{t.label}</button>
+      ))}
+    </div>
 
-        <div style={{ display: "grid", gap: 8, maxHeight: 200, overflowY: "auto" }}>
-          {offers.map(o => (
-            <div key={o.id} style={{ border: `1px solid ${T.blue}40`, background: `${T.blue}10`, padding: 12, borderRadius: 8 }}>
-              <div style={{ fontSize: 14, fontWeight: 700, color: T.blue }}>{o.title}</div>
-              <div style={{ fontSize: 12, color: T.text, marginTop: 4 }}>{o.desc}</div>
+    {tab === "automator" && (
+      <Card title="Customer Journey Automator" accent={T.blue}>
+        <div style={{ fontSize: 13, color: T.textLight, marginBottom: 16 }}>Predefine actions based on customer behavior. Connect activities to specific triggers and build an intelligent strategy to engage the customer journey.</div>
+        <div style={{ background: T.cream, border: `1px solid ${T.border}`, borderRadius: 12, padding: 16, marginBottom: 14 }}>
+          <div style={{ fontWeight: 600, color: T.navy, marginBottom: 8 }}>1. Pre-Visit Nurturing Flow</div>
+          <div style={{ display: "flex", flexWrap: "wrap", gap: 10, alignItems: "center", fontSize: 13 }}>
+            <span style={{ background: T.white, padding: "6px 12px", borderRadius: 20, border: `1px solid ${T.border}` }}>New Lead Assigned</span>
+            <span>➔</span>
+            <span style={{ background: T.white, padding: "6px 12px", borderRadius: 20, border: `1px solid ${T.border}` }}>Wait 5 Mins</span>
+            <span>➔</span>
+            <span style={{ background: T.greenBg, color: T.green, padding: "6px 12px", borderRadius: 20, border: `1px solid ${T.green}` }}>Auto WhatsApp Brochure</span>
+            <span>➔</span>
+            <span style={{ background: T.blueBg, color: T.blue, padding: "6px 12px", borderRadius: 20, border: `1px solid ${T.blue}` }}>Auto Email Pricing</span>
+          </div>
+        </div>
+        <div style={{ background: T.cream, border: `1px solid ${T.border}`, borderRadius: 12, padding: 16, marginBottom: 14 }}>
+          <div style={{ fontWeight: 600, color: T.navy, marginBottom: 8 }}>2. Site Visit Reminders</div>
+          <div style={{ display: "flex", flexWrap: "wrap", gap: 10, alignItems: "center", fontSize: 13 }}>
+            <span style={{ background: T.white, padding: "6px 12px", borderRadius: 20, border: `1px solid ${T.border}` }}>Site Visit Scheduled</span>
+            <span>➔</span>
+            <span style={{ background: T.white, padding: "6px 12px", borderRadius: 20, border: `1px solid ${T.border}` }}>1 Day Before</span>
+            <span>➔</span>
+            <span style={{ background: T.amberBg, color: T.amber, padding: "6px 12px", borderRadius: 20, border: `1px solid ${T.amber}` }}>Automated IVR Call</span>
+            <span>➔</span>
+            <span style={{ background: T.greenBg, color: T.green, padding: "6px 12px", borderRadius: 20, border: `1px solid ${T.green}` }}>WhatsApp Location Map</span>
+          </div>
+        </div>
+        <Btn c={T.navy}>+ Create New Automation Rule</Btn>
+      </Card>
+    )}
+
+    {tab === "chatbots" && (
+      <Grid cols="1fr 1fr" gap={16} mb={14}>
+        <Card title="Keyword Auto-Responders" accent={T.green}>
+          <div style={{ fontSize: 13, color: T.textLight, marginBottom: 16 }}>Set up auto-responses based on keywords sent by customers.</div>
+          <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+            {[{ k: "price, pricing, cost", r: "Sending automated pricing sheet..." }, { k: "location, map, directions", r: "Sending Google Maps pin..." }].map((kr, i) => (
+              <div key={i} style={{ border: `1px solid ${T.border}`, borderRadius: 8, padding: 10, background: T.white }}>
+                <div style={{ fontSize: 12, fontWeight: 700, color: T.navy, marginBottom: 4 }}>Keywords: <Tg c={T.navy}>{kr.k}</Tg></div>
+                <div style={{ fontSize: 13, color: T.text }}>Reply: {kr.r}</div>
+              </div>
+            ))}
+          </div>
+          <div style={{ marginTop: 14 }}>
+            <input placeholder="Keywords (comma separated)" style={{ width: "100%", marginBottom: 8 }} />
+            <input placeholder="Auto-Response Message" style={{ width: "100%", marginBottom: 8 }} />
+            <Btn c={T.green} full>Add Keyword Rule</Btn>
+          </div>
+        </Card>
+        <Card title="AI Conversational Bot" accent={T.purple}>
+          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 16 }}>
+            <div style={{ fontWeight: 600, color: T.navy }}>Gemini Powered AI Agent</div>
+            <Tg c={T.green}>Active</Tg>
+          </div>
+          <div style={{ fontSize: 13, color: T.textLight, marginBottom: 16 }}>The AI agent will answer natural language queries based on your project inventory and pricing data. It can qualify leads before passing them to humans.</div>
+          <div style={{ background: T.cream, padding: 12, borderRadius: 8, fontSize: 13, marginBottom: 16 }}>
+            <div style={{ color: T.textMid, marginBottom: 6 }}><strong>User:</strong> Are there any 3BHKs available under 1 Crore?</div>
+            <div style={{ color: T.purple }}><strong>Bot:</strong> Yes! We have 2 units available in GharKar Heights starting at 95 Lakhs. Would you like me to schedule a site visit?</div>
+          </div>
+          <Btn c={T.purple} full>Configure AI Knowledge Base</Btn>
+        </Card>
+      </Grid>
+    )}
+
+    {tab === "rechurn" && (
+      <Card title="Lead Rechurn & Drip Campaigns" accent={T.amber}>
+        <div style={{ fontSize: 13, color: T.textLight, marginBottom: 16 }}>Auto engage your unproductive/inactive customers for the next 3 years. Turn dead leads into new opportunities without manual effort.</div>
+        <table style={{ width: "100%", textAlign: "left", fontSize: 13, borderCollapse: "collapse", marginBottom: 20 }}>
+          <thead>
+            <tr style={{ borderBottom: `2px solid ${T.border}` }}>
+              <th style={{ padding: "8px 0", color: T.navy }}>Campaign Name</th>
+              <th style={{ padding: "8px 0", color: T.navy }}>Target Audience</th>
+              <th style={{ padding: "8px 0", color: T.navy }}>Duration</th>
+              <th style={{ padding: "8px 0", color: T.navy }}>Status</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr style={{ borderBottom: `1px solid ${T.border}` }}>
+              <td style={{ padding: "10px 0", fontWeight: 500 }}>3-Year Dead Lead Nurture</td><td style={{ padding: "10px 0" }}>Lost/Dropped Leads</td><td style={{ padding: "10px 0" }}>36 Months</td><td style={{ padding: "10px 0" }}><Tg c={T.green}>Running</Tg></td>
+            </tr>
+            <tr style={{ borderBottom: `1px solid ${T.border}` }}>
+              <td style={{ padding: "10px 0", fontWeight: 500 }}>Festive Revival</td><td style={{ padding: "10px 0" }}>No Response (Last 60 Days)</td><td style={{ padding: "10px 0" }}>14 Days</td><td style={{ padding: "10px 0" }}><Tg c={T.amber}>Paused</Tg></td>
+            </tr>
+          </tbody>
+        </table>
+        <Btn c={T.amber}>Build New Rechurn Campaign</Btn>
+      </Card>
+    )}
+
+    {tab === "events" && (
+      <>
+        <Grid cols="1fr 1fr" gap={14} mb={14}>
+          <Card title="Bonanza Offers">
+            <div style={{ fontSize: 13, color: T.textLight, marginBottom: 10 }}>Active offers shown in the Agent Mobile App.</div>
+            <div style={{ display: "flex", gap: 8, marginBottom: 10 }}>
+              <input value={newOffer.title} onChange={e => setNewOffer(x => ({ ...x, title: e.target.value }))} placeholder="Offer Title" style={{ flex: 1 }} />
+              <Btn onClick={addOffer} c={T.navy}>Add</Btn>
             </div>
-          ))}
-        </div>
-      </Card>
-      <Card title="Cust Mela Tracker">
-        <div style={{ fontSize: 13, color: T.textLight, marginBottom: 10 }}>Track live walk-ins during events.</div>
-        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", border: `1px solid ${T.border}`, padding: 12, borderRadius: 8 }}>
-          <div>
-            <div style={{ fontWeight: 600 }}>Pune Mega Mela</div>
-            <div style={{ fontSize: 11, color: T.textLight }}>Today</div>
+            <input value={newOffer.desc} onChange={e => setNewOffer(x => ({ ...x, desc: e.target.value }))} placeholder="Description (e.g. Close 3 bookings to win...)" style={{ width: "100%", marginBottom: 12 }} />
+
+            <div style={{ display: "grid", gap: 8, maxHeight: 200, overflowY: "auto" }}>
+              {offers.map(o => (
+                <div key={o.id} style={{ border: `1px solid ${T.blue}40`, background: `${T.blue}10`, padding: 12, borderRadius: 8 }}>
+                  <div style={{ fontSize: 14, fontWeight: 700, color: T.blue }}>{o.title}</div>
+                  <div style={{ fontSize: 12, color: T.text, marginTop: 4 }}>{o.desc}</div>
+                </div>
+              ))}
+            </div>
+          </Card>
+          <Card title="Cust Mela Tracker">
+            <div style={{ fontSize: 13, color: T.textLight, marginBottom: 10 }}>Track live walk-ins during events.</div>
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", border: `1px solid ${T.border}`, padding: 12, borderRadius: 8 }}>
+              <div>
+                <div style={{ fontWeight: 600 }}>Pune Mega Mela</div>
+                <div style={{ fontSize: 11, color: T.textLight }}>Today</div>
+              </div>
+              <div style={{ display: "flex", alignItems: "center", gap: 14 }}>
+                <div style={{ fontSize: 28, fontWeight: 700, color: T.green }}>{walkins}</div>
+                <button onClick={() => setWalkins(w => w + 1)} style={{ background: T.greenBg, border: `1px solid ${T.green}`, color: T.green, padding: "8px 12px", borderRadius: 8, cursor: "pointer", fontWeight: 700, fontSize: 16 }}>+1</button>
+              </div>
+            </div>
+          </Card>
+        </Grid>
+        <Card title="Marketing Creatives Access (Collateral)">
+          <div style={{ display: "flex", gap: 10, overflowX: "auto", paddingBottom: 6 }}>
+            {["Brochures", "Floor Plans", "Walkthrough Videos", "Price Highlights"].map(f => (
+              <div key={f} style={{ minWidth: 140, padding: 20, background: T.white, border: `1px solid ${T.border}`, borderRadius: 12, textAlign: "center", cursor: "pointer", transition: "transform 0.2s" }} onMouseEnter={e => e.currentTarget.style.transform = "scale(1.05)"} onMouseLeave={e => e.currentTarget.style.transform = "scale(1)"}>
+                <div style={{ fontSize: 30, marginBottom: 8 }}>📁</div>
+                <div style={{ fontSize: 13, fontWeight: 600 }}>{f}</div>
+              </div>
+            ))}
           </div>
-          <div style={{ display: "flex", alignItems: "center", gap: 14 }}>
-            <div style={{ fontSize: 28, fontWeight: 700, color: T.green }}>{walkins}</div>
-            <button onClick={() => setWalkins(w => w + 1)} style={{ background: T.greenBg, border: `1px solid ${T.green}`, color: T.green, padding: "8px 12px", borderRadius: 8, cursor: "pointer", fontWeight: 700, fontSize: 16 }}>+1</button>
-          </div>
-        </div>
-      </Card>
-    </Grid>
-    <Card title="Marketing Creatives Access (Collateral)">
-      <div style={{ display: "flex", gap: 10, overflowX: "auto", paddingBottom: 6 }}>
-        {["Brochures", "Floor Plans", "Walkthrough Videos", "Price Highlights"].map(f => (
-          <div key={f} style={{ minWidth: 140, padding: 20, background: T.white, border: `1px solid ${T.border}`, borderRadius: 12, textAlign: "center", cursor: "pointer", transition: "transform 0.2s" }} onMouseEnter={e => e.currentTarget.style.transform = "scale(1.05)"} onMouseLeave={e => e.currentTarget.style.transform = "scale(1)"}>
-            <div style={{ fontSize: 30, marginBottom: 8 }}>📁</div>
-            <div style={{ fontSize: 13, fontWeight: 600 }}>{f}</div>
-          </div>
-        ))}
-      </div>
-    </Card>
+        </Card>
+      </>
+    )}
   </div>);
 }
 
@@ -2675,3 +2782,116 @@ function Tg({ c, children }) { return <span style={{ fontSize: 11, background: `
 function Btn({ onClick, c, children, full }) { return <button onClick={onClick} className="posh-btn" style={{ background: c, color: "#fff", width: full ? "100%" : undefined, justifyContent: full ? "center" : undefined }}>{children}</button>; }
 function Grid({ cols, gap, mb, children }) { return <div style={{ display: "grid", gridTemplateColumns: cols, gap, marginBottom: mb }}>{children}</div>; }
 function F({ l, children }) { return <div style={{ marginBottom: 2 }}><label style={LBL}>{l}</label>{children}</div>; }
+
+// ─── COMMUNICATIONS & DIALER MODULE ──────────────────────────────────────────
+function CommunicationsModule({ store, persist, session }) {
+  const [tab, setTab] = useState("dialer");
+  const [dialNum, setDialNum] = useState("");
+  const [calling, setCalling] = useState(false);
+  
+  return (<div className="fade">
+    <ST>📞 Communications & Dialer</ST>
+    <div style={{ display: "flex", gap: 4, marginBottom: 20, background: T.creamDark, borderRadius: 12, padding: 4 }}>
+      {[{ id: "dialer", label: "GSM Auto-Dialer" }, { id: "whatsapp", label: "WhatsApp Automation" }, { id: "ai_ivr", label: "AI Calling & IVR" }].map(t => (
+        <button key={t.id} onClick={() => setTab(t.id)} style={{ flex: 1, padding: "9px 0", border: "none", borderRadius: 9, background: tab === t.id ? T.navy : "transparent", color: tab === t.id ? T.gold : T.textMid, fontWeight: tab === t.id ? 600 : 400, fontSize: 13, cursor: "pointer", transition: "all 0.2s" }}>{t.label}</button>
+      ))}
+    </div>
+
+    {tab === "dialer" && (
+      <Grid cols="300px 1fr" gap={16}>
+        <div style={{ background: "#111b21", borderRadius: 20, padding: 24, color: "#fff", display: "flex", flexDirection: "column", boxShadow: "0 20px 40px rgba(0,0,0,0.2)" }}>
+          <div style={{ fontSize: 12, color: "#667781", textTransform: "uppercase", letterSpacing: 1, marginBottom: 20, textAlign: "center" }}>Tele Caller Integration</div>
+          <div style={{ background: "#202c33", borderRadius: 12, padding: 16, fontSize: 24, textAlign: "center", minHeight: 60, marginBottom: 24, letterSpacing: 2, display: "flex", alignItems: "center", justifyContent: "center" }}>
+            {dialNum || "Enter Number"}
+          </div>
+          <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 12, marginBottom: 24 }}>
+            {["1", "2", "3", "4", "5", "6", "7", "8", "9", "*", "0", "#"].map(k => (
+              <button key={k} onClick={() => setDialNum(d => d + k)} style={{ background: "#2a3942", border: "none", borderRadius: "50%", width: 64, height: 64, color: "#fff", fontSize: 24, fontWeight: 500, margin: "0 auto", cursor: "pointer", transition: "background 0.1s" }} onMouseDown={e => e.currentTarget.style.background = "#3c515d"} onMouseUp={e => e.currentTarget.style.background = "#2a3942"}>{k}</button>
+            ))}
+          </div>
+          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 12 }}>
+            <button onClick={() => setDialNum(d => d.slice(0, -1))} style={{ background: "none", border: "none", color: "#667781", fontSize: 24, cursor: "pointer", width: 64 }}>⌫</button>
+            <button onClick={() => { if(dialNum) setCalling(true); }} style={{ background: calling ? T.red : T.green, border: "none", borderRadius: "50%", width: 64, height: 64, color: "#fff", fontSize: 28, cursor: "pointer", boxShadow: `0 8px 16px ${calling ? T.red : T.green}40` }}>{calling ? "📴" : "📞"}</button>
+            <div style={{ width: 64 }}></div>
+          </div>
+          {calling && <div style={{ textAlign: "center", color: T.green, marginTop: 16, fontSize: 14, fontWeight: 600 }}>Connected... 00:14</div>}
+        </div>
+        <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
+          <Card title="Intelligent Auto-Looping" accent={T.blue}>
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 12 }}>
+              <div style={{ fontSize: 13, color: T.text }}>Auto-loop through pending leads and schedule calls automatically. SIM-based dialer will connect calls one by one.</div>
+              <Btn c={T.blue}>Start Auto-Dialer</Btn>
+            </div>
+            <div style={{ background: T.cream, padding: 12, borderRadius: 8, display: "flex", alignItems: "center", gap: 12 }}>
+              <div style={{ width: 10, height: 10, borderRadius: "50%", background: T.amber }} />
+              <div style={{ fontSize: 13, color: T.navy, fontWeight: 600 }}>Next Call: Rahul Sharma (Lead #402) in 14s...</div>
+            </div>
+          </Card>
+          <Card title="Call History & Logs">
+            <table style={{ width: "100%", textAlign: "left", fontSize: 13, borderCollapse: "collapse" }}>
+              <thead><tr style={{ borderBottom: `2px solid ${T.border}` }}><th style={{ padding: 8 }}>Name/Number</th><th style={{ padding: 8 }}>Duration</th><th style={{ padding: 8 }}>Status</th><th style={{ padding: 8 }}>Time</th></tr></thead>
+              <tbody>
+                <tr style={{ borderBottom: `1px solid ${T.border}` }}><td style={{ padding: 8 }}>+91 9876543210</td><td style={{ padding: 8 }}>02:14</td><td style={{ padding: 8, color: T.green }}>Answered</td><td style={{ padding: 8 }}>10:45 AM</td></tr>
+                <tr style={{ borderBottom: `1px solid ${T.border}` }}><td style={{ padding: 8 }}>Rahul Sharma</td><td style={{ padding: 8 }}>00:00</td><td style={{ padding: 8, color: T.red }}>Missed</td><td style={{ padding: 8 }}>10:30 AM</td></tr>
+                <tr style={{ borderBottom: `1px solid ${T.border}` }}><td style={{ padding: 8 }}>Priya Singh</td><td style={{ padding: 8 }}>05:32</td><td style={{ padding: 8, color: T.green }}>Answered</td><td style={{ padding: 8 }}>09:15 AM</td></tr>
+              </tbody>
+            </table>
+          </Card>
+        </div>
+      </Grid>
+    )}
+
+    {tab === "whatsapp" && (
+      <Card title="One-Click WhatsApp Automation" accent={T.green}>
+        <div style={{ fontSize: 13, color: T.textLight, marginBottom: 16 }}>Send bulk messages, project updates, and payment reminders with a single click.</div>
+        <Grid cols="1fr 1fr" gap={14}>
+          <div style={{ border: `1px solid ${T.border}`, borderRadius: 10, padding: 14 }}>
+            <div style={{ fontWeight: 600, color: T.navy, marginBottom: 8 }}>Broadcast Project Update</div>
+            <div style={{ fontSize: 12, color: T.textLight, marginBottom: 12 }}>Send a new project launch flyer to all active leads.</div>
+            <select style={{ width: "100%", marginBottom: 10 }}><option>Target: All Active Leads (142)</option><option>Target: Cold Leads (85)</option></select>
+            <Btn c={T.green} full>Send Broadcast</Btn>
+          </div>
+          <div style={{ border: `1px solid ${T.border}`, borderRadius: 10, padding: 14 }}>
+            <div style={{ fontWeight: 600, color: T.navy, marginBottom: 8 }}>Automated Payment Reminders</div>
+            <div style={{ fontSize: 12, color: T.textLight, marginBottom: 12 }}>Send pending milestone payment reminders to clients.</div>
+            <select style={{ width: "100%", marginBottom: 10 }}><option>Target: Disbursed / Booked (45)</option></select>
+            <Btn c={T.green} full>Send Reminders</Btn>
+          </div>
+        </Grid>
+      </Card>
+    )}
+
+    {tab === "ai_ivr" && (
+      <Card title="AI Calling & IVR Settings" accent={T.purple}>
+        <div style={{ fontSize: 13, color: T.textLight, marginBottom: 20 }}>Configure advanced calling automations.</div>
+        
+        <div style={{ border: `1px solid ${T.border}`, borderRadius: 10, padding: 16, marginBottom: 12 }}>
+          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 8 }}>
+            <div style={{ fontWeight: 600, color: T.navy }}>🤖 AI Calling for Lead Generation</div>
+            <Tg c={T.green}>Active</Tg>
+          </div>
+          <div style={{ fontSize: 13, color: T.textLight, marginBottom: 12 }}>AI-powered system engages prospects 24/7. When a prospect shows high intent, it routes the call to a human executive.</div>
+          <Btn c={T.purple}>Configure Script</Btn>
+        </div>
+
+        <div style={{ border: `1px solid ${T.border}`, borderRadius: 10, padding: 16, marginBottom: 12 }}>
+          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 8 }}>
+            <div style={{ fontWeight: 600, color: T.navy }}>⚡ Auto Call on Lead Assigning</div>
+            <Tg c={T.amber}>Paused</Tg>
+          </div>
+          <div style={{ fontSize: 13, color: T.textLight, marginBottom: 12 }}>System automatically triggers a call connecting the executive to the prospect within 1 minute of assigning.</div>
+          <Btn c={T.navy}>Activate</Btn>
+        </div>
+
+        <div style={{ border: `1px solid ${T.border}`, borderRadius: 10, padding: 16 }}>
+          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 8 }}>
+            <div style={{ fontWeight: 600, color: T.navy }}>📅 Scheduled IVR Followups</div>
+            <Tg c={T.green}>Active</Tg>
+          </div>
+          <div style={{ fontSize: 13, color: T.textLight, marginBottom: 12 }}>Scheduled and pending activities automatically trigger an IVR call to employees and customers.</div>
+          <Btn c={T.navy}>Configure IVR Menu</Btn>
+        </div>
+      </Card>
+    )}
+  </div>);
+}
