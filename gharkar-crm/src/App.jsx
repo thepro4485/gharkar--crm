@@ -144,14 +144,14 @@ const DOC_REQUIREMENTS = {
 };
 
 const WA_TEMPLATES = [
-  { id: "welcome", icon: "👋", label: "Welcome", msg: l => `Dear ${l.name},\n\nThank you for reaching out to GharKar for your ${l.loanType || "home loan"} requirement.\n\nOur team will connect with you shortly to understand your requirements and guide you through the entire loan process.\n\nBest regards,\nGharKar Team` },
-  { id: "doclist", icon: "📋", label: "Doc List", msg: l => `Dear ${l.name},\n\nKindly arrange the following documents for your ${l.loanType || "home loan"} application:\n\n📁 *KYC:* Aadhaar (front & back), PAN Card, Passport photos x2\n💰 *Income:* ${l.employmentType === "Salaried" ? "3 months salary slips, Form 16, 6 months bank statements" : "ITR last 3 years, P&L + Balance Sheet, 12 months bank statements"}\n\nPlease share at the earliest for faster processing.\n\nGharKar Team` },
-  { id: "missed", icon: "📞", label: "Missed Call", msg: l => `Dear ${l.name},\n\nWe tried reaching you regarding your home loan enquiry but couldn't connect.\n\nPlease call us back at your convenience, or let us know a good time to reach you.\n\nGharKar Team` },
-  { id: "sanction", icon: "🎉", label: "Sanction!", msg: l => `Dear ${l.name},\n\n*Congratulations!* 🎉\n\nYour home loan application has been *sanctioned* by the bank.\n\nWe will now initiate the disbursement process. Our team will contact you shortly with the next steps.\n\nThank you for choosing GharKar!\nGharKar Team` },
-  { id: "disb", icon: "🏦", label: "Disbursement", msg: l => `Dear ${l.name},\n\nThis is a reminder for your home loan *disbursement appointment*.\n\nPlease carry all original documents as discussed. Contact us immediately for any queries.\n\nGharKar Team` },
-  { id: "review", icon: "⭐", label: "Review Request", msg: l => `Dear ${l.name},\n\nCongratulations on your successful home loan disbursement! 🏠\n\nIt was our pleasure to serve you. We would be grateful if you could spare 2 minutes to leave us a *Google Review* — it helps us serve more families like yours.\n\nThank you!\nGharKar Team` },
-  { id: "reengage", icon: "🔄", label: "Re-engage", msg: l => `Dear ${l.name},\n\nHope you are doing well!\n\nWe noticed we haven't been in touch recently regarding your home loan requirement. Interest rates are competitive right now — this could be a great time to proceed.\n\nWould you like us to revisit your case? We are ready to assist.\n\nGharKar Team` },
-  { id: "docremind", icon: "📂", label: "Doc Reminder", msg: l => `Dear ${l.name},\n\nGentle reminder — we are waiting for the remaining documents to process your home loan application further.\n\nKindly share the pending documents at the earliest to avoid delays.\n\nGharKar Team` },
+  { id: "welcome", icon: "👋", label: "Welcome", msg: l => `Dear ${l.name},\n\nThank you for reaching out to Ghar Kar for your ${l.loanType || "home loan"} requirement.\n\nOur team will connect with you shortly to understand your requirements and guide you through the entire loan process.\n\nBest regards,\nGhar Kar Team` },
+  { id: "doclist", icon: "📋", label: "Doc List", msg: l => `Dear ${l.name},\n\nKindly arrange the following documents for your ${l.loanType || "home loan"} application:\n\n📁 *KYC:* Aadhaar (front & back), PAN Card, Passport photos x2\n💰 *Income:* ${l.employmentType === "Salaried" ? "3 months salary slips, Form 16, 6 months bank statements" : "ITR last 3 years, P&L + Balance Sheet, 12 months bank statements"}\n\nPlease share at the earliest for faster processing.\n\nGhar Kar Team` },
+  { id: "missed", icon: "📞", label: "Missed Call", msg: l => `Dear ${l.name},\n\nWe tried reaching you regarding your home loan enquiry but couldn't connect.\n\nPlease call us back at your convenience, or let us know a good time to reach you.\n\nGhar Kar Team` },
+  { id: "sanction", icon: "🎉", label: "Sanction!", msg: l => `Dear ${l.name},\n\n*Congratulations!* 🎉\n\nYour home loan application has been *sanctioned* by the bank.\n\nWe will now initiate the disbursement process. Our team will contact you shortly with the next steps.\n\nThank you for choosing Ghar Kar!\nGhar Kar Team` },
+  { id: "disb", icon: "🏦", label: "Disbursement", msg: l => `Dear ${l.name},\n\nThis is a reminder for your home loan *disbursement appointment*.\n\nPlease carry all original documents as discussed. Contact us immediately for any queries.\n\nGhar Kar Team` },
+  { id: "review", icon: "⭐", label: "Review Request", msg: l => `Dear ${l.name},\n\nCongratulations on your successful home loan disbursement! 🏠\n\nIt was our pleasure to serve you. We would be grateful if you could spare 2 minutes to leave us a *Google Review* — it helps us serve more families like yours.\n\nThank you!\nGhar Kar Team` },
+  { id: "reengage", icon: "🔄", label: "Re-engage", msg: l => `Dear ${l.name},\n\nHope you are doing well!\n\nWe noticed we haven't been in touch recently regarding your home loan requirement. Interest rates are competitive right now — this could be a great time to proceed.\n\nWould you like us to revisit your case? We are ready to assist.\n\nGhar Kar Team` },
+  { id: "docremind", icon: "📂", label: "Doc Reminder", msg: l => `Dear ${l.name},\n\nGentle reminder — we are waiting for the remaining documents to process your home loan application further.\n\nKindly share the pending documents at the earliest to avoid delays.\n\nGhar Kar Team` },
 ];
 
 const SK = "hlcrm_v7";
@@ -170,7 +170,7 @@ function td() { return new Date().toISOString().slice(0, 10); }
 function gid() { return Date.now().toString(36) + Math.random().toString(36).slice(2, 6); }
 function tsNow() { return new Date().toISOString(); }
 
-const API_BASE = 'https://gharkar-crm.onrender.com/api';
+const API_BASE = 'https://Ghar Kar-crm.onrender.com/api';
 const GEMINI_KEY = "AIzaSyC93b-mQ3Q8VC3V3kvfFtOngns3AH2Y2gc";
 
 async function analyseDocumentsAI(employmentType, currentStep, receivedText, loanDetails) {
@@ -439,7 +439,7 @@ export default function App() {
   if (loading) return (
     <div style={{ height: '100vh', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', background: `linear-gradient(135deg,${T.navy} 0%,${T.navyMid} 60%,${T.navyLight} 100%)` }}>
       <style>{STYLE}</style>
-      <div style={{ fontFamily: "'Playfair Display',serif", fontSize: 28, fontWeight: 700, color: T.gold, marginBottom: 12 }}>GharKar CRM</div>
+      <div style={{ fontFamily: "'Playfair Display',serif", fontSize: 28, fontWeight: 700, color: T.gold, marginBottom: 12 }}>Ghar Kar CRM</div>
       <div style={{ display: 'flex', gap: 6, marginBottom: 16 }}>
         {[0, 1, 2].map(i => <div key={i} className="pulse" style={{ width: 8, height: 8, borderRadius: '50%', background: T.gold, animationDelay: `${i * 0.2}s` }} />)}
       </div>
@@ -463,8 +463,8 @@ function LoginPage({ onLogin }) {
     <div style={{ minHeight: "100vh", background: `linear-gradient(135deg,${T.navy} 0%,${T.navyMid} 55%,${T.navyLight} 100%)`, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", padding: "2rem 1rem" }}>
       <style>{STYLE}</style>
       <div style={{ marginBottom: 32, textAlign: "center" }}>
-        <div style={{ fontFamily: "'Playfair Display',serif", fontSize: 30, fontWeight: 700, color: T.gold, letterSpacing: 1 }}>GharKar CRM</div>
-        <div style={{ color: "rgba(255,255,255,0.45)", fontSize: 12, marginTop: 4, letterSpacing: 3, textTransform: "uppercase" }}>GharKar CRM — Home Loan Processing Software</div>
+        <div style={{ fontFamily: "'Playfair Display',serif", fontSize: 30, fontWeight: 700, color: T.gold, letterSpacing: 1 }}>Ghar Kar CRM</div>
+        <div style={{ color: "rgba(255,255,255,0.45)", fontSize: 12, marginTop: 4, letterSpacing: 3, textTransform: "uppercase" }}>Ghar Kar CRM — Home Loan Processing Software</div>
       </div>
       {!mode ? (
         <div style={{ display: "flex", flexDirection: "column", gap: 14, width: "100%", maxWidth: 380 }} className="fade">
@@ -550,7 +550,7 @@ function Shell({ session, onLogout, navItems, children, activeNav, setActiveNav,
         </div>
       )}
       <header style={{ background: T.navy, padding: "0 16px", display: "flex", alignItems: "center", gap: 8, height: 52, boxShadow: "0 2px 14px rgba(0,0,0,0.22)", position: "sticky", top: 0, zIndex: 100 }}>
-        <div style={{ fontFamily: "'Playfair Display',serif", fontSize: 17, fontWeight: 700, color: T.gold, marginRight: 8, whiteSpace: "nowrap" }}>GharKar CRM</div>
+        <div style={{ fontFamily: "'Playfair Display',serif", fontSize: 17, fontWeight: 700, color: T.gold, marginRight: 8, whiteSpace: "nowrap" }}>Ghar Kar CRM</div>
         <div style={{ flex: 1, display: "flex", gap: 1, overflowX: "auto" }}>
           {navItems.map(n => (
             <button key={n.id} onClick={() => setActiveNav(n.id)} style={{ padding: "6px 12px", borderRadius: 7, border: "none", background: activeNav === n.id ? "rgba(212,168,83,0.16)" : "transparent", color: activeNav === n.id ? T.gold : T.goldDim, fontSize: 13, fontWeight: activeNav === n.id ? 600 : 400, whiteSpace: "nowrap", cursor: "pointer" }}>{n.label}</button>
@@ -1154,6 +1154,10 @@ function ExecutiveApp({ store, persist, session, onLogout }) {
     const nl = { ...lead, id: gid(), assignedTo: session.id, currentStep: 1, stepsCompleted: {}, notes: [], followUp: "", stageHistory: [{ step: 1, date: td() }], createdAt: td(), commLog: [] };
     // Auto welcome notification log
     const commLog = [{ type: "system", msg: `Lead created. Welcome message auto-triggered for ${lead.name}.`, date: td(), time: new Date().toLocaleTimeString("en-IN", { hour: "2-digit", minute: "2-digit" }) }];
+    if (store.comms?.aiCallOnAssign) {
+      commLog.push({ type: "system", msg: `AI Calling triggered instantly for ${lead.name}.`, date: td(), time: new Date().toLocaleTimeString("en-IN", { hour: "2-digit", minute: "2-digit" }) });
+      setTimeout(() => alert(`[System Simulation] AI Call initiated to ${lead.phone} instantly upon lead assignment!`), 500);
+    }
     nl.commLog = commLog;
     persist({ ...store, leads: [nl, ...(store.leads || [])] });
     setNav("leads");
@@ -1226,7 +1230,17 @@ const FN = [{ id: "today", label: "Today" }, { id: "leads", label: "My Leads" },
 function FieldApp({ store, persist, session, onLogout }) {
   const [nav, setNav] = useState("today"); const [sel, setSel] = useState(null);
   const myLeads = (store.leads || []).filter(l => l.assignedTo === session.id);
-  function addLead(lead) { const nl = { ...lead, id: gid(), assignedTo: session.id, currentStep: 1, stepsCompleted: {}, notes: [], followUp: "", stageHistory: [{ step: 1, date: td() }], createdAt: td(), commLog: [] }; persist({ ...store, leads: [nl, ...(store.leads || [])] }); setNav("leads"); }
+  function addLead(lead) { 
+    const nl = { ...lead, id: gid(), assignedTo: session.id, currentStep: 1, stepsCompleted: {}, notes: [], followUp: "", stageHistory: [{ step: 1, date: td() }], createdAt: td(), commLog: [] }; 
+    const commLog = [];
+    if (store.comms?.aiCallOnAssign) {
+      commLog.push({ type: "system", msg: `AI Calling triggered instantly for ${lead.name}.`, date: td(), time: new Date().toLocaleTimeString("en-IN", { hour: "2-digit", minute: "2-digit" }) });
+      setTimeout(() => alert(`[System Simulation] AI Call initiated to ${lead.phone} instantly upon lead assignment!`), 500);
+    }
+    nl.commLog = commLog;
+    persist({ ...store, leads: [nl, ...(store.leads || [])] }); 
+    setNav("leads"); 
+  }
   function updLead(id, upd) { persist({ ...store, leads: (store.leads || []).map(l => l.id === id ? { ...l, ...upd } : l) }); }
   function delLead(id) { if (!window.confirm("Delete this lead permanently?")) return; persist({ ...store, leads: (store.leads || []).filter(l => l.id !== id) }); setSel(null); }
   function saveLog(text) { const logs = { ...(store.dailyLogs || {}) }; if (!logs[session.id]) logs[session.id] = {}; logs[session.id][td()] = text; persist({ ...store, dailyLogs: logs }); }
@@ -1278,6 +1292,15 @@ function TodayView({ leads, session, onSel }) {
   const noFU = leads.filter(l => !l.followUp && l.currentStep < 38);
   const hr = new Date().getHours();
 
+  const todayVisits = [];
+  leads.forEach(l => {
+    (l.siteVisits || []).forEach(v => {
+      if (v.status === "scheduled" && v.date === td()) {
+        todayVisits.push({ lead: l, visit: v });
+      }
+    });
+  });
+
   // Portal check reminder banner
   const needsPortal = active.some(l => { const s = STEPS.find(x => x.id === l.currentStep); return s?.portalCheck; });
 
@@ -1305,6 +1328,21 @@ function TodayView({ leads, session, onSel }) {
     </Grid>
     {overdue.length > 0 && <Alrt c={T.red} bg={T.redBg} title={`${overdue.length} overdue — call now`}>{overdue.map(l => <CC key={l.id} lead={l} onSel={onSel} urgent />)}</Alrt>}
     {todayCalls.length > 0 && <Alrt c={T.green} bg={T.greenBg} title={`Today's calls (${todayCalls.length})`}>{todayCalls.map(l => <CC key={l.id} lead={l} onSel={onSel} />)}</Alrt>}
+    {todayVisits.length > 0 && (
+      <Alrt c={T.amber} bg={T.amberBg} title={`Today's Site Visits (${todayVisits.length})`}>
+        {todayVisits.map(tv => (
+          <div key={tv.visit.id} onClick={() => onSel(tv.lead.id)} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "8px 0", borderTop: `0.5px solid ${T.amber}40`, cursor: "pointer", gap: 10 }}>
+            <div>
+              <div style={{ fontWeight: 600, fontSize: 14, color: T.navy }}>{tv.lead.name} <span style={{ fontSize: 12, color: T.textLight, fontWeight: 400 }}>· {tv.lead.phone}</span></div>
+              <div style={{ fontSize: 12, color: T.amber }}>📍 {tv.visit.building} ({tv.visit.wing}) at {tv.visit.time || "TBD"}</div>
+            </div>
+            <div style={{ fontSize: 11, color: T.amber, whiteSpace: "nowrap" }}>
+              <span style={{background: T.amber, color: "#fff", padding: "2px 6px", borderRadius: 4, fontWeight: 600}}>Reminders Active</span>
+            </div>
+          </div>
+        ))}
+      </Alrt>
+    )}
     {noFU.length > 0 && <Alrt c={T.amber} bg={T.amberBg} title={`No follow-up set (${noFU.length})`}>{noFU.map(l => <CC key={l.id} lead={l} onSel={onSel} />)}</Alrt>}
     {active.filter(l => l.followUp && l.followUp > td()).length > 0 && <Card title="Upcoming">{active.filter(l => l.followUp && l.followUp > td()).map(l => <CC key={l.id} lead={l} onSel={onSel} />)}</Card>}
   </div>);
@@ -1385,9 +1423,9 @@ function LeadDetail({ lead, store, onBack, onUpdate, onDelete, isAdmin, fieldOnl
         <div>
           <div style={{ fontFamily: "'Playfair Display',serif", fontSize: 20, fontWeight: 700, color: T.navy }}>{lead.name}</div>
           <div style={{ fontSize: 13, color: T.textLight, marginTop: 2 }}>{lead.phone}{lead.email && ` · ${lead.email}`}</div>
-          <div style={{ fontSize: 13, color: T.textLight }}>{lead.loanType} · ₹{lead.loanAmount ? Number(lead.loanAmount).toLocaleString("en-IN") : "—"} · ₹{lead.income ? Number(lead.income).toLocaleString("en-IN") : "—"}/mo</div>
+          <div style={{ fontSize: 13, color: T.textLight }}>{lead.intention || lead.loanType} · {lead.propertyNeed || lead.propertyType}{lead.propertyNeed === "Flat" ? ` (${lead.bhk})` : ""} · Budget: {lead.budget || (lead.loanAmount ? `₹${Number(lead.loanAmount).toLocaleString("en-IN")}` : "—")}</div>
           {asgn && <div style={{ fontSize: 12, color: T.textLight }}>Assigned: {asgn.name}</div>}
-          {lead.source && <div style={{ fontSize: 12, color: T.textLight }}>Source: {lead.source}{lead.partnerRef ? ` (${lead.partnerRef})` : ""}</div>}
+          {lead.source && <div style={{ fontSize: 12, color: T.textLight }}>Source: {lead.source}{lead.sourceName ? ` (${lead.sourceName})` : (lead.partnerRef ? ` (${lead.partnerRef})` : "")}</div>}
           {curDocStage && <div style={{ marginTop: 4 }}><Tg c={T.blue}>{DOC_STAGE_LABELS[curDocStage]}</Tg></div>}
         </div>
         <div style={{ display: "flex", flexDirection: "column", alignItems: "flex-end", gap: 6 }}>
@@ -1408,7 +1446,7 @@ function LeadDetail({ lead, store, onBack, onUpdate, onDelete, isAdmin, fieldOnl
     </div>
     <div style={{ display: "flex", gap: 1, marginBottom: 14, borderBottom: `1px solid ${T.border}`, overflowX: "auto" }}>
       {tabs.map(t => <button key={t} onClick={() => setTab(t)} style={{ padding: "9px 14px", border: "none", background: "none", color: tab === t ? cm.color : T.textLight, fontWeight: tab === t ? 600 : 400, borderBottom: tab === t ? `2px solid ${cm.color}` : "2px solid transparent", cursor: "pointer", textTransform: "capitalize", whiteSpace: "nowrap", fontSize: 13 }}>
-        {t === "current" ? "Current Step" : t === "allsteps" ? "All 39 Steps" : t === "comm" ? "Communication" : t === "docchecklist" ? "📋 Docs" : t === "aidocs" ? "🤖 AI Docs" : t === "detailsheet" ? "🧧 Detail Sheet" : t === "financials" ? "💰 Financials" : t === "campaigns" ? "🚀 Campaigns" : t === "notes" ? "Notes" : t === "history" ? "History" : t}
+        {t === "current" ? "Current Step" : t === "allsteps" ? "All 39 Steps" : t === "sitevisits" ? "📍 Site Visits & Follow-up" : t === "comm" ? "Communication" : t === "docchecklist" ? "📋 Docs" : t === "aidocs" ? "🤖 AI Docs" : t === "detailsheet" ? "🧧 Detail Sheet" : t === "financials" ? "💰 Financials" : t === "campaigns" ? "🚀 Campaigns" : t === "notes" ? "Notes" : t === "history" ? "History" : t}
       </button>)}
     </div>
 
@@ -1475,6 +1513,8 @@ function LeadDetail({ lead, store, onBack, onUpdate, onDelete, isAdmin, fieldOnl
       </div>
     )}
 
+    {tab === "sitevisits" && <SiteVisitsTab lead={lead} onUpdate={onUpdate} />}
+
     {tab === "allsteps" && !fieldOnly && (
       <div className="fade">
         {[...new Set(STEPS.map(s => s.cat))].map(cat => {
@@ -1513,7 +1553,7 @@ function LeadDetail({ lead, store, onBack, onUpdate, onDelete, isAdmin, fieldOnl
         {/* Chat History (Scrollable) */}
         <div style={{ flex: 1, padding: "20px 5%", overflowY: "auto", display: "flex", flexDirection: "column", gap: 12 }}>
           <div style={{ background: "#ffeecd", alignSelf: "center", padding: "6px 12px", borderRadius: 8, fontSize: 11, color: "#54656f", marginBottom: 10, textAlign: "center", boxShadow: "0 1px 1px rgba(0,0,0,0.05)" }}>
-            Messages and calls are end-to-end encrypted. No one outside of this chat, not even GharKar, can read or listen to them.
+            Messages and calls are end-to-end encrypted. No one outside of this chat, not even Ghar Kar, can read or listen to them.
           </div>
           {(lead.commLog || []).map((c, i) => {
             // Treat WhatsApp messages as "sent" (green, right), others as system/notes (white, center/left)
@@ -1790,7 +1830,7 @@ function LeadTable({ leads, users, onSelect, onDelete }) {
 
 
 function AddLeadForm({ onAdd }) {
-  const [f, setF] = useState({ name: "", phone: "", email: "", loanType: "Home Purchase", loanAmount: "", income: "", city: "", propertyType: "Flat", employmentType: "Salaried", coApplicant: "", source: "Referral", partnerRef: "", notes: "" });
+  const [f, setF] = useState({ name: "", phone: "", intention: "Want to Buy", source: "Online", sourceName: "", propertyNeed: "Flat", bhk: "2BHK", budget: "", city: "", notes: "" });
   const [errs, setErrs] = useState({});
   const s = (k, v) => { setF(p => ({ ...p, [k]: v })); setErrs(e => ({ ...e, [k]: "" })); };
 
@@ -1799,13 +1839,9 @@ function AddLeadForm({ onAdd }) {
     if (!f.name.trim()) e.name = "Full name is required";
     if (!f.phone.trim()) e.phone = "Mobile number is required";
     else if (!/^\d{10}$/.test(f.phone.trim())) e.phone = "Invalid mobile number — must be exactly 10 digits";
-    if (!f.email.trim()) e.email = "Email is required";
-    else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(f.email.trim())) e.email = "Invalid email — enter a valid email address";
-    if (!f.loanAmount) e.loanAmount = "Loan amount is required";
-    if (!f.income) e.income = "Monthly income is required";
+    if ((f.source === "Agent" || f.source === "Customer") && !f.sourceName.trim()) e.sourceName = "Reference name is required";
+    if (!f.budget.trim()) e.budget = "Budget/Price range is required";
     if (!f.city.trim()) e.city = "City is required";
-    if (!f.coApplicant.trim()) e.coApplicant = "Co-applicant name is required";
-    if (!f.partnerRef.trim()) e.partnerRef = "Partner / referral name is required";
     if (!f.notes.trim()) e.notes = "Initial remarks are required";
     setErrs(e);
     return Object.keys(e).length === 0;
@@ -1823,28 +1859,21 @@ function AddLeadForm({ onAdd }) {
         <div><F l="Mobile Number *"><input value={f.phone} onChange={e => s("phone", e.target.value)} placeholder="10-digit mobile number" maxLength={10} style={{ borderColor: errs.phone ? T.red : undefined }} /></F><Err field="phone" /></div>
       </Grid>
       <Grid cols="1fr 1fr" gap={10}>
-        <div><F l="Email *"><input value={f.email} onChange={e => s("email", e.target.value)} placeholder="email@example.com" style={{ borderColor: errs.email ? T.red : undefined }} /></F><Err field="email" /></div>
-        <F l="Loan Type"><select value={f.loanType} onChange={e => s("loanType", e.target.value)}>{["Home Purchase", "Balance Transfer", "Top-Up Loan", "Construction Loan", "Plot + Construction", "LAP"].map(t => <option key={t}>{t}</option>)}</select></F>
+        <F l="Lead Intention"><select value={f.intention} onChange={e => s("intention", e.target.value)}>{["Want to Sell", "Want to Rent", "For Rent", "Want to Buy"].map(t => <option key={t}>{t}</option>)}</select></F>
+        <div><F l="City *"><input value={f.city} onChange={e => s("city", e.target.value)} placeholder="e.g. Pune" style={{ borderColor: errs.city ? T.red : undefined }} /></F><Err field="city" /></div>
       </Grid>
       <Grid cols="1fr 1fr" gap={10}>
-        <div><F l="Loan Amount (₹) *"><input type="number" value={f.loanAmount} onChange={e => s("loanAmount", e.target.value)} placeholder="e.g. 5000000" style={{ borderColor: errs.loanAmount ? T.red : undefined }} /></F><Err field="loanAmount" /></div>
-        <div><F l="Monthly Income (₹) *"><input type="number" value={f.income} onChange={e => s("income", e.target.value)} placeholder="e.g. 80000" style={{ borderColor: errs.income ? T.red : undefined }} /></F><Err field="income" /></div>
+        <F l="Lead Source"><select value={f.source} onChange={e => s("source", e.target.value)}>{["Agent", "Customer", "Newspaper", "Online", "Google", "Hoardings"].map(t => <option key={t}>{t}</option>)}</select></F>
+        {(f.source === "Agent" || f.source === "Customer") ? <div><F l="Reference Name *"><input value={f.sourceName} onChange={e => s("sourceName", e.target.value)} placeholder={f.source === "Agent" ? "Agent Name" : "Customer Name"} style={{ borderColor: errs.sourceName ? T.red : undefined }} /></F><Err field="sourceName" /></div> : <div />}
       </Grid>
       <Grid cols="1fr 1fr" gap={10}>
-        <div><F l="City *"><input value={f.city} onChange={e => s("city", e.target.value)} placeholder="Property city" style={{ borderColor: errs.city ? T.red : undefined }} /></F><Err field="city" /></div>
-        <F l="Property Type"><select value={f.propertyType} onChange={e => s("propertyType", e.target.value)}>{["Flat", "Independent House", "Plot", "Commercial", "Under Construction"].map(t => <option key={t}>{t}</option>)}</select></F>
+        <F l="Property Need"><select value={f.propertyNeed} onChange={e => s("propertyNeed", e.target.value)}>{["Flat", "Shop", "Office"].map(t => <option key={t}>{t}</option>)}</select></F>
+        {f.propertyNeed === "Flat" ? <F l="BHK Option"><select value={f.bhk} onChange={e => s("bhk", e.target.value)}>{["1BHK", "2BHK", "3BHK"].map(t => <option key={t}>{t}</option>)}</select></F> : <div />}
       </Grid>
-      <Grid cols="1fr 1fr" gap={10}>
-        <F l="Employment Type"><select value={f.employmentType} onChange={e => s("employmentType", e.target.value)}>{["Salaried", "Self-Employed", "Pvt Ltd Company", "Partnership Firm", "NRI"].map(t => <option key={t}>{t}</option>)}</select></F>
-        <div><F l="Co-Applicant *"><input value={f.coApplicant} onChange={e => s("coApplicant", e.target.value)} placeholder="Name (if any)" style={{ borderColor: errs.coApplicant ? T.red : undefined }} /></F><Err field="coApplicant" /></div>
-      </Grid>
-      <Grid cols="1fr 1fr" gap={10}>
-        <F l="Lead Source"><select value={f.source} onChange={e => s("source", e.target.value)}>{LEAD_SOURCES.map(t => <option key={t}>{t}</option>)}</select></F>
-        <div><F l="Partner / Referral Name *"><input value={f.partnerRef} onChange={e => s("partnerRef", e.target.value)} placeholder="Channel partner / referrer name" style={{ borderColor: errs.partnerRef ? T.red : undefined }} /></F><Err field="partnerRef" /></div>
-      </Grid>
-      <div><F l="Initial Remarks / FIR Notes *"><textarea value={f.notes} onChange={e => s("notes", e.target.value)} placeholder={"FIR notes from first call:\n• Purpose: Home purchase\n• Property: 2BHK flat in Pune\n• Timeline: 3 months"} rows={3} style={{ resize: "vertical", borderColor: errs.notes ? T.red : undefined }} /></F><Err field="notes" /></div>
+      <div><F l="Budget / Price Range *"><input value={f.budget} onChange={e => s("budget", e.target.value)} placeholder="e.g. 50 Lacs - 1 Cr" style={{ borderColor: errs.budget ? T.red : undefined }} /></F><Err field="budget" /></div>
+      <div><F l="Initial Remarks / Requirements *"><textarea value={f.notes} onChange={e => s("notes", e.target.value)} placeholder={"Client requirements:\n• Needs 2BHK near Hinjewadi\n• Ready to move\n• Loan required"} rows={3} style={{ resize: "vertical", borderColor: errs.notes ? T.red : undefined }} /></F><Err field="notes" /></div>
       <div>
-        <Btn onClick={() => { if (validate()) onAdd(f); }} c={T.navy}>Add Lead → Start Step 1</Btn>
+        <Btn onClick={() => { if (validate()) onAdd(f); }} c={T.navy}>Add Lead → Save Requirements</Btn>
         <div style={{ fontSize: 12, color: T.textLight, marginTop: 8 }}>A welcome communication log will be auto-created when this lead is saved.</div>
       </div>
     </div>
@@ -2189,6 +2218,123 @@ function DSRadio({ label, value, onChange, options }) {
   );
 }
 
+// ─── SITE VISITS & FOLLOW-UP TAB ─────────────────────────────────────────────
+function SiteVisitsTab({ lead, onUpdate }) {
+  const [showForm, setShowForm] = useState(false);
+  const [f, setF] = useState({ date: "", time: "", building: "", floor: "", wing: "", price: "", negotiable: "Yes" });
+  const [fb, setFb] = useState({ liked: "Yes", bookDate: "", nextVisitDate: "" });
+  const visits = lead.siteVisits || [];
+  
+  function saveVisit() {
+    if (!f.date || !f.building) return alert("Date and Building are required.");
+    const nv = { id: gid(), ...f, status: "scheduled", createdOn: td() };
+    onUpdate(lead.id, { siteVisits: [nv, ...visits] });
+    setF({ date: "", time: "", building: "", floor: "", wing: "", price: "", negotiable: "Yes" });
+    setShowForm(false);
+  }
+
+  function saveFeedback(vId) {
+    const updatedVisits = visits.map(v => {
+      if (v.id === vId) {
+        return { ...v, status: "completed", feedback: { ...fb } };
+      }
+      return v;
+    });
+    
+    if (fb.liked === "No" && fb.nextVisitDate) {
+      updatedVisits.unshift({ id: gid(), date: fb.nextVisitDate, time: "", building: "TBD", floor: "", wing: "", price: "", negotiable: "Yes", status: "scheduled", createdOn: td() });
+    }
+    
+    onUpdate(lead.id, { siteVisits: updatedVisits });
+    setFb({ liked: "Yes", bookDate: "", nextVisitDate: "" });
+  }
+
+  return (
+    <div className="fade">
+      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 16 }}>
+        <ST>📍 Site Visits & Follow-Up</ST>
+        {!showForm && <Btn c={T.navy} onClick={() => setShowForm(true)}>+ Schedule New Visit</Btn>}
+      </div>
+
+      {showForm && (
+        <Card title="Schedule Site Visit" accent={T.blue}>
+          <Grid cols="1fr 1fr" gap={10}>
+            <div><F l="Visit Date"><input type="date" value={f.date} onChange={e => setF({...f, date: e.target.value})} /></F></div>
+            <div><F l="Visit Time"><input type="time" value={f.time} onChange={e => setF({...f, time: e.target.value})} /></F></div>
+          </Grid>
+          <Grid cols="1fr 1fr" gap={10}>
+            <div><F l="Building Name"><input value={f.building} onChange={e => setF({...f, building: e.target.value})} placeholder="e.g. Ghar Kar Heights" /></F></div>
+            <div><F l="Floor & Wing"><input value={f.wing} onChange={e => setF({...f, wing: e.target.value})} placeholder="e.g. 4th Floor, B Wing" /></F></div>
+          </Grid>
+          <Grid cols="1fr 1fr" gap={10}>
+            <div><F l="Quoted Price (₹)"><input type="number" value={f.price} onChange={e => setF({...f, price: e.target.value})} placeholder="e.g. 8500000" /></F></div>
+            <F l="Is Price Negotiable?"><select value={f.negotiable} onChange={e => setF({...f, negotiable: e.target.value})}><option>Yes</option><option>No</option></select></F>
+          </Grid>
+          <div style={{ display: "flex", gap: 10, marginTop: 14 }}>
+            <Btn c={T.navy} onClick={saveVisit}>Save Visit & Auto-set Reminders</Btn>
+            <button onClick={() => setShowForm(false)} className="posh-btn" style={{ background: "transparent", color: T.textMid, border: `1px solid ${T.border}` }}>Cancel</button>
+          </div>
+        </Card>
+      )}
+
+      {visits.length === 0 && !showForm && (
+        <div style={{ padding: 40, textAlign: "center", background: T.white, border: `1px dashed ${T.border}`, borderRadius: 12 }}>
+          <div style={{ fontSize: 40, marginBottom: 10 }}>🗺️</div>
+          <div style={{ fontSize: 16, fontWeight: 700, color: T.navy }}>No Site Visits Planned</div>
+          <div style={{ fontSize: 13, color: T.textLight, marginTop: 4 }}>Schedule a visit to trigger automated customer and agent reminders.</div>
+        </div>
+      )}
+
+      <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
+        {visits.map(v => (
+          <Card key={v.id} accent={v.status === "scheduled" ? T.amber : T.green}>
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 12 }}>
+              <div>
+                <div style={{ fontSize: 16, fontWeight: 700, color: T.navy }}>{v.building} <span style={{ fontSize: 13, color: T.textLight, fontWeight: 400 }}>({v.wing})</span></div>
+                <div style={{ fontSize: 13, color: T.text, marginTop: 4 }}>📅 {v.date} at {v.time || "TBD"}</div>
+              </div>
+              <Tg c={v.status === "scheduled" ? T.amber : T.green}>{v.status === "scheduled" ? "Upcoming Visit" : "Completed"}</Tg>
+            </div>
+            
+            <div style={{ background: T.cream, padding: 12, borderRadius: 8, fontSize: 13, display: "flex", justifyContent: "space-between", marginBottom: 14 }}>
+              <div><span style={{ color: T.textLight }}>Quoted:</span> ₹{v.price ? Number(v.price).toLocaleString("en-IN") : "TBD"}</div>
+              <div><span style={{ color: T.textLight }}>Negotiable:</span> {v.negotiable}</div>
+            </div>
+
+            {v.status === "scheduled" ? (
+              <div style={{ borderTop: `1px solid ${T.border}`, paddingTop: 14 }}>
+                <div style={{ fontSize: 13, fontWeight: 600, color: T.navy, marginBottom: 10 }}>Post-Visit Feedback</div>
+                <Grid cols="1fr 1fr" gap={10}>
+                  <F l="Did customer like it?"><select value={fb.liked} onChange={e => setFb({...fb, liked: e.target.value})}><option>Yes</option><option>No</option></select></F>
+                  {fb.liked === "Yes" ? (
+                    <div><F l="When will they book?"><input type="date" value={fb.bookDate} onChange={e => setFb({...fb, bookDate: e.target.value})} /></F></div>
+                  ) : (
+                    <div><F l="Next Property Showing Date"><input type="date" value={fb.nextVisitDate} onChange={e => setFb({...fb, nextVisitDate: e.target.value})} /></F></div>
+                  )}
+                </Grid>
+                <div style={{ marginTop: 10 }}><Btn c={T.green} onClick={() => saveFeedback(v.id)}>Submit Feedback</Btn></div>
+                
+                <div style={{ marginTop: 16, background: T.amberBg, padding: 10, borderRadius: 8, border: `1px solid ${T.amber}40` }}>
+                  <div style={{ fontSize: 11, fontWeight: 700, color: T.amber, textTransform: "uppercase", marginBottom: 6 }}>Automated Reminder Schedule Active</div>
+                  <div style={{ fontSize: 12, color: T.text }}><span style={{ color: T.green }}>✓</span> 1 Day Before: Agent & Customer SMS</div>
+                  <div style={{ fontSize: 12, color: T.text }}><span style={{ color: T.green }}>✓</span> 4 Hours Before: Customer Call Reminder</div>
+                  <div style={{ fontSize: 12, color: T.text }}><span style={{ color: T.green }}>✓</span> 2 Hours Before: Customer Call Reminder</div>
+                </div>
+              </div>
+            ) : (
+              <div style={{ borderTop: `1px solid ${T.border}`, paddingTop: 12, fontSize: 13 }}>
+                <div style={{ color: T.textLight, marginBottom: 4 }}>Feedback: <strong style={{ color: v.feedback.liked === "Yes" ? T.green : T.red }}>{v.feedback.liked === "Yes" ? "Liked Property" : "Rejected Property"}</strong></div>
+                {v.feedback.liked === "Yes" && <div style={{ color: T.textLight }}>Expected Booking Date: <strong>{v.feedback.bookDate || "Not Specified"}</strong></div>}
+                {v.feedback.liked === "No" && <div style={{ color: T.textLight }}>Next Visit Scheduled for: <strong>{v.feedback.nextVisitDate || "Not Specified"}</strong></div>}
+              </div>
+            )}
+          </Card>
+        ))}
+      </div>
+    </div>
+  );
+}
+
 // ─── DETAIL SHEET TAB ────────────────────────────────────────────────────────
 function DetailSheetTab({ lead, onUpdate }) {
   const hasCoApp = lead.coApplicant && lead.coApplicant.trim().toLowerCase() !== "none" && lead.coApplicant.trim() !== "";
@@ -2409,7 +2555,7 @@ function CampaignsTab({ lead, onUpdate }) {
 
 // ─── INVENTORY MODULE ─────────────────────────────────────────────────────────
 function InventoryModule() {
-  const [proj, setProj] = useState("GharKar Heights");
+  const [proj, setProj] = useState("Ghar Kar Heights");
   const [units, setUnits] = useState(() => Array.from({ length: 40 }, (_, i) => ({ id: `A-${101 + i}`, status: Math.random() > 0.7 ? "sold" : Math.random() > 0.8 ? "blocked" : "available" })));
 
   const [costSheet, setCostSheet] = useState({ unit: "A-101", basePrice: "4500000", addons: "350000", show: false });
@@ -2434,7 +2580,7 @@ function InventoryModule() {
 
     return (<div style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.5)", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 9999 }}>
       <div style={{ background: T.white, padding: 30, borderRadius: 16, width: 450, boxShadow: "0 10px 40px rgba(0,0,0,0.2)" }}>
-        <ST>GharKar Cost Sheet</ST>
+        <ST>Ghar Kar Cost Sheet</ST>
         <div style={{ fontSize: 13, color: T.textLight, marginBottom: 16 }}>Unit {costSheet.unit} · {proj}</div>
         <div style={{ border: `1px solid ${T.border}`, borderRadius: 8, padding: 16, marginBottom: 20 }}>
           <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 8, fontSize: 13 }}><span>Base Price</span><span style={{ fontWeight: 600 }}>₹{bp.toLocaleString()}</span></div>
@@ -2460,7 +2606,7 @@ function InventoryModule() {
     <ST>🏗️ Inventory & Projects</ST>
     <div style={{ display: "flex", gap: 10, marginBottom: 16 }}>
       <select value={proj} onChange={e => setProj(e.target.value)} style={{ padding: "8px 14px", borderRadius: 8, border: `1px solid ${T.border}`, flex: 1, maxWidth: 300 }}>
-        <option>GharKar Heights</option><option>GharKar Residency</option><option>GharKar Villas</option>
+        <option>Ghar Kar Heights</option><option>Ghar Kar Residency</option><option>Ghar Kar Villas</option>
       </select>
       <Btn c={T.navy}>Add New Project</Btn>
     </div>
@@ -2505,8 +2651,8 @@ function InventoryModule() {
 // ─── HR MODULE ────────────────────────────────────────────────────────────────
 function HRModule({ store }) {
   const [payables, setPayables] = useState([
-    { id: 1, agent: "Vikas Sharma", proj: "GharKar Heights", amount: 112500, status: "pending", date: "" },
-    { id: 2, agent: "Ramesh Kumar", proj: "GharKar Residency", amount: 45000, status: "pending", date: "" }
+    { id: 1, agent: "Vikas Sharma", proj: "Ghar Kar Heights", amount: 112500, status: "pending", date: "" },
+    { id: 2, agent: "Ramesh Kumar", proj: "Ghar Kar Residency", amount: 45000, status: "pending", date: "" }
   ]);
   const [travel, setTravel] = useState([
     { id: 1, agent: "Ramesh Kumar", desc: "Site Visit Fuel", amt: 450, status: "pending" }
@@ -2574,10 +2720,12 @@ function MarketingModule({ store, persist }) {
   const [tab, setTab] = useState("automator");
   const [newRule, setNewRule] = useState({ k: "", r: "" });
   const [showAutoModal, setShowAutoModal] = useState(false);
+  const [newAutoRule, setNewAutoRule] = useState({ trigger: "When lead status changes...", action: "Send WhatsApp" });
 
   const mkt = store.marketing || {
     offers: [{ id: 1, title: "Diwali Gold Coin Bonanza!", desc: "Close 3 bookings before Nov 15th to win a 10g Gold Coin." }],
-    keywordRules: [{ id: 1, k: "price, pricing, cost", r: "Sending automated pricing sheet..." }, { id: 2, k: "location, map, directions", r: "Sending Google Maps pin..." }]
+    keywordRules: [{ id: 1, k: "price, pricing, cost", r: "Sending automated pricing sheet..." }, { id: 2, k: "location, map, directions", r: "Sending Google Maps pin..." }],
+    automatorRules: []
   };
   
   function save(upd) { persist({ ...store, marketing: { ...mkt, ...upd } }); }
@@ -2595,6 +2743,11 @@ function MarketingModule({ store, persist }) {
     setNewRule({ k: "", r: "" });
   }
   function delRule(id) { save({ keywordRules: mkt.keywordRules.filter(x => x.id !== id) }); }
+
+  function saveAutoRule() {
+    save({ automatorRules: [...(mkt.automatorRules || []), { id: gid(), ...newAutoRule }] });
+    setShowAutoModal(false);
+  }
 
   return (<div className="fade">
     <ST>📢 Marketing & Automations</ST>
@@ -2631,16 +2784,31 @@ function MarketingModule({ store, persist }) {
             <span style={{ background: T.greenBg, color: T.green, padding: "6px 12px", borderRadius: 20, border: `1px solid ${T.green}` }}>WhatsApp Location Map</span>
           </div>
         </div>
+
+        {(mkt.automatorRules || []).map((rule, idx) => (
+          <div key={rule.id} style={{ background: T.white, border: `1px solid ${T.border}`, borderRadius: 12, padding: 16, marginBottom: 14 }}>
+            <div style={{ display: "flex", justifyContent: "space-between" }}>
+              <div style={{ fontWeight: 600, color: T.navy, marginBottom: 8 }}>{3 + idx}. Custom Rule</div>
+              <button onClick={() => save({ automatorRules: (mkt.automatorRules || []).filter(r => r.id !== rule.id) })} style={{ background: "none", border: "none", cursor: "pointer", fontSize: 16 }}>🗑️</button>
+            </div>
+            <div style={{ display: "flex", flexWrap: "wrap", gap: 10, alignItems: "center", fontSize: 13 }}>
+              <span style={{ background: T.white, padding: "6px 12px", borderRadius: 20, border: `1px solid ${T.border}` }}>{rule.trigger}</span>
+              <span>➔</span>
+              <span style={{ background: T.purpleBg, color: T.purple, padding: "6px 12px", borderRadius: 20, border: `1px solid ${T.purple}` }}>{rule.action}</span>
+            </div>
+          </div>
+        ))}
+
         <Btn c={T.navy} onClick={() => setShowAutoModal(true)}>+ Create New Automation Rule</Btn>
         
         {showAutoModal && (
           <div style={{ position: "fixed", top: 0, left: 0, right: 0, bottom: 0, background: "rgba(11,20,55,0.55)", zIndex: 999, display: "flex", alignItems: "center", justifyContent: "center", padding: "1rem" }}>
             <div style={{ background: T.white, borderRadius: 18, padding: "28px", maxWidth: 420, width: "100%" }}>
               <div style={{ fontFamily: "'Playfair Display',serif", fontSize: 18, fontWeight: 700, color: T.navy, marginBottom: 12 }}>New Automation Rule</div>
-              <F l="Trigger Event"><select style={{ marginBottom: 12, width: "100%", padding: 8 }}><option>When lead status changes...</option><option>When date reached...</option></select></F>
-              <F l="Action to Take"><select style={{ marginBottom: 12, width: "100%", padding: 8 }}><option>Send WhatsApp</option><option>Trigger IVR</option><option>Send Email</option></select></F>
+              <F l="Trigger Event"><select value={newAutoRule.trigger} onChange={e => setNewAutoRule({...newAutoRule, trigger: e.target.value})} style={{ marginBottom: 12, width: "100%", padding: 8 }}><option>When lead status changes...</option><option>When date reached...</option></select></F>
+              <F l="Action to Take"><select value={newAutoRule.action} onChange={e => setNewAutoRule({...newAutoRule, action: e.target.value})} style={{ marginBottom: 12, width: "100%", padding: 8 }}><option>Send WhatsApp</option><option>Trigger IVR</option><option>Send Email</option></select></F>
               <div style={{ display: "flex", gap: 10, marginTop: 14 }}>
-                <Btn c={T.navy} full onClick={() => { alert("Rule created successfully."); setShowAutoModal(false); }}>Save Rule</Btn>
+                <Btn c={T.navy} full onClick={saveAutoRule}>Save Rule</Btn>
                 <button onClick={() => setShowAutoModal(false)} style={{ flex: 1, padding: "11px", background: "transparent", color: T.textMid, border: `1px solid ${T.border}`, borderRadius: 10, fontWeight: 600, cursor: "pointer" }}>Cancel</button>
               </div>
             </div>
@@ -2678,7 +2846,7 @@ function MarketingModule({ store, persist }) {
           <div style={{ fontSize: 13, color: T.textLight, marginBottom: 16 }}>The AI agent will answer natural language queries based on your project inventory and pricing data. It can qualify leads before passing them to humans.</div>
           <div style={{ background: T.cream, padding: 12, borderRadius: 8, fontSize: 13, marginBottom: 16 }}>
             <div style={{ color: T.textMid, marginBottom: 6 }}><strong>User:</strong> Are there any 3BHKs available under 1 Crore?</div>
-            <div style={{ color: T.purple }}><strong>Bot:</strong> Yes! We have 2 units available in GharKar Heights starting at 95 Lakhs. Would you like me to schedule a site visit?</div>
+            <div style={{ color: T.purple }}><strong>Bot:</strong> Yes! We have 2 units available in Ghar Kar Heights starting at 95 Lakhs. Would you like me to schedule a site visit?</div>
           </div>
           <Btn c={T.purple} full>Configure AI Knowledge Base</Btn>
         </Card>
@@ -2775,7 +2943,7 @@ function PostSalesModule({ store }) {
     return (<div style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.5)", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 9999 }}>
       <div style={{ background: T.white, padding: 40, borderRadius: 12, width: 500, boxShadow: "0 10px 40px rgba(0,0,0,0.2)", fontFamily: "serif" }}>
         <div style={{ textAlign: "center", borderBottom: "2px solid #000", paddingBottom: 10, marginBottom: 20 }}>
-          <h2 style={{ margin: 0, color: T.navy }}>GharKar Developers</h2>
+          <h2 style={{ margin: 0, color: T.navy }}>Ghar Kar Developers</h2>
           <div style={{ fontSize: 12, color: "#666" }}>123, Real Estate Avenue, Pune, India</div>
         </div>
         <h3 style={{ textAlign: "center", textTransform: "uppercase", letterSpacing: 1 }}>{doc}</h3>
@@ -2849,6 +3017,9 @@ function CommunicationsModule({ store, persist, session }) {
   const [dialNum, setDialNum] = useState("");
   const [calling, setCalling] = useState(false);
   
+  const comms = store.comms || { aiCallOnAssign: false, aiCallForLeadGen: true, scheduledIVR: true };
+  function saveComms(upd) { persist({ ...store, comms: { ...comms, ...upd } }); }
+
   return (<div className="fade">
     <ST>📞 Communications & Dialer</ST>
     <div style={{ display: "flex", gap: 4, marginBottom: 20, background: T.creamDark, borderRadius: 12, padding: 4 }}>
@@ -2871,7 +3042,7 @@ function CommunicationsModule({ store, persist, session }) {
           </div>
           <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 12 }}>
             <button onClick={() => setDialNum(d => d.slice(0, -1))} style={{ background: "none", border: "none", color: "#667781", fontSize: 24, cursor: "pointer", width: 64 }}>⌫</button>
-            <button onClick={() => { if(dialNum) setCalling(true); }} style={{ background: calling ? T.red : T.green, border: "none", borderRadius: "50%", width: 64, height: 64, color: "#fff", fontSize: 28, cursor: "pointer", boxShadow: `0 8px 16px ${calling ? T.red : T.green}40` }}>{calling ? "📴" : "📞"}</button>
+            <button onClick={() => { if(dialNum) setCalling(!calling); }} style={{ background: calling ? T.red : T.green, border: "none", borderRadius: "50%", width: 64, height: 64, color: "#fff", fontSize: 28, cursor: "pointer", boxShadow: `0 8px 16px ${calling ? T.red : T.green}40` }}>{calling ? "📴" : "📞"}</button>
             <div style={{ width: 64 }}></div>
           </div>
           {calling && <div style={{ textAlign: "center", color: T.green, marginTop: 16, fontSize: 14, fontWeight: 600 }}>Connected... 00:14</div>}
@@ -2925,28 +3096,34 @@ function CommunicationsModule({ store, persist, session }) {
         <div style={{ border: `1px solid ${T.border}`, borderRadius: 10, padding: 16, marginBottom: 12 }}>
           <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 8 }}>
             <div style={{ fontWeight: 600, color: T.navy }}>🤖 AI Calling for Lead Generation</div>
-            <Tg c={T.green}>Active</Tg>
+            <Tg c={comms.aiCallForLeadGen ? T.green : T.amber}>{comms.aiCallForLeadGen ? "Active" : "Paused"}</Tg>
           </div>
           <div style={{ fontSize: 13, color: T.textLight, marginBottom: 12 }}>AI-powered system engages prospects 24/7. When a prospect shows high intent, it routes the call to a human executive.</div>
-          <Btn c={T.purple}>Configure Script</Btn>
+          <div style={{ display: "flex", gap: 10 }}>
+            <Btn c={T.purple} onClick={() => alert("Configure Script Editor opened. (Simulated)")}>Configure Script</Btn>
+            <Btn c={comms.aiCallForLeadGen ? T.red : T.green} onClick={() => saveComms({ aiCallForLeadGen: !comms.aiCallForLeadGen })}>{comms.aiCallForLeadGen ? "Pause AI" : "Activate AI"}</Btn>
+          </div>
         </div>
 
         <div style={{ border: `1px solid ${T.border}`, borderRadius: 10, padding: 16, marginBottom: 12 }}>
           <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 8 }}>
             <div style={{ fontWeight: 600, color: T.navy }}>⚡ Auto Call on Lead Assigning</div>
-            <Tg c={T.amber}>Paused</Tg>
+            <Tg c={comms.aiCallOnAssign ? T.green : T.amber}>{comms.aiCallOnAssign ? "Active" : "Paused"}</Tg>
           </div>
-          <div style={{ fontSize: 13, color: T.textLight, marginBottom: 12 }}>System automatically triggers a call connecting the executive to the prospect within 1 minute of assigning.</div>
-          <Btn c={T.navy}>Activate</Btn>
+          <div style={{ fontSize: 13, color: T.textLight, marginBottom: 12 }}>System automatically triggers a call connecting the executive to the prospect instantly upon assigning.</div>
+          <Btn c={comms.aiCallOnAssign ? T.red : T.navy} onClick={() => saveComms({ aiCallOnAssign: !comms.aiCallOnAssign })}>{comms.aiCallOnAssign ? "Deactivate" : "Activate"}</Btn>
         </div>
 
         <div style={{ border: `1px solid ${T.border}`, borderRadius: 10, padding: 16 }}>
           <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 8 }}>
             <div style={{ fontWeight: 600, color: T.navy }}>📅 Scheduled IVR Followups</div>
-            <Tg c={T.green}>Active</Tg>
+            <Tg c={comms.scheduledIVR ? T.green : T.amber}>{comms.scheduledIVR ? "Active" : "Paused"}</Tg>
           </div>
           <div style={{ fontSize: 13, color: T.textLight, marginBottom: 12 }}>Scheduled and pending activities automatically trigger an IVR call to employees and customers.</div>
-          <Btn c={T.navy}>Configure IVR Menu</Btn>
+          <div style={{ display: "flex", gap: 10 }}>
+            <Btn c={T.navy} onClick={() => alert("Configure IVR Menu opened. (Simulated)")}>Configure IVR Menu</Btn>
+            <Btn c={comms.scheduledIVR ? T.red : T.green} onClick={() => saveComms({ scheduledIVR: !comms.scheduledIVR })}>{comms.scheduledIVR ? "Pause IVR" : "Activate IVR"}</Btn>
+          </div>
         </div>
       </Card>
     )}
