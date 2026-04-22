@@ -425,7 +425,7 @@ export default function App() {
       x.active !== false
     );
     if (user) {
-      if (mode === "exec" && user.role !== "admin" && user.role !== "exec") return false;
+      if (mode === "exec" && user.role !== "admin" && user.role !== "executive") return false;
       if (mode === "field" && user.role !== "field") return false;
       if (mode === "developer" && user.role !== "developer") return false;
       if (mode === "agent" && user.role !== "agent") return false;
@@ -574,7 +574,7 @@ function Shell({ session, onLogout, navItems, children, activeNav, setActiveNav,
 }
 
 // ─── ADMIN APP ────────────────────────────────────────────────────────────────
-const AN = [{ id: "dashboard", label: "Dashboard" }, { id: "kpf", label: "📊 KPF" }, { id: "users", label: "Users" }, { id: "leads", label: "All Leads" }, { id: "logs", label: "Daily Logs" }, { id: "pipeline", label: "Pipeline" }, { id: "escalations", label: "Escalations" }, { id: "external", label: "External Follow-Ups" }, { id: "calculator", label: "🧮 Calculator" }, { id: "inventory", label: "🏗️ Inventory" }, { id: "hr", label: "🤝 HR" }, { id: "marketing", label: "📢 Marketing" }, { id: "postsales", label: "🔑 Post-Sales" }];
+const AN = [{ id: "dashboard", label: "Dashboard" }, { id: "kpf", label: "📊 KPF" }, { id: "users", label: "Users" }, { id: "leads", label: "All Leads" }, { id: "logs", label: "Daily Logs" }, { id: "pipeline", label: "Pipeline" }, { id: "escalations", label: "Escalations" }, { id: "external", label: "External Follow-Ups" }, { id: "calculator", label: "🧮 Calculator" }, { id: "hr", label: "🤝 HR" }, { id: "marketing", label: "📢 Marketing" }, { id: "comms", label: "📞 Dialer & Comms" }];
 function AdminApp({ store, persist, session, onLogout }) {
   const [nav, setNav] = useState("dashboard");
   const [sel, setSel] = useState(null);
@@ -591,14 +591,14 @@ function AdminApp({ store, persist, session, onLogout }) {
     {nav === "kpf" && <KPFDashboard store={store} onSel={setSel} />}
     {nav === "users" && <ManageUsers store={store} persist={persist} />}
     {nav === "leads" && <div className="fade"><ST>All Leads ({(store.leads || []).length})</ST><LeadTable leads={store.leads || []} users={store.users} onSelect={setSel} onDelete={delLead} /></div>}
-    {nav === "logs" && <AdminLogs store={store} />}
+    {nav === "logs" && <AdminLogs store={store} persist={persist} />}
     {nav === "pipeline" && <AdminPipeline store={store} onSel={setSel} />}
     {nav === "escalations" && <EscalationView store={store} persist={persist} />}
     {nav === "external" && <ExternalFollowups store={store} persist={persist} />}
     {nav === "calculator" && <EMICalculator />}
     {nav === "comms" && <CommunicationsModule store={store} persist={persist} session={session} />}
     {nav === "hr" && <HRModule store={store} />}
-    {nav === "marketing" && <MarketingModule />}
+    {nav === "marketing" && <MarketingModule store={store} persist={persist} />}
   </Shell>);
 }
 
@@ -950,12 +950,22 @@ function ManageUsers({ store, persist }) {
   </div>);
 }
 
-function AdminLogs({ store }) {
+function AdminLogs({ store, persist }) {
   const users = store.users.filter(u => u.role !== "admin");
   const [selU, setSelU] = useState(users[0]?.id || "");
   const myLogs = (store.dailyLogs || {})[selU] || {};
   const dates = Object.keys(myLogs).sort().reverse();
   const user = users.find(u => u.id === selU);
+
+  function delLog(d) {
+    if(!confirm("Delete this log?")) return;
+    const newStore = JSON.parse(JSON.stringify(store));
+    if(newStore.dailyLogs && newStore.dailyLogs[selU]) {
+      delete newStore.dailyLogs[selU][d];
+      persist(newStore);
+    }
+  }
+
   return (<div className="fade">
     <ST>Daily Logs</ST>
     <select value={selU} onChange={e => setSelU(e.target.value)} style={{ maxWidth: 280, marginBottom: 16 }}>
@@ -964,7 +974,10 @@ function AdminLogs({ store }) {
     {dates.length === 0 && selU && <div style={{ fontSize: 13, color: T.textLight }}>No logs submitted by {user?.name} yet.</div>}
     {dates.map(d => (
       <div key={d} style={{ background: T.white, border: `1px solid ${T.border}`, borderRadius: 12, padding: "14px 16px", marginBottom: 10 }}>
-        <div style={{ fontWeight: 500, fontSize: 13, color: T.textMid, marginBottom: 8 }}>{new Date(d).toLocaleDateString("en-IN", { weekday: "short", year: "numeric", month: "short", day: "numeric" })}</div>
+        <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 8 }}>
+          <div style={{ fontWeight: 500, fontSize: 13, color: T.textMid }}>{new Date(d).toLocaleDateString("en-IN", { weekday: "short", year: "numeric", month: "short", day: "numeric" })}</div>
+          <button onClick={() => delLog(d)} style={{ background: "none", border: "none", cursor: "pointer", fontSize: 16 }} title="Delete Log">🗑️</button>
+        </div>
         <div style={{ fontSize: 13, color: T.text, whiteSpace: "pre-wrap", lineHeight: 1.7 }}>{myLogs[d]}</div>
       </div>
     ))}
@@ -1023,15 +1036,26 @@ function AdminPipeline({ store, onSel }) {
 
 function EscalationView({ store, persist }) {
   const escs = (store.escalations || []).slice(0, 50);
+  
+  function onDone(id) {
+    persist({ ...store, escalations: (store.escalations || []).filter(e => e.id !== id) });
+  }
+
   return (<div className="fade">
     <ST>Escalation Alerts</ST>
     <div style={{ fontSize: 13, color: T.textLight, marginBottom: 16 }}>Tasks that were pending for over 24 hours. These are auto-generated when a staff member is stuck on a step.</div>
     {escs.length === 0 && <div style={{ fontSize: 13, color: T.textLight }}>No escalations yet.</div>}
     {escs.map(e => (
       <div key={e.id} style={{ background: T.white, border: `1px solid ${T.border}`, borderLeft: `3px solid ${T.red}`, borderRadius: 10, padding: "12px 16px", marginBottom: 10 }}>
-        <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 8 }}>
-          <div style={{ fontWeight: 500, fontSize: 14, color: T.text }}>{e.staffName}</div>
-          <div style={{ fontSize: 12, color: T.textLight }}>{e.date}</div>
+        <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 8, alignItems: "center" }}>
+          <div>
+            <div style={{ fontWeight: 500, fontSize: 14, color: T.text }}>{e.staffName}</div>
+            <div style={{ fontSize: 12, color: T.textLight }}>{e.date}</div>
+          </div>
+          <div style={{ display: "flex", gap: 8 }}>
+            <button onClick={() => onDone(e.id)} style={{ background: T.greenBg, border: `1px solid ${T.green}50`, color: T.green, borderRadius: 6, padding: "4px 8px", fontSize: 12, cursor: "pointer", fontWeight: 600 }}>✅ Mark Done</button>
+            <button onClick={() => onDone(e.id)} style={{ background: T.redBg, border: `1px solid ${T.red}50`, color: T.red, borderRadius: 6, padding: "4px 8px", fontSize: 12, cursor: "pointer", fontWeight: 600 }}>🗑️ Delete</button>
+          </div>
         </div>
         {e.items.map((item, i) => (
           <div key={i} style={{ fontSize: 13, color: T.red, padding: "4px 0", borderTop: `0.5px solid ${T.border}` }}>
@@ -2544,17 +2568,33 @@ function HRModule({ store }) {
 }
 
 // ─── MARKETING MODULE ─────────────────────────────────────────────────────────
-function MarketingModule() {
-  const [offers, setOffers] = useState([{ id: 1, title: "Diwali Gold Coin Bonanza!", desc: "Close 3 bookings before Nov 15th to win a 10g Gold Coin." }]);
+function MarketingModule({ store, persist }) {
   const [newOffer, setNewOffer] = useState({ title: "", desc: "" });
   const [walkins, setWalkins] = useState(142);
   const [tab, setTab] = useState("automator");
+  const [newRule, setNewRule] = useState({ k: "", r: "" });
+  const [showAutoModal, setShowAutoModal] = useState(false);
+
+  const mkt = store.marketing || {
+    offers: [{ id: 1, title: "Diwali Gold Coin Bonanza!", desc: "Close 3 bookings before Nov 15th to win a 10g Gold Coin." }],
+    keywordRules: [{ id: 1, k: "price, pricing, cost", r: "Sending automated pricing sheet..." }, { id: 2, k: "location, map, directions", r: "Sending Google Maps pin..." }]
+  };
+  
+  function save(upd) { persist({ ...store, marketing: { ...mkt, ...upd } }); }
 
   function addOffer() {
     if (!newOffer.title) return;
-    setOffers([{ id: gid(), ...newOffer }, ...offers]);
+    save({ offers: [{ id: gid(), ...newOffer }, ...mkt.offers] });
     setNewOffer({ title: "", desc: "" });
   }
+  function delOffer(id) { save({ offers: mkt.offers.filter(x => x.id !== id) }); }
+
+  function addRule() {
+    if(!newRule.k) return;
+    save({ keywordRules: [...mkt.keywordRules, { id: gid(), ...newRule }] });
+    setNewRule({ k: "", r: "" });
+  }
+  function delRule(id) { save({ keywordRules: mkt.keywordRules.filter(x => x.id !== id) }); }
 
   return (<div className="fade">
     <ST>📢 Marketing & Automations</ST>
@@ -2591,7 +2631,21 @@ function MarketingModule() {
             <span style={{ background: T.greenBg, color: T.green, padding: "6px 12px", borderRadius: 20, border: `1px solid ${T.green}` }}>WhatsApp Location Map</span>
           </div>
         </div>
-        <Btn c={T.navy}>+ Create New Automation Rule</Btn>
+        <Btn c={T.navy} onClick={() => setShowAutoModal(true)}>+ Create New Automation Rule</Btn>
+        
+        {showAutoModal && (
+          <div style={{ position: "fixed", top: 0, left: 0, right: 0, bottom: 0, background: "rgba(11,20,55,0.55)", zIndex: 999, display: "flex", alignItems: "center", justifyContent: "center", padding: "1rem" }}>
+            <div style={{ background: T.white, borderRadius: 18, padding: "28px", maxWidth: 420, width: "100%" }}>
+              <div style={{ fontFamily: "'Playfair Display',serif", fontSize: 18, fontWeight: 700, color: T.navy, marginBottom: 12 }}>New Automation Rule</div>
+              <F l="Trigger Event"><select style={{ marginBottom: 12, width: "100%", padding: 8 }}><option>When lead status changes...</option><option>When date reached...</option></select></F>
+              <F l="Action to Take"><select style={{ marginBottom: 12, width: "100%", padding: 8 }}><option>Send WhatsApp</option><option>Trigger IVR</option><option>Send Email</option></select></F>
+              <div style={{ display: "flex", gap: 10, marginTop: 14 }}>
+                <Btn c={T.navy} full onClick={() => { alert("Rule created successfully."); setShowAutoModal(false); }}>Save Rule</Btn>
+                <button onClick={() => setShowAutoModal(false)} style={{ flex: 1, padding: "11px", background: "transparent", color: T.textMid, border: `1px solid ${T.border}`, borderRadius: 10, fontWeight: 600, cursor: "pointer" }}>Cancel</button>
+              </div>
+            </div>
+          </div>
+        )}
       </Card>
     )}
 
@@ -2600,17 +2654,20 @@ function MarketingModule() {
         <Card title="Keyword Auto-Responders" accent={T.green}>
           <div style={{ fontSize: 13, color: T.textLight, marginBottom: 16 }}>Set up auto-responses based on keywords sent by customers.</div>
           <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
-            {[{ k: "price, pricing, cost", r: "Sending automated pricing sheet..." }, { k: "location, map, directions", r: "Sending Google Maps pin..." }].map((kr, i) => (
-              <div key={i} style={{ border: `1px solid ${T.border}`, borderRadius: 8, padding: 10, background: T.white }}>
-                <div style={{ fontSize: 12, fontWeight: 700, color: T.navy, marginBottom: 4 }}>Keywords: <Tg c={T.navy}>{kr.k}</Tg></div>
-                <div style={{ fontSize: 13, color: T.text }}>Reply: {kr.r}</div>
+            {mkt.keywordRules.map((kr) => (
+              <div key={kr.id} style={{ border: `1px solid ${T.border}`, borderRadius: 8, padding: 10, background: T.white, display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                <div>
+                  <div style={{ fontSize: 12, fontWeight: 700, color: T.navy, marginBottom: 4 }}>Keywords: <Tg c={T.navy}>{kr.k}</Tg></div>
+                  <div style={{ fontSize: 13, color: T.text }}>Reply: {kr.r}</div>
+                </div>
+                <button onClick={() => delRule(kr.id)} style={{ background: "none", border: "none", cursor: "pointer", fontSize: 16 }} title="Delete Rule">🗑️</button>
               </div>
             ))}
           </div>
           <div style={{ marginTop: 14 }}>
-            <input placeholder="Keywords (comma separated)" style={{ width: "100%", marginBottom: 8 }} />
-            <input placeholder="Auto-Response Message" style={{ width: "100%", marginBottom: 8 }} />
-            <Btn c={T.green} full>Add Keyword Rule</Btn>
+            <input value={newRule.k} onChange={e => setNewRule(x => ({ ...x, k: e.target.value }))} placeholder="Keywords (comma separated)" style={{ width: "100%", marginBottom: 8, padding: 8 }} />
+            <input value={newRule.r} onChange={e => setNewRule(x => ({ ...x, r: e.target.value }))} placeholder="Auto-Response Message" style={{ width: "100%", marginBottom: 8, padding: 8 }} />
+            <Btn c={T.green} full onClick={addRule}>Add Keyword Rule</Btn>
           </div>
         </Card>
         <Card title="AI Conversational Bot" accent={T.purple}>
@@ -2665,10 +2722,13 @@ function MarketingModule() {
             <input value={newOffer.desc} onChange={e => setNewOffer(x => ({ ...x, desc: e.target.value }))} placeholder="Description (e.g. Close 3 bookings to win...)" style={{ width: "100%", marginBottom: 12 }} />
 
             <div style={{ display: "grid", gap: 8, maxHeight: 200, overflowY: "auto" }}>
-              {offers.map(o => (
-                <div key={o.id} style={{ border: `1px solid ${T.blue}40`, background: `${T.blue}10`, padding: 12, borderRadius: 8 }}>
-                  <div style={{ fontSize: 14, fontWeight: 700, color: T.blue }}>{o.title}</div>
-                  <div style={{ fontSize: 12, color: T.text, marginTop: 4 }}>{o.desc}</div>
+              {mkt.offers.map(o => (
+                <div key={o.id} style={{ border: `1px solid ${T.blue}40`, background: `${T.blue}10`, padding: 12, borderRadius: 8, display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                  <div>
+                    <div style={{ fontSize: 14, fontWeight: 700, color: T.blue }}>{o.title}</div>
+                    <div style={{ fontSize: 12, color: T.text, marginTop: 4 }}>{o.desc}</div>
+                  </div>
+                  <button onClick={() => delOffer(o.id)} style={{ background: "none", border: "none", cursor: "pointer", fontSize: 16 }} title="Delete Offer">🗑️</button>
                 </div>
               ))}
             </div>
@@ -2842,22 +2902,19 @@ function CommunicationsModule({ store, persist, session }) {
     )}
 
     {tab === "whatsapp" && (
-      <Card title="One-Click WhatsApp Automation" accent={T.green}>
-        <div style={{ fontSize: 13, color: T.textLight, marginBottom: 16 }}>Send bulk messages, project updates, and payment reminders with a single click.</div>
-        <Grid cols="1fr 1fr" gap={14}>
-          <div style={{ border: `1px solid ${T.border}`, borderRadius: 10, padding: 14 }}>
-            <div style={{ fontWeight: 600, color: T.navy, marginBottom: 8 }}>Broadcast Project Update</div>
-            <div style={{ fontSize: 12, color: T.textLight, marginBottom: 12 }}>Send a new project launch flyer to all active leads.</div>
-            <select style={{ width: "100%", marginBottom: 10 }}><option>Target: All Active Leads (142)</option><option>Target: Cold Leads (85)</option></select>
-            <Btn c={T.green} full>Send Broadcast</Btn>
-          </div>
-          <div style={{ border: `1px solid ${T.border}`, borderRadius: 10, padding: 14 }}>
-            <div style={{ fontWeight: 600, color: T.navy, marginBottom: 8 }}>Automated Payment Reminders</div>
-            <div style={{ fontSize: 12, color: T.textLight, marginBottom: 12 }}>Send pending milestone payment reminders to clients.</div>
-            <select style={{ width: "100%", marginBottom: 10 }}><option>Target: Disbursed / Booked (45)</option></select>
-            <Btn c={T.green} full>Send Reminders</Btn>
-          </div>
-        </Grid>
+      <Card title="Approved WhatsApp Templates" accent={T.green}>
+        <div style={{ fontSize: 13, color: T.textLight, marginBottom: 16 }}>Manage Meta-approved WhatsApp templates for automated messaging. Note: Manual bulk messaging has been disabled.</div>
+        <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+          {["Project Launch Flyer", "Payment Milestone Reminder", "Site Visit Location Map", "Meeting Confirmation"].map(t => (
+            <div key={t} style={{ border: `1px solid ${T.border}`, borderRadius: 8, padding: 12, background: T.white, display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+              <div>
+                <div style={{ fontWeight: 600, fontSize: 14, color: T.navy }}>{t}</div>
+                <div style={{ fontSize: 12, color: T.green, marginTop: 4 }}>✓ Approved by Meta</div>
+              </div>
+              <button style={{ background: "none", border: "none", color: T.blue, cursor: "pointer", fontSize: 13, fontWeight: 600 }}>Edit Template</button>
+            </div>
+          ))}
+        </div>
       </Card>
     )}
 
