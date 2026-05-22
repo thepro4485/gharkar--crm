@@ -574,7 +574,7 @@ function Shell({ session, onLogout, navItems, children, activeNav, setActiveNav,
 }
 
 // ─── ADMIN APP ────────────────────────────────────────────────────────────────
-const AN = [{ id: "dashboard", label: "Dashboard" }, { id: "kpf", label: "📊 KPF" }, { id: "users", label: "Users" }, { id: "leads", label: "All Leads" }, { id: "logs", label: "Daily Logs" }, { id: "pipeline", label: "Pipeline" }, { id: "escalations", label: "Escalations" }, { id: "external", label: "External Follow-Ups" }, { id: "calculator", label: "🧮 Calculator" }, { id: "hr", label: "🤝 HR" }, { id: "marketing", label: "📢 Marketing" }, { id: "comms", label: "📞 Dialer & Comms" }];
+const AN = [{ id: "dashboard", label: "Dashboard" }, { id: "kpf", label: "📊 KPF" }, { id: "users", label: "Users" }, { id: "leads", label: "All Leads" }, { id: "logs", label: "Daily Logs" }, { id: "pipeline", label: "Pipeline" }, { id: "escalations", label: "Escalations" }, { id: "external", label: "External Follow-Ups" }, { id: "calculator", label: "🧮 Calculator" }, { id: "hr", label: "🤝 HR" }, { id: "marketing", label: "📢 Marketing" }, { id: "comms", label: "📞 Dialer & Comms" }, { id: "ai_assistant", label: "🤖 AI Assistant" }];
 function AdminApp({ store, persist, session, onLogout }) {
   const [nav, setNav] = useState("dashboard");
   const [sel, setSel] = useState(null);
@@ -599,24 +599,27 @@ function AdminApp({ store, persist, session, onLogout }) {
     {nav === "comms" && <CommunicationsModule store={store} persist={persist} session={session} />}
     {nav === "hr" && <HRModule store={store} />}
     {nav === "marketing" && <MarketingModule store={store} persist={persist} />}
+    {nav === "ai_assistant" && <AIAssistantTab store={store} session={session} />}
   </Shell>);
 }
 
 // ─── DEVELOPER APP ────────────────────────────────────────────────────────────
-const DEV_AN = [{ id: "inventory", label: "🏗️ Inventory" }];
+const DEV_AN = [{ id: "inventory", label: "🏗️ Inventory" }, { id: "ai_assistant", label: "🤖 AI Assistant" }];
 function DeveloperApp({ store, persist, session, onLogout }) {
   const [nav, setNav] = useState("inventory");
   return (<Shell session={session} onLogout={onLogout} navItems={DEV_AN} activeNav={nav} setActiveNav={setNav} store={store} persist={persist}>
     {nav === "inventory" && <InventoryModule />}
+    {nav === "ai_assistant" && <AIAssistantTab store={store} session={session} />}
   </Shell>);
 }
 
 // ─── AGENT APP ────────────────────────────────────────────────────────────────
-const AGENT_AN = [{ id: "postsales", label: "🔑 Post-Sales" }];
+const AGENT_AN = [{ id: "postsales", label: "🔑 Post-Sales" }, { id: "ai_assistant", label: "🤖 AI Assistant" }];
 function AgentApp({ store, persist, session, onLogout }) {
   const [nav, setNav] = useState("postsales");
   return (<Shell session={session} onLogout={onLogout} navItems={AGENT_AN} activeNav={nav} setActiveNav={setNav} store={store} persist={persist}>
     {nav === "postsales" && <PostSalesModule store={store} />}
+    {nav === "ai_assistant" && <AIAssistantTab store={store} session={session} />}
   </Shell>);
 }
 
