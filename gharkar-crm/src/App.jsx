@@ -177,7 +177,7 @@ async function analyseDocumentsAI(employmentType, currentStep, receivedText, loa
   const docSet = DOC_REQUIREMENTS[employmentType] || DOC_REQUIREMENTS["Salaried"];
   const allDocs = Object.entries(docSet).flatMap(([cat, docs]) => docs.map(d => `[${cat}] ${d}`));
   const prompt = `You are an expert home loan processor in India. Analyse the documents received and identify what is present, missing, and any concerns.\nBORROWER: ${loanDetails.name || "Client"}, Employment: ${employmentType}, Loan: ${loanDetails.loanType || "Home Loan"}, Amount: Rs.${Number(loanDetails.loanAmount || 0).toLocaleString("en-IN")}\nPROCESS STEP: ${currentStep}\nREQUIRED DOCUMENTS:\n${allDocs.map((d, i) => `${i + 1}. ${d}`).join("\n")}\nDOCUMENTS RECEIVED (described by loan officer):\n${receivedText}\nRespond ONLY in this exact JSON format:{"confirmed":["names of docs clearly present"],"missing":["names of docs not mentioned"],"concerns":["any red flags or issues"],"nextAction":"specific next step the officer should take now","score":0}`;
-  try {Q
+  try {
     const res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${GEMINI_KEY}`, {
       method: "POST", headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ contents: [{ parts: [{ text: prompt }] }], generationConfig: { temperature: 0.1, maxOutputTokens: 1024 } })
@@ -961,9 +961,9 @@ function AdminLogs({ store, persist }) {
   const user = users.find(u => u.id === selU);
 
   function delLog(d) {
-    if(!confirm("Delete this log?")) return;
+    if (!confirm("Delete this log?")) return;
     const newStore = JSON.parse(JSON.stringify(store));
-    if(newStore.dailyLogs && newStore.dailyLogs[selU]) {
+    if (newStore.dailyLogs && newStore.dailyLogs[selU]) {
       delete newStore.dailyLogs[selU][d];
       persist(newStore);
     }
@@ -1039,7 +1039,7 @@ function AdminPipeline({ store, onSel }) {
 
 function EscalationView({ store, persist }) {
   const escs = (store.escalations || []).slice(0, 50);
-  
+
   function onDone(id) {
     persist({ ...store, escalations: (store.escalations || []).filter(e => e.id !== id) });
   }
@@ -1147,7 +1147,7 @@ function ExternalFollowups({ store, persist }) {
 }
 
 // ─── EXECUTIVE APP ────────────────────────────────────────────────────────────
-const EN = [{ id: "today", label: "Today" }, { id: "leads", label: "My Leads" }, { id: "add", label: "Add Lead" }, { id: "followups", label: "Follow-Ups" }, { id: "comms", label: "📞 Comms" }, { id: "guide", label: "Process Guide" }, { id: "external", label: "External" }, { id: "log", label: "Daily Log" }, { id: "calculator", label: "🧲 Calculator" }];
+const EN = [{ id: "today", label: "Today" }, { id: "leads", label: "My Leads" }, { id: "add", label: "Add Lead" }, { id: "followups", label: "Follow-Ups" }, { id: "comms", label: "📞 Comms" }, { id: "guide", label: "Process Guide" }, { id: "external", label: "External" }, { id: "log", label: "Daily Log" }, { id: "calculator", label: "🧮 Calculator" }, { id: "ai_assistant", label: "🤖 AI Assistant" }];
 function ExecutiveApp({ store, persist, session, onLogout }) {
   const [nav, setNav] = useState("today"); const [sel, setSel] = useState(null);
   const myLeads = (store.leads || []).filter(l => l.assignedTo === session.id);
@@ -1182,6 +1182,7 @@ function ExecutiveApp({ store, persist, session, onLogout }) {
     {nav === "log" && <DailyLog session={session} dailyLogs={store.dailyLogs || {}} onSave={saveLog} />}
     {nav === "calculator" && <EMICalculator />}
     {nav === "comms" && <CommunicationsModule store={store} persist={persist} session={session} />}
+    {nav === "ai_assistant" && <AIAssistantTab store={store} session={session} />}
   </Shell>);
 }
 
@@ -1233,16 +1234,16 @@ const FN = [{ id: "today", label: "Today" }, { id: "leads", label: "My Leads" },
 function FieldApp({ store, persist, session, onLogout }) {
   const [nav, setNav] = useState("today"); const [sel, setSel] = useState(null);
   const myLeads = (store.leads || []).filter(l => l.assignedTo === session.id);
-  function addLead(lead) { 
-    const nl = { ...lead, id: gid(), assignedTo: session.id, currentStep: 1, stepsCompleted: {}, notes: [], followUp: "", stageHistory: [{ step: 1, date: td() }], createdAt: td(), commLog: [] }; 
+  function addLead(lead) {
+    const nl = { ...lead, id: gid(), assignedTo: session.id, currentStep: 1, stepsCompleted: {}, notes: [], followUp: "", stageHistory: [{ step: 1, date: td() }], createdAt: td(), commLog: [] };
     const commLog = [];
     if (store.comms?.aiCallOnAssign) {
       commLog.push({ type: "system", msg: `AI Calling triggered instantly for ${lead.name}.`, date: td(), time: new Date().toLocaleTimeString("en-IN", { hour: "2-digit", minute: "2-digit" }) });
       setTimeout(() => alert(`[System Simulation] AI Call initiated to ${lead.phone} instantly upon lead assignment!`), 500);
     }
     nl.commLog = commLog;
-    persist({ ...store, leads: [nl, ...(store.leads || [])] }); 
-    setNav("leads"); 
+    persist({ ...store, leads: [nl, ...(store.leads || [])] });
+    setNav("leads");
   }
   function updLead(id, upd) { persist({ ...store, leads: (store.leads || []).map(l => l.id === id ? { ...l, ...upd } : l) }); }
   function delLead(id) { if (!window.confirm("Delete this lead permanently?")) return; persist({ ...store, leads: (store.leads || []).filter(l => l.id !== id) }); setSel(null); }
@@ -1340,7 +1341,7 @@ function TodayView({ leads, session, onSel }) {
               <div style={{ fontSize: 12, color: T.amber }}>📍 {tv.visit.building} ({tv.visit.wing}) at {tv.visit.time || "TBD"}</div>
             </div>
             <div style={{ fontSize: 11, color: T.amber, whiteSpace: "nowrap" }}>
-              <span style={{background: T.amber, color: "#fff", padding: "2px 6px", borderRadius: 4, fontWeight: 600}}>Reminders Active</span>
+              <span style={{ background: T.amber, color: "#fff", padding: "2px 6px", borderRadius: 4, fontWeight: 600 }}>Reminders Active</span>
             </div>
           </div>
         ))}
@@ -1372,7 +1373,7 @@ function LeadDetail({ lead, store, onBack, onUpdate, onDelete, isAdmin, fieldOnl
   const allDone = step.actions.every(a => !!done[a]);
   const asgn = store.users.find(u => u.id === lead.assignedTo);
   const maxStep = fieldOnly ? Math.max(...LEAD_STEP_IDS) : 39;
-  const tabs = fieldOnly ? ["current", "notes", "history"] : ["current", "allsteps", "comm", "docchecklist", "aidocs", "detailsheet", "financials", "campaigns", "notes", "history"];
+  const tabs = fieldOnly ? ["current", "notes", "history"] : ["current", "allsteps", "comm", "docchecklist", "detailsheet", "financials", "campaigns", "notes", "history"];
 
   const wasAllDone = useRef(allDone);
   useEffect(() => {
@@ -1449,7 +1450,7 @@ function LeadDetail({ lead, store, onBack, onUpdate, onDelete, isAdmin, fieldOnl
     </div>
     <div style={{ display: "flex", gap: 1, marginBottom: 14, borderBottom: `1px solid ${T.border}`, overflowX: "auto" }}>
       {tabs.map(t => <button key={t} onClick={() => setTab(t)} style={{ padding: "9px 14px", border: "none", background: "none", color: tab === t ? cm.color : T.textLight, fontWeight: tab === t ? 600 : 400, borderBottom: tab === t ? `2px solid ${cm.color}` : "2px solid transparent", cursor: "pointer", textTransform: "capitalize", whiteSpace: "nowrap", fontSize: 13 }}>
-        {t === "current" ? "Current Step" : t === "allsteps" ? "All 39 Steps" : t === "sitevisits" ? "📍 Site Visits & Follow-up" : t === "comm" ? "Communication" : t === "docchecklist" ? "📋 Docs" : t === "aidocs" ? "🤖 AI Docs" : t === "detailsheet" ? "🧧 Detail Sheet" : t === "financials" ? "💰 Financials" : t === "campaigns" ? "🚀 Campaigns" : t === "notes" ? "Notes" : t === "history" ? "History" : t}
+        {t === "current" ? "Current Step" : t === "allsteps" ? "All 39 Steps" : t === "sitevisits" ? "📍 Site Visits & Follow-up" : t === "comm" ? "Communication" : t === "docchecklist" ? "📋 Docs" : t === "detailsheet" ? "🧧 Detail Sheet" : t === "financials" ? "💰 Financials" : t === "campaigns" ? "🚀 Campaigns" : t === "notes" ? "Notes" : t === "history" ? "History" : t}
       </button>)}
     </div>
 
@@ -1632,7 +1633,6 @@ function LeadDetail({ lead, store, onBack, onUpdate, onDelete, isAdmin, fieldOnl
     )}
 
     {tab === "docchecklist" && !fieldOnly && <DocChecklistTab lead={lead} onUpdate={onUpdate} />}
-    {tab === "aidocs" && !fieldOnly && <AiDocsTab lead={lead} />}
     {tab === "detailsheet" && !fieldOnly && <DetailSheetTab lead={lead} onUpdate={onUpdate} />}
     {tab === "financials" && !fieldOnly && <FinancialsTab lead={lead} onUpdate={onUpdate} />}
     {tab === "campaigns" && !fieldOnly && <CampaignsTab lead={lead} onUpdate={onUpdate} />}
@@ -1671,76 +1671,6 @@ function LeadDetail({ lead, store, onBack, onUpdate, onDelete, isAdmin, fieldOnl
       </Card>
     )}
   </div>);
-}
-
-// ─── AI DOCS TAB ─────────────────────────────────────────────────────────────
-function AiDocsTab({ lead }) {
-  const [text, setText] = useState("");
-  const [result, setResult] = useState(null);
-  const [loading, setLoading] = useState(false);
-  const empType = lead.employmentType || "Salaried";
-  const docSet = DOC_REQUIREMENTS[empType] || DOC_REQUIREMENTS["Salaried"];
-  const allDocs = Object.values(docSet).flat();
-
-  async function analyse() {
-    if (!text.trim()) return;
-    setLoading(true);
-    const res = await analyseDocumentsAI(empType, lead.currentStep, text, lead);
-    setResult(res);
-    setLoading(false);
-  }
-
-  return (
-    <div className="fade">
-      <div style={{ fontSize: 13, color: T.textLight, marginBottom: 12 }}>
-        Paste or type what documents you have received. AI will identify what is present, missing, and what to do next.
-        <span style={{ marginLeft: 8, fontSize: 11, color: T.blue, background: T.blueBg, padding: "2px 8px", borderRadius: 10 }}>{empType}</span>
-      </div>
-      <div style={{ background: T.white, border: `1px solid ${T.border}`, borderRadius: 12, padding: 16, marginBottom: 12 }}>
-        <div style={{ fontSize: 12, color: T.textLight, marginBottom: 8 }}>Example: "Received Aadhaar and PAN. Got 3 months salary slips and 6 months bank statements. Form 16 pending. Property agreement received but EC not available yet."</div>
-        <textarea value={text} onChange={e => setText(e.target.value)} rows={5} placeholder={`Describe received documents for ${lead.name || "this client"}...`} style={{ marginBottom: 10, resize: "vertical" }} />
-        <button onClick={analyse} disabled={loading || !text.trim()} style={{ padding: "10px 22px", background: loading ? T.textLight : T.navy, color: "#fff", border: "none", borderRadius: 10, fontWeight: 600, fontSize: 14, cursor: loading ? "not-allowed" : "pointer" }}>
-          {loading ? "Analysing..." : "🤖 Analyse Documents"}
-        </button>
-        {result && <span style={{ marginLeft: 10, fontSize: 11, color: T.textLight }}>{result.source === "gemini" ? "✨ Powered by Gemini AI" : "⚙️ Rule Engine (Gemini unavailable)"}</span>}
-      </div>
-      {result && (
-        <div className="fade">
-          <div style={{ background: T.white, border: `1px solid ${T.border}`, borderRadius: 12, padding: 16, marginBottom: 10 }}>
-            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 8 }}>
-              <div style={{ fontWeight: 600, fontSize: 14, color: T.text }}>Document Readiness Score</div>
-              <div style={{ fontSize: 26, fontWeight: 700, color: result.score >= 80 ? T.green : result.score >= 50 ? T.amber : T.red }}>{result.score}%</div>
-            </div>
-            <div style={{ background: T.creamDark, borderRadius: 4, height: 8, overflow: "hidden" }}>
-              <div style={{ width: `${result.score}%`, height: "100%", background: result.score >= 80 ? T.green : result.score >= 50 ? T.amber : T.red, borderRadius: 4, transition: "width 0.5s" }} />
-            </div>
-          </div>
-          <div style={{ background: T.blueBg, border: "1px solid #90CAF9", borderRadius: 10, padding: "12px 16px", marginBottom: 10 }}>
-            <div style={{ fontWeight: 600, fontSize: 13, color: T.blue, marginBottom: 4 }}>📋 Next Recommended Action</div>
-            <div style={{ fontSize: 13, color: T.text }}>{result.nextAction}</div>
-          </div>
-          {result.confirmed?.length > 0 && (
-            <div style={{ background: T.greenBg, border: "1px solid #A5D6A7", borderRadius: 10, padding: "12px 16px", marginBottom: 10 }}>
-              <div style={{ fontWeight: 600, fontSize: 13, color: T.green, marginBottom: 8 }}>✅ Confirmed ({result.confirmed.length} of {allDocs.length})</div>
-              {result.confirmed.map((d, i) => <div key={i} style={{ fontSize: 13, color: T.green, padding: "3px 0", borderTop: `0.5px solid #A5D6A7` }}>• {d}</div>)}
-            </div>
-          )}
-          {result.missing?.length > 0 && (
-            <div style={{ background: T.redBg, border: "1px solid #EF9A9A", borderRadius: 10, padding: "12px 16px", marginBottom: 10 }}>
-              <div style={{ fontWeight: 600, fontSize: 13, color: T.red, marginBottom: 8 }}>❌ Missing ({result.missing.length})</div>
-              {result.missing.map((d, i) => <div key={i} style={{ fontSize: 13, color: T.red, padding: "3px 0", borderTop: `0.5px solid #EF9A9A` }}>• {d}</div>)}
-            </div>
-          )}
-          {result.concerns?.length > 0 && (
-            <div style={{ background: T.amberBg, border: "1px solid #FFD54F", borderRadius: 10, padding: "12px 16px", marginBottom: 10 }}>
-              <div style={{ fontWeight: 600, fontSize: 13, color: T.amber, marginBottom: 8 }}>⚠️ Concerns</div>
-              {result.concerns.map((c, i) => <div key={i} style={{ fontSize: 13, color: T.amber, padding: "3px 0", borderTop: `0.5px solid #FFD54F` }}>• {c}</div>)}
-            </div>
-          )}
-        </div>
-      )}
-    </div>
-  );
 }
 
 // ─── DOC CHECKLIST TAB ────────────────────────────────────────────────────────
@@ -2227,7 +2157,7 @@ function SiteVisitsTab({ lead, onUpdate }) {
   const [f, setF] = useState({ date: "", time: "", building: "", floor: "", wing: "", price: "", negotiable: "Yes" });
   const [fb, setFb] = useState({ liked: "Yes", bookDate: "", nextVisitDate: "" });
   const visits = lead.siteVisits || [];
-  
+
   function saveVisit() {
     if (!f.date || !f.building) return alert("Date and Building are required.");
     const nv = { id: gid(), ...f, status: "scheduled", createdOn: td() };
@@ -2243,11 +2173,11 @@ function SiteVisitsTab({ lead, onUpdate }) {
       }
       return v;
     });
-    
+
     if (fb.liked === "No" && fb.nextVisitDate) {
       updatedVisits.unshift({ id: gid(), date: fb.nextVisitDate, time: "", building: "TBD", floor: "", wing: "", price: "", negotiable: "Yes", status: "scheduled", createdOn: td() });
     }
-    
+
     onUpdate(lead.id, { siteVisits: updatedVisits });
     setFb({ liked: "Yes", bookDate: "", nextVisitDate: "" });
   }
@@ -2262,16 +2192,16 @@ function SiteVisitsTab({ lead, onUpdate }) {
       {showForm && (
         <Card title="Schedule Site Visit" accent={T.blue}>
           <Grid cols="1fr 1fr" gap={10}>
-            <div><F l="Visit Date"><input type="date" value={f.date} onChange={e => setF({...f, date: e.target.value})} /></F></div>
-            <div><F l="Visit Time"><input type="time" value={f.time} onChange={e => setF({...f, time: e.target.value})} /></F></div>
+            <div><F l="Visit Date"><input type="date" value={f.date} onChange={e => setF({ ...f, date: e.target.value })} /></F></div>
+            <div><F l="Visit Time"><input type="time" value={f.time} onChange={e => setF({ ...f, time: e.target.value })} /></F></div>
           </Grid>
           <Grid cols="1fr 1fr" gap={10}>
-            <div><F l="Building Name"><input value={f.building} onChange={e => setF({...f, building: e.target.value})} placeholder="e.g. Ghar Kar Heights" /></F></div>
-            <div><F l="Floor & Wing"><input value={f.wing} onChange={e => setF({...f, wing: e.target.value})} placeholder="e.g. 4th Floor, B Wing" /></F></div>
+            <div><F l="Building Name"><input value={f.building} onChange={e => setF({ ...f, building: e.target.value })} placeholder="e.g. Ghar Kar Heights" /></F></div>
+            <div><F l="Floor & Wing"><input value={f.wing} onChange={e => setF({ ...f, wing: e.target.value })} placeholder="e.g. 4th Floor, B Wing" /></F></div>
           </Grid>
           <Grid cols="1fr 1fr" gap={10}>
-            <div><F l="Quoted Price (₹)"><input type="number" value={f.price} onChange={e => setF({...f, price: e.target.value})} placeholder="e.g. 8500000" /></F></div>
-            <F l="Is Price Negotiable?"><select value={f.negotiable} onChange={e => setF({...f, negotiable: e.target.value})}><option>Yes</option><option>No</option></select></F>
+            <div><F l="Quoted Price (₹)"><input type="number" value={f.price} onChange={e => setF({ ...f, price: e.target.value })} placeholder="e.g. 8500000" /></F></div>
+            <F l="Is Price Negotiable?"><select value={f.negotiable} onChange={e => setF({ ...f, negotiable: e.target.value })}><option>Yes</option><option>No</option></select></F>
           </Grid>
           <div style={{ display: "flex", gap: 10, marginTop: 14 }}>
             <Btn c={T.navy} onClick={saveVisit}>Save Visit & Auto-set Reminders</Btn>
@@ -2298,7 +2228,7 @@ function SiteVisitsTab({ lead, onUpdate }) {
               </div>
               <Tg c={v.status === "scheduled" ? T.amber : T.green}>{v.status === "scheduled" ? "Upcoming Visit" : "Completed"}</Tg>
             </div>
-            
+
             <div style={{ background: T.cream, padding: 12, borderRadius: 8, fontSize: 13, display: "flex", justifyContent: "space-between", marginBottom: 14 }}>
               <div><span style={{ color: T.textLight }}>Quoted:</span> ₹{v.price ? Number(v.price).toLocaleString("en-IN") : "TBD"}</div>
               <div><span style={{ color: T.textLight }}>Negotiable:</span> {v.negotiable}</div>
@@ -2308,15 +2238,15 @@ function SiteVisitsTab({ lead, onUpdate }) {
               <div style={{ borderTop: `1px solid ${T.border}`, paddingTop: 14 }}>
                 <div style={{ fontSize: 13, fontWeight: 600, color: T.navy, marginBottom: 10 }}>Post-Visit Feedback</div>
                 <Grid cols="1fr 1fr" gap={10}>
-                  <F l="Did customer like it?"><select value={fb.liked} onChange={e => setFb({...fb, liked: e.target.value})}><option>Yes</option><option>No</option></select></F>
+                  <F l="Did customer like it?"><select value={fb.liked} onChange={e => setFb({ ...fb, liked: e.target.value })}><option>Yes</option><option>No</option></select></F>
                   {fb.liked === "Yes" ? (
-                    <div><F l="When will they book?"><input type="date" value={fb.bookDate} onChange={e => setFb({...fb, bookDate: e.target.value})} /></F></div>
+                    <div><F l="When will they book?"><input type="date" value={fb.bookDate} onChange={e => setFb({ ...fb, bookDate: e.target.value })} /></F></div>
                   ) : (
-                    <div><F l="Next Property Showing Date"><input type="date" value={fb.nextVisitDate} onChange={e => setFb({...fb, nextVisitDate: e.target.value})} /></F></div>
+                    <div><F l="Next Property Showing Date"><input type="date" value={fb.nextVisitDate} onChange={e => setFb({ ...fb, nextVisitDate: e.target.value })} /></F></div>
                   )}
                 </Grid>
                 <div style={{ marginTop: 10 }}><Btn c={T.green} onClick={() => saveFeedback(v.id)}>Submit Feedback</Btn></div>
-                
+
                 <div style={{ marginTop: 16, background: T.amberBg, padding: 10, borderRadius: 8, border: `1px solid ${T.amber}40` }}>
                   <div style={{ fontSize: 11, fontWeight: 700, color: T.amber, textTransform: "uppercase", marginBottom: 6 }}>Automated Reminder Schedule Active</div>
                   <div style={{ fontSize: 12, color: T.text }}><span style={{ color: T.green }}>✓</span> 1 Day Before: Agent & Customer SMS</div>
@@ -2730,7 +2660,7 @@ function MarketingModule({ store, persist }) {
     keywordRules: [{ id: 1, k: "price, pricing, cost", r: "Sending automated pricing sheet..." }, { id: 2, k: "location, map, directions", r: "Sending Google Maps pin..." }],
     automatorRules: []
   };
-  
+
   function save(upd) { persist({ ...store, marketing: { ...mkt, ...upd } }); }
 
   function addOffer() {
@@ -2741,7 +2671,7 @@ function MarketingModule({ store, persist }) {
   function delOffer(id) { save({ offers: mkt.offers.filter(x => x.id !== id) }); }
 
   function addRule() {
-    if(!newRule.k) return;
+    if (!newRule.k) return;
     save({ keywordRules: [...mkt.keywordRules, { id: gid(), ...newRule }] });
     setNewRule({ k: "", r: "" });
   }
@@ -2803,13 +2733,13 @@ function MarketingModule({ store, persist }) {
         ))}
 
         <Btn c={T.navy} onClick={() => setShowAutoModal(true)}>+ Create New Automation Rule</Btn>
-        
+
         {showAutoModal && (
           <div style={{ position: "fixed", top: 0, left: 0, right: 0, bottom: 0, background: "rgba(11,20,55,0.55)", zIndex: 999, display: "flex", alignItems: "center", justifyContent: "center", padding: "1rem" }}>
             <div style={{ background: T.white, borderRadius: 18, padding: "28px", maxWidth: 420, width: "100%" }}>
               <div style={{ fontFamily: "'Playfair Display',serif", fontSize: 18, fontWeight: 700, color: T.navy, marginBottom: 12 }}>New Automation Rule</div>
-              <F l="Trigger Event"><select value={newAutoRule.trigger} onChange={e => setNewAutoRule({...newAutoRule, trigger: e.target.value})} style={{ marginBottom: 12, width: "100%", padding: 8 }}><option>When lead status changes...</option><option>When date reached...</option></select></F>
-              <F l="Action to Take"><select value={newAutoRule.action} onChange={e => setNewAutoRule({...newAutoRule, action: e.target.value})} style={{ marginBottom: 12, width: "100%", padding: 8 }}><option>Send WhatsApp</option><option>Trigger IVR</option><option>Send Email</option></select></F>
+              <F l="Trigger Event"><select value={newAutoRule.trigger} onChange={e => setNewAutoRule({ ...newAutoRule, trigger: e.target.value })} style={{ marginBottom: 12, width: "100%", padding: 8 }}><option>When lead status changes...</option><option>When date reached...</option></select></F>
+              <F l="Action to Take"><select value={newAutoRule.action} onChange={e => setNewAutoRule({ ...newAutoRule, action: e.target.value })} style={{ marginBottom: 12, width: "100%", padding: 8 }}><option>Send WhatsApp</option><option>Trigger IVR</option><option>Send Email</option></select></F>
               <div style={{ display: "flex", gap: 10, marginTop: 14 }}>
                 <Btn c={T.navy} full onClick={saveAutoRule}>Save Rule</Btn>
                 <button onClick={() => setShowAutoModal(false)} style={{ flex: 1, padding: "11px", background: "transparent", color: T.textMid, border: `1px solid ${T.border}`, borderRadius: 10, fontWeight: 600, cursor: "pointer" }}>Cancel</button>
@@ -3019,7 +2949,7 @@ function CommunicationsModule({ store, persist, session }) {
   const [tab, setTab] = useState("dialer");
   const [dialNum, setDialNum] = useState("");
   const [calling, setCalling] = useState(false);
-  
+
   const comms = store.comms || { aiCallOnAssign: false, aiCallForLeadGen: true, scheduledIVR: true };
   function saveComms(upd) { persist({ ...store, comms: { ...comms, ...upd } }); }
 
@@ -3045,7 +2975,7 @@ function CommunicationsModule({ store, persist, session }) {
           </div>
           <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 12 }}>
             <button onClick={() => setDialNum(d => d.slice(0, -1))} style={{ background: "none", border: "none", color: "#667781", fontSize: 24, cursor: "pointer", width: 64 }}>⌫</button>
-            <button onClick={() => { if(dialNum) setCalling(!calling); }} style={{ background: calling ? T.red : T.green, border: "none", borderRadius: "50%", width: 64, height: 64, color: "#fff", fontSize: 28, cursor: "pointer", boxShadow: `0 8px 16px ${calling ? T.red : T.green}40` }}>{calling ? "📴" : "📞"}</button>
+            <button onClick={() => { if (dialNum) setCalling(!calling); }} style={{ background: calling ? T.red : T.green, border: "none", borderRadius: "50%", width: 64, height: 64, color: "#fff", fontSize: 28, cursor: "pointer", boxShadow: `0 8px 16px ${calling ? T.red : T.green}40` }}>{calling ? "📴" : "📞"}</button>
             <div style={{ width: 64 }}></div>
           </div>
           {calling && <div style={{ textAlign: "center", color: T.green, marginTop: 16, fontSize: 14, fontWeight: 600 }}>Connected... 00:14</div>}
@@ -3095,7 +3025,7 @@ function CommunicationsModule({ store, persist, session }) {
     {tab === "ai_ivr" && (
       <Card title="AI Calling & IVR Settings" accent={T.purple}>
         <div style={{ fontSize: 13, color: T.textLight, marginBottom: 20 }}>Configure advanced calling automations.</div>
-        
+
         <div style={{ border: `1px solid ${T.border}`, borderRadius: 10, padding: 16, marginBottom: 12 }}>
           <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 8 }}>
             <div style={{ fontWeight: 600, color: T.navy }}>🤖 AI Calling for Lead Generation</div>
@@ -3131,4 +3061,245 @@ function CommunicationsModule({ store, persist, session }) {
       </Card>
     )}
   </div>);
+}
+
+// ─── AI ASSISTANT FUNCTIONS ───────────────────────────────────────────────────
+const getCrmSummary = (store) => {
+  const leads = store.leads || [];
+  const users = store.users || [];
+  const escalations = store.escalations || [];
+  
+  return {
+    totalLeads: leads.length,
+    leadsByStep: leads.reduce((acc, l) => {
+      acc[l.currentStep] = (acc[l.currentStep] || 0) + 1;
+      return acc;
+    }, {}),
+    leadsList: leads.map(l => ({
+      name: l.name,
+      amount: l.loanAmount,
+      step: l.currentStep,
+      status: l.status,
+      assignedTo: users.find(u => u.id === l.assignedTo)?.name || "Unassigned"
+    })).slice(0, 30),
+    totalUsers: users.length,
+    usersList: users.map(u => ({ name: u.name, role: u.role, active: u.active })),
+    escalationsCount: escalations.length,
+    escalationDetails: escalations.map(e => ({ leadName: e.leadName, reason: e.reason, date: e.date }))
+  };
+};
+
+async function callGeminiAssistant(prompt, store, history = []) {
+  const summary = getCrmSummary(store);
+  const systemInstruction = `You are the Ghar Kar CRM Intelligent AI Assistant. You have access to the current state of the CRM. Use this context to answer queries accurately, professionally, and helpfully.
+CRM Context Data:
+${JSON.stringify(summary, null, 2)}
+
+Instructions:
+- Answer questions based on the CRM context provided.
+- Be concise and actionable.
+- Format numbers in Indian Rupees (e.g. ₹85,00,000) or standard formats.
+- If asked to write email or WhatsApp templates, make them premium, friendly, and professional.
+- Refer to users and leads by their actual names present in the context.`;
+
+  const contents = [
+    { role: "user", parts: [{ text: systemInstruction }] },
+    ...history.map(msg => ({
+      role: msg.sender === "ai" ? "model" : "user",
+      parts: [{ text: msg.text }]
+    })),
+    { role: "user", parts: [{ text: prompt }] }
+  ];
+
+  try {
+    const res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${GEMINI_KEY}`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        contents,
+        generationConfig: {
+          temperature: 0.7,
+          maxOutputTokens: 2048
+        }
+      })
+    });
+    if (!res.ok) throw new Error("Gemini API error");
+    const data = await res.json();
+    return data.candidates?.[0]?.content?.parts?.[0]?.text || "No response generated.";
+  } catch (e) {
+    console.error("Gemini assistant error:", e);
+    return `Error connecting to Gemini AI: ${e.message}. Please verify that your API key is correctly configured in your .env file.`;
+  }
+}
+
+// ─── AI ASSISTANT TAB COMPONENT ───────────────────────────────────────────────
+function AIAssistantTab({ store, session }) {
+  const [messages, setMessages] = useState([
+    { sender: "ai", text: `Hello ${session?.name || "there"}! I am your Ghar Kar CRM Assistant. How can I help you manage your leads, analyze performance, or draft communications today?` }
+  ]);
+  const [input, setInput] = useState("");
+  const [loading, setLoading] = useState(false);
+  const chatEndRef = useRef(null);
+
+  useEffect(() => {
+    chatEndRef.current?.scrollIntoView({ behavior: "smooth" });
+  }, [messages, loading]);
+
+  const quickPrompts = [
+    { label: "📊 Lead Summary", prompt: "Give me a quick summary of our current leads, which steps they are in, and who they are assigned to." },
+    { label: "⚠️ Active Escalations", prompt: "Are there any active escalations? List them and who is responsible." },
+    { label: "📈 Pipeline Health", prompt: "Analyze the current sales pipeline distribution and tell me if there are any bottlenecks." },
+    { label: "✍️ WhatsApp Template", prompt: "Draft a friendly WhatsApp message for re-engaging a lead whose loan sanction is pending." }
+  ];
+
+  async function handleSend(textToSend) {
+    const prompt = textToSend || input;
+    if (!prompt.trim()) return;
+
+    const newMessages = [...messages, { sender: "user", text: prompt }];
+    setMessages(newMessages);
+    setInput("");
+    setLoading(true);
+
+    const apiHistory = messages.slice(-6);
+
+    const reply = await callGeminiAssistant(prompt, store, apiHistory);
+    setMessages(prev => [...prev, { sender: "ai", text: reply }]);
+    setLoading(false);
+  }
+
+  return (
+    <div className="fade" style={{ display: "grid", gridTemplateColumns: "240px 1fr", gap: 16, height: "calc(100vh - 160px)", minHeight: 500 }}>
+      {/* Sidebar - Quick Prompts */}
+      <div style={{ background: T.white, border: `1px solid ${T.border}`, borderRadius: 18, padding: 16, display: "flex", flexDirection: "column", gap: 12 }}>
+        <div style={{ fontWeight: 700, color: T.navy, fontSize: 14, borderBottom: `1px solid ${T.border}`, paddingBottom: 8, display: "flex", alignItems: "center", gap: 6 }}>
+          <span>💡</span> Quick Queries
+        </div>
+        <div style={{ display: "flex", flexDirection: "column", gap: 8, flex: 1, overflowY: "auto" }}>
+          {quickPrompts.map((qp, i) => (
+            <button 
+              key={i} 
+              onClick={() => handleSend(qp.prompt)}
+              disabled={loading}
+              style={{
+                textAlign: "left",
+                padding: "10px 12px",
+                background: T.cream,
+                border: `1px solid ${T.border}`,
+                borderRadius: 10,
+                fontSize: 12,
+                fontWeight: 500,
+                color: T.navy,
+                cursor: loading ? "not-allowed" : "pointer",
+                transition: "all 0.2s"
+              }}
+              onMouseEnter={e => { if (!loading) e.target.style.background = T.creamDark; }}
+              onMouseLeave={e => { if (!loading) e.target.style.background = T.cream; }}
+            >
+              {qp.label}
+            </button>
+          ))}
+        </div>
+        <div style={{ fontSize: 11, color: T.textLight, textAlign: "center", borderTop: `1px solid ${T.border}`, paddingTop: 10 }}>
+          Powering CRM with Gemini AI
+        </div>
+      </div>
+
+      {/* Main Chat Interface */}
+      <div style={{ display: "flex", flexDirection: "column", background: T.white, border: `1px solid ${T.border}`, borderRadius: 18, overflow: "hidden" }}>
+        {/* Header */}
+        <div style={{ padding: "14px 20px", background: T.navy, color: T.white, display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+          <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+            <span style={{ fontSize: 20 }}>🤖</span>
+            <div>
+              <div style={{ fontWeight: 600, fontSize: 14 }}>CRM Copilot</div>
+              <div style={{ fontSize: 11, color: "rgba(255,255,255,0.6)" }}>Online & ready to assist</div>
+            </div>
+          </div>
+          {messages.length > 1 && (
+            <button 
+              onClick={() => setMessages([{ sender: "ai", text: `Chat cleared. How can I help you now?` }])}
+              style={{ background: "transparent", border: `1px solid rgba(255,255,255,0.2)`, color: T.white, fontSize: 11, padding: "4px 10px", borderRadius: 6, cursor: "pointer" }}
+            >
+              Clear Chat
+            </button>
+          )}
+        </div>
+
+        {/* Messages Box */}
+        <div style={{ flex: 1, padding: 20, overflowY: "auto", display: "flex", flexDirection: "column", gap: 14, background: `${T.cream}33` }}>
+          {messages.map((msg, i) => {
+            const isAi = msg.sender === "ai";
+            return (
+              <div key={i} style={{ display: "flex", justifyContent: isAi ? "flex-start" : "flex-end" }}>
+                <div style={{
+                  maxWidth: "75%",
+                  padding: "12px 16px",
+                  borderRadius: 16,
+                  borderBottomLeftRadius: isAi ? 4 : 16,
+                  borderBottomRightRadius: isAi ? 16 : 4,
+                  background: isAi ? T.white : T.navy,
+                  color: isAi ? T.text : T.white,
+                  border: isAi ? `1px solid ${T.border}` : "none",
+                  fontSize: 13,
+                  lineHeight: 1.5,
+                  boxShadow: isAi ? "0 2px 8px rgba(0,0,0,0.02)" : "0 4px 12px rgba(11,20,55,0.15)",
+                  whiteSpace: "pre-line"
+                }}>
+                  {msg.text}
+                </div>
+              </div>
+            );
+          })}
+          {loading && (
+            <div style={{ display: "flex", justifyContent: "flex-start" }}>
+              <div style={{
+                background: T.white,
+                border: `1px solid ${T.border}`,
+                padding: "12px 20px",
+                borderRadius: 16,
+                borderBottomLeftRadius: 4,
+                display: "flex",
+                gap: 5,
+                alignItems: "center"
+              }}>
+                {[0, 1, 2].map(j => (
+                  <div key={j} className="pulse" style={{ width: 6, height: 6, borderRadius: "50%", background: T.gold, animationDelay: `${j * 0.2}s` }} />
+                ))}
+              </div>
+            </div>
+          )}
+          <div ref={chatEndRef} />
+        </div>
+
+        {/* Input Bar */}
+        <div style={{ padding: 16, borderTop: `1px solid ${T.border}`, display: "flex", gap: 10, background: T.white }}>
+          <input 
+            value={input}
+            onChange={e => setInput(e.target.value)}
+            onKeyDown={e => { if (e.key === "Enter" && !loading) handleSend(); }}
+            placeholder="Ask anything about your leads, stats, or draft a message..."
+            disabled={loading}
+            style={{ flex: 1, padding: "12px 16px" }}
+          />
+          <button 
+            onClick={() => handleSend()}
+            disabled={loading || !input.trim()}
+            style={{
+              padding: "0 24px",
+              background: loading || !input.trim() ? T.textLight : T.navy,
+              color: T.white,
+              border: "none",
+              borderRadius: 10,
+              fontWeight: 600,
+              fontSize: 14,
+              cursor: loading || !input.trim() ? "not-allowed" : "pointer"
+            }}
+          >
+            Send
+          </button>
+        </div>
+      </div>
+    </div>
+  );
 }
