@@ -173,14 +173,25 @@ function tsNow() { return new Date().toISOString(); }
 const API_BASE = 'https://gharkar-crm.onrender.com/api';
 const GEMINI_KEY = import.meta.env.VITE_GEMINI_KEY || "";
 
-async function analyseDocumentsAI(employmentType, currentStep, receivedText, loanDetails) {
+async function analyseDocumentsAI(employmentType, currentStep, receivedText, loanDetails, images = []) {
   const docSet = DOC_REQUIREMENTS[employmentType] || DOC_REQUIREMENTS["Salaried"];
   const allDocs = Object.entries(docSet).flatMap(([cat, docs]) => docs.map(d => `[${cat}] ${d}`));
   const prompt = `You are an expert home loan processor in India. Analyse the documents received and identify what is present, missing, and any concerns.\nBORROWER: ${loanDetails.name || "Client"}, Employment: ${employmentType}, Loan: ${loanDetails.loanType || "Home Loan"}, Amount: Rs.${Number(loanDetails.loanAmount || 0).toLocaleString("en-IN")}\nPROCESS STEP: ${currentStep}\nREQUIRED DOCUMENTS:\n${allDocs.map((d, i) => `${i + 1}. ${d}`).join("\n")}\nDOCUMENTS RECEIVED (described by loan officer):\n${receivedText}\nRespond ONLY in this exact JSON format:{"confirmed":["names of docs clearly present"],"missing":["names of docs not mentioned"],"concerns":["any red flags or issues"],"nextAction":"specific next step the officer should take now","score":0}`;
+  
+  const parts = [{ text: prompt }];
+  images.forEach(img => {
+    parts.push({
+      inlineData: {
+        mimeType: img.mimeType,
+        data: img.data
+      }
+    });
+  });
+
   try {
     const res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${GEMINI_KEY}`, {
       method: "POST", headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ contents: [{ parts: [{ text: prompt }] }], generationConfig: { temperature: 0.1, maxOutputTokens: 1024 } })
+      body: JSON.stringify({ contents: [{ parts }], generationConfig: { temperature: 0.1, maxOutputTokens: 1024 } })
     });
     if (!res.ok) throw new Error("API error");
     const data = await res.json();
@@ -1373,7 +1384,7 @@ function LeadDetail({ lead, store, onBack, onUpdate, onDelete, isAdmin, fieldOnl
   const allDone = step.actions.every(a => !!done[a]);
   const asgn = store.users.find(u => u.id === lead.assignedTo);
   const maxStep = fieldOnly ? Math.max(...LEAD_STEP_IDS) : 39;
-  const tabs = fieldOnly ? ["current", "notes", "history"] : ["current", "allsteps", "comm", "docchecklist", "detailsheet", "financials", "campaigns", "notes", "history"];
+  const tabs = fieldOnly ? ["current", "notes", "history"] : ["current", "allsteps", "comm", "docchecklist", "aidocs", "detailsheet", "financials", "campaigns", "notes", "history"];
 
   const wasAllDone = useRef(allDone);
   useEffect(() => {
@@ -1450,7 +1461,7 @@ function LeadDetail({ lead, store, onBack, onUpdate, onDelete, isAdmin, fieldOnl
     </div>
     <div style={{ display: "flex", gap: 1, marginBottom: 14, borderBottom: `1px solid ${T.border}`, overflowX: "auto" }}>
       {tabs.map(t => <button key={t} onClick={() => setTab(t)} style={{ padding: "9px 14px", border: "none", background: "none", color: tab === t ? cm.color : T.textLight, fontWeight: tab === t ? 600 : 400, borderBottom: tab === t ? `2px solid ${cm.color}` : "2px solid transparent", cursor: "pointer", textTransform: "capitalize", whiteSpace: "nowrap", fontSize: 13 }}>
-        {t === "current" ? "Current Step" : t === "allsteps" ? "All 39 Steps" : t === "sitevisits" ? "📍 Site Visits & Follow-up" : t === "comm" ? "Communication" : t === "docchecklist" ? "📋 Docs" : t === "detailsheet" ? "🧧 Detail Sheet" : t === "financials" ? "💰 Financials" : t === "campaigns" ? "🚀 Campaigns" : t === "notes" ? "Notes" : t === "history" ? "History" : t}
+        {t === "current" ? "Current Step" : t === "allsteps" ? "All 39 Steps" : t === "sitevisits" ? "📍 Site Visits & Follow-up" : t === "comm" ? "Communication" : t === "docchecklist" ? "📋 Docs" : t === "aidocs" ? "🤖 AI Analysis" : t === "detailsheet" ? "🧧 Detail Sheet" : t === "financials" ? "💰 Financials" : t === "campaigns" ? "🚀 Campaigns" : t === "notes" ? "Notes" : t === "history" ? "History" : t}
       </button>)}
     </div>
 
@@ -1633,6 +1644,7 @@ function LeadDetail({ lead, store, onBack, onUpdate, onDelete, isAdmin, fieldOnl
     )}
 
     {tab === "docchecklist" && !fieldOnly && <DocChecklistTab lead={lead} onUpdate={onUpdate} />}
+    {tab === "aidocs" && !fieldOnly && <AiDocsTab lead={lead} />}
     {tab === "detailsheet" && !fieldOnly && <DetailSheetTab lead={lead} onUpdate={onUpdate} />}
     {tab === "financials" && !fieldOnly && <FinancialsTab lead={lead} onUpdate={onUpdate} />}
     {tab === "campaigns" && !fieldOnly && <CampaignsTab lead={lead} onUpdate={onUpdate} />}
@@ -1718,6 +1730,183 @@ function DocChecklistTab({ lead, onUpdate }) {
   );
 }
 
+// ─── AI ANALYSIS TAB ─────────────────────────────────────────────────────────
+function AiDocsTab({ lead }) {
+  const [text, setText] = useState("");
+  const [images, setImages] = useState([]);
+  const [result, setResult] = useState(null);
+  const [loading, setLoading] = useState(false);
+  const [dragActive, setDragActive] = useState(false);
+
+  const empType = lead.employmentType || "Salaried";
+  const docSet = DOC_REQUIREMENTS[empType] || DOC_REQUIREMENTS["Salaried"];
+  const allDocs = Object.values(docSet).flat();
+
+  const handleDrag = (e) => {
+    e.preventDefault();
+    e.stopPropagation();
+    if (e.type === "dragenter" || e.type === "dragover") {
+      setDragActive(true);
+    } else if (e.type === "dragleave") {
+      setDragActive(false);
+    }
+  };
+
+  const handleDrop = (e) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setDragActive(false);
+    if (e.dataTransfer.files && e.dataTransfer.files[0]) {
+      processFiles(e.dataTransfer.files);
+    }
+  };
+
+  const handleImageChange = (e) => {
+    if (e.target.files && e.target.files[0]) {
+      processFiles(e.target.files);
+    }
+  };
+
+  const processFiles = (files) => {
+    Array.from(files).forEach(file => {
+      if (!file.type.startsWith("image/")) return;
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        const base64String = reader.result.split(",")[1];
+        setImages(prev => [...prev, {
+          id: gid(),
+          name: file.name,
+          mimeType: file.type,
+          data: base64String,
+          url: reader.result
+        }]);
+      };
+      reader.readAsDataURL(file);
+    });
+  };
+
+  const removeImage = (id) => {
+    setImages(prev => prev.filter(img => img.id !== id));
+  };
+
+  async function analyse() {
+    setLoading(true);
+    const res = await analyseDocumentsAI(empType, lead.currentStep, text || "Sent documents screenshots for analysis.", lead, images);
+    setResult(res);
+    setLoading(false);
+  }
+
+  return (
+    <div className="fade">
+      <div style={{ fontSize: 13, color: T.textLight, marginBottom: 12 }}>
+        Describe the documents or drag and drop photos/screenshots here. AI will identify what is present, missing, and provide the next step.
+        <span style={{ marginLeft: 8, fontSize: 11, color: T.blue, background: T.blueBg, padding: "2px 8px", borderRadius: 10 }}>{empType}</span>
+      </div>
+      <div style={{ background: T.white, border: `1px solid ${T.border}`, borderRadius: 12, padding: 16, marginBottom: 12 }}>
+        <textarea value={text} onChange={e => setText(e.target.value)} rows={3} placeholder="Describe documents received (optional if uploading screenshots)..." style={{ marginBottom: 12, resize: "vertical" }} />
+        
+        {/* Drag and Drop Zone */}
+        <div 
+          onDragEnter={handleDrag}
+          onDragOver={handleDrag}
+          onDragLeave={handleDrag}
+          onDrop={handleDrop}
+          style={{
+            border: `2px dashed ${dragActive ? T.blue : T.border}`,
+            background: dragActive ? T.blueBg : `${T.cream}33`,
+            borderRadius: 10,
+            padding: "20px 10px",
+            textAlign: "center",
+            cursor: "pointer",
+            marginBottom: 12,
+            transition: "all 0.2s"
+          }}
+          onClick={() => document.getElementById("screenshot-upload").click()}
+        >
+          <input type="file" multiple accept="image/*" onChange={handleImageChange} style={{ display: "none" }} id="screenshot-upload" />
+          <div style={{ fontSize: 24, marginBottom: 6 }}>📸</div>
+          <div style={{ fontSize: 13, fontWeight: 600, color: T.navy }}>Drag & Drop screenshots or Click to Upload</div>
+          <div style={{ fontSize: 11, color: T.textLight, marginTop: 4 }}>Supports JPEG, PNG, WEBP</div>
+        </div>
+
+        {/* Image Preview List */}
+        {images.length > 0 && (
+          <div style={{ display: "flex", gap: 10, flexWrap: "wrap", marginBottom: 14 }}>
+            {images.map(img => (
+              <div key={img.id} style={{ position: "relative", width: 70, height: 70, borderRadius: 8, border: `1px solid ${T.border}`, overflow: "hidden" }}>
+                <img src={img.url} alt={img.name} style={{ width: "100%", height: "100%", objectFit: "cover" }} />
+                <button 
+                  onClick={(e) => { e.stopPropagation(); removeImage(img.id); }}
+                  style={{
+                    position: "absolute",
+                    top: 2,
+                    right: 2,
+                    width: 18,
+                    height: 18,
+                    borderRadius: "50%",
+                    background: "rgba(0,0,0,0.6)",
+                    color: "#fff",
+                    border: "none",
+                    fontSize: 10,
+                    cursor: "pointer",
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "center"
+                  }}
+                >
+                  ✕
+                </button>
+              </div>
+            ))}
+          </div>
+        )}
+
+        <button onClick={analyse} disabled={loading || (!text.trim() && images.length === 0)} style={{ padding: "10px 22px", background: loading ? T.textLight : T.navy, color: "#fff", border: "none", borderRadius: 10, fontWeight: 600, fontSize: 14, cursor: loading ? "not-allowed" : "pointer" }}>
+          {loading ? "Analysing with Vision AI..." : "🤖 Analyse Documents"}
+        </button>
+        {result && <span style={{ marginLeft: 10, fontSize: 11, color: T.textLight }}>{result.source === "gemini" ? "✨ Powered by Gemini AI" : "⚙️ Rule Engine (Gemini unavailable)"}</span>}
+      </div>
+
+      {result && (
+        <div className="fade">
+          <div style={{ background: T.white, border: `1px solid ${T.border}`, borderRadius: 12, padding: 16, marginBottom: 10 }}>
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 8 }}>
+              <div style={{ fontWeight: 600, fontSize: 14, color: T.text }}>Document Readiness Score</div>
+              <div style={{ fontSize: 26, fontWeight: 700, color: result.score >= 80 ? T.green : result.score >= 50 ? T.amber : T.red }}>{result.score}%</div>
+            </div>
+            <div style={{ background: T.creamDark, borderRadius: 4, height: 8, overflow: "hidden" }}>
+              <div style={{ width: `${result.score}%`, height: "100%", background: result.score >= 80 ? T.green : result.score >= 50 ? T.amber : T.red, borderRadius: 4, transition: "width 0.5s" }} />
+            </div>
+          </div>
+          <div style={{ background: T.blueBg, border: "1px solid #90CAF9", borderRadius: 10, padding: "12px 16px", marginBottom: 10 }}>
+            <div style={{ fontWeight: 600, fontSize: 13, color: T.blue, marginBottom: 4 }}>📋 Next Recommended Action</div>
+            <div style={{ fontSize: 13, color: T.text }}>{result.nextAction}</div>
+          </div>
+          {result.confirmed?.length > 0 && (
+            <div style={{ background: T.greenBg, border: "1px solid #A5D6A7", borderRadius: 10, padding: "12px 16px", marginBottom: 10 }}>
+              <div style={{ fontWeight: 600, fontSize: 13, color: T.green, marginBottom: 8 }}>✅ Confirmed ({result.confirmed.length} of {allDocs.length})</div>
+              {result.confirmed.map((d, i) => <div key={i} style={{ fontSize: 13, color: T.green, padding: "3px 0", borderTop: `0.5px solid #A5D6A7` }}>• {d}</div>)}
+            </div>
+          )}
+          {result.missing?.length > 0 && (
+            <div style={{ background: T.redBg, border: "1px solid #EF9A9A", borderRadius: 10, padding: "12px 16px", marginBottom: 10 }}>
+              <div style={{ fontWeight: 600, fontSize: 13, color: T.red, marginBottom: 8 }}>❌ Missing ({result.missing.length})</div>
+              {result.missing.map((d, i) => <div key={i} style={{ fontSize: 13, color: T.red, padding: "3px 0", borderTop: `0.5px solid #EF9A9A` }}>• {d}</div>)}
+            </div>
+          )}
+          {result.concerns?.length > 0 && (
+            <div style={{ background: T.amberBg, border: "1px solid #FFD54F", borderRadius: 10, padding: "12px 16px", marginBottom: 10 }}>
+              <div style={{ fontWeight: 600, fontSize: 13, color: T.amber, marginBottom: 8 }}>⚠️ Concerns</div>
+              {result.concerns.map((c, i) => <div key={i} style={{ fontSize: 13, color: T.amber, padding: "3px 0", borderTop: `0.5px solid #FFD54F` }}>• {c}</div>)}
+            </div>
+          )}
+        </div>
+      )}
+    </div>
+  );
+}
+
+
 // ─── SHARED COMPONENTS ────────────────────────────────────────────────────────
 function LeadTable({ leads, users, onSelect, onDelete }) {
   const [q, setQ] = useState(""); const [fs, setFs] = useState("all"); const [src, setSrc] = useState("all");
@@ -1763,7 +1952,7 @@ function LeadTable({ leads, users, onSelect, onDelete }) {
 
 
 function AddLeadForm({ onAdd }) {
-  const [f, setF] = useState({ name: "", phone: "", intention: "Want to Buy", source: "Online", sourceName: "", propertyNeed: "Flat", bhk: "2BHK", budget: "", city: "", notes: "" });
+  const [f, setF] = useState({ name: "", phone: "", intention: "Want to Buy", source: "Online", sourceName: "", propertyNeed: "Flat", bhk: "2BHK", budget: "", city: "", notes: "", employmentType: "Salaried" });
   const [errs, setErrs] = useState({});
   const s = (k, v) => { setF(p => ({ ...p, [k]: v })); setErrs(e => ({ ...e, [k]: "" })); };
 
@@ -1796,9 +1985,21 @@ function AddLeadForm({ onAdd }) {
         <div><F l="City *"><input value={f.city} onChange={e => s("city", e.target.value)} placeholder="e.g. Pune" style={{ borderColor: errs.city ? T.red : undefined }} /></F><Err field="city" /></div>
       </Grid>
       <Grid cols="1fr 1fr" gap={10}>
+        <F l="Employment Type"><select value={f.employmentType} onChange={e => s("employmentType", e.target.value)}>
+          <option value="Salaried">Salaried</option>
+          <option value="Self-Employed">Self-Employed</option>
+          <option value="Pvt Ltd Company">Pvt Ltd Company</option>
+          <option value="Partnership Firm">Partnership Firm</option>
+          <option value="NRI">NRI</option>
+        </select></F>
         <F l="Lead Source"><select value={f.source} onChange={e => s("source", e.target.value)}>{["Agent", "Customer", "Newspaper", "Online", "Google", "Hoardings"].map(t => <option key={t}>{t}</option>)}</select></F>
-        {(f.source === "Agent" || f.source === "Customer") ? <div><F l="Reference Name *"><input value={f.sourceName} onChange={e => s("sourceName", e.target.value)} placeholder={f.source === "Agent" ? "Agent Name" : "Customer Name"} style={{ borderColor: errs.sourceName ? T.red : undefined }} /></F><Err field="sourceName" /></div> : <div />}
       </Grid>
+      {(f.source === "Agent" || f.source === "Customer") && (
+        <div style={{ marginBottom: 10 }}>
+          <F l="Reference Name *"><input value={f.sourceName} onChange={e => s("sourceName", e.target.value)} placeholder={f.source === "Agent" ? "Agent Name" : "Customer Name"} style={{ borderColor: errs.sourceName ? T.red : undefined }} /></F>
+          <Err field="sourceName" />
+        </div>
+      )}
       <Grid cols="1fr 1fr" gap={10}>
         <F l="Property Need"><select value={f.propertyNeed} onChange={e => s("propertyNeed", e.target.value)}>{["Flat", "Shop", "Office"].map(t => <option key={t}>{t}</option>)}</select></F>
         {f.propertyNeed === "Flat" ? <F l="BHK Option"><select value={f.bhk} onChange={e => s("bhk", e.target.value)}>{["1BHK", "2BHK", "3BHK"].map(t => <option key={t}>{t}</option>)}</select></F> : <div />}
@@ -2272,6 +2473,7 @@ function SiteVisitsTab({ lead, onUpdate }) {
 function DetailSheetTab({ lead, onUpdate }) {
   const hasCoApp = lead.coApplicant && lead.coApplicant.trim().toLowerCase() !== "none" && lead.coApplicant.trim() !== "";
   const [form, setForm] = useState({
+    employmentType: lead.employmentType || "Salaried",
     address: lead.address || "",
     fatherName: lead.fatherName || "",
     motherName: lead.motherName || "",
@@ -2291,9 +2493,28 @@ function DetailSheetTab({ lead, onUpdate }) {
     coPhone: lead.coPhone || "",
     coEmail: lead.coEmail || "",
     coRelation: lead.coRelation || "",
+    
+    // Pvt Ltd specific
+    companyName: lead.companyName || "",
+    incDate: lead.incDate || "",
+    cin: lead.cin || "",
+    companyPan: lead.companyPan || "",
+    directors: lead.directors || "",
+    
+    // Partnership specific
+    firmName: lead.firmName || "",
+    regDate: lead.regDate || "",
+    regNo: lead.regNo || "",
+    firmPan: lead.firmPan || "",
+    partners: lead.partners || "",
   });
+
   function upd(k, v) { setForm(f => ({ ...f, [k]: v })); }
   function save() { onUpdate(lead.id, form); alert("Detail Sheet saved!"); }
+
+  const isCompany = form.employmentType === "Pvt Ltd Company";
+  const isFirm = form.employmentType === "Partnership Firm";
+  const isPersonal = !isCompany && !isFirm;
 
   return (
     <div className="fade print-page">
@@ -2308,31 +2529,75 @@ function DetailSheetTab({ lead, onUpdate }) {
         </div>
       </div>
 
-      <DSSection title="Primary Applicant" accent={T.gold}>
+      <DSSection title="Primary Applicant / Business Entity" accent={T.gold}>
         <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 16, marginBottom: 16 }}>
           <DSReadField label="Full Name" value={lead.name} />
           <DSReadField label="Mobile" value={lead.phone} />
           <DSReadField label="Email" value={lead.email} />
           <DSReadField label="Loan Type" value={lead.loanType} />
           <DSReadField label="Loan Amount" value={lead.loanAmount ? `₹${Number(lead.loanAmount).toLocaleString("en-IN")}` : null} />
-          <DSReadField label="Employment Type" value={lead.employmentType} />
+          
+          <F l="Employment / Entity Type">
+            <select value={form.employmentType} onChange={e => upd("employmentType", e.target.value)}>
+              <option value="Salaried">Salaried</option>
+              <option value="Self-Employed">Self-Employed</option>
+              <option value="Pvt Ltd Company">Pvt Ltd Company</option>
+              <option value="Partnership Firm">Partnership Firm</option>
+              <option value="NRI">NRI</option>
+            </select>
+          </F>
         </div>
-        <F l="Current Residential Address"><textarea value={form.address} onChange={e => upd("address", e.target.value)} rows={2} placeholder="Full current address..." /></F>
+
+        <F l="Current Address / Office Address"><textarea value={form.address} onChange={e => upd("address", e.target.value)} rows={2} placeholder="Full physical address..." /></F>
         <div style={{ marginTop: 14 }} />
-        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10, marginBottom: 14 }}>
-          <F l="Father's Full Name"><input value={form.fatherName} onChange={e => upd("fatherName", e.target.value)} placeholder="Father's name" /></F>
-          <F l="Mother's Full Name"><input value={form.motherName} onChange={e => upd("motherName", e.target.value)} placeholder="Mother's name" /></F>
-        </div>
-        <DSRadio label="Marital Status" value={form.marital} onChange={v => upd("marital", v)} options={["Unmarried", "Married"]} />
-        {form.marital === "Married" && (
-          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10, marginBottom: 14 }}>
-            <F l="Spouse Full Name"><input value={form.spouseName} onChange={e => upd("spouseName", e.target.value)} placeholder="Spouse name" /></F>
-            <F l="Number of Children"><input type="number" min="0" value={form.children} onChange={e => upd("children", e.target.value)} /></F>
+
+        {isPersonal && (
+          <div className="fade">
+            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10, marginBottom: 14 }}>
+              <F l="Father's Full Name"><input value={form.fatherName} onChange={e => upd("fatherName", e.target.value)} placeholder="Father's name" /></F>
+              <F l="Mother's Full Name"><input value={form.motherName} onChange={e => upd("motherName", e.target.value)} placeholder="Mother's name" /></F>
+            </div>
+            <DSRadio label="Marital Status" value={form.marital} onChange={v => upd("marital", v)} options={["Unmarried", "Married"]} />
+            {form.marital === "Married" && (
+              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10, marginBottom: 14 }}>
+                <F l="Spouse Full Name"><input value={form.spouseName} onChange={e => upd("spouseName", e.target.value)} placeholder="Spouse name" /></F>
+                <F l="Number of Children"><input type="number" min="0" value={form.children} onChange={e => upd("children", e.target.value)} /></F>
+              </div>
+            )}
           </div>
         )}
+
+        {isCompany && (
+          <div className="fade">
+            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10, marginBottom: 14 }}>
+              <F l="Registered Company Name"><input value={form.companyName} onChange={e => upd("companyName", e.target.value)} placeholder="e.g. Acme Pvt Ltd" /></F>
+              <F l="Date of Incorporation"><input type="date" value={form.incDate} onChange={e => upd("incDate", e.target.value)} /></F>
+            </div>
+            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10, marginBottom: 14 }}>
+              <F l="Company CIN (Corporate ID Number)"><input value={form.cin} onChange={e => upd("cin", e.target.value)} placeholder="e.g. U12345MH2020PTC123456" /></F>
+              <F l="Company PAN"><input value={form.companyPan} onChange={e => upd("companyPan", e.target.value)} placeholder="Company PAN Card No." /></F>
+            </div>
+            <F l="Directors (Comma separated)"><input value={form.directors} onChange={e => upd("directors", e.target.value)} placeholder="e.g. Director A, Director B" style={{ marginBottom: 14 }} /></F>
+          </div>
+        )}
+
+        {isFirm && (
+          <div className="fade">
+            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10, marginBottom: 14 }}>
+              <F l="Registered Firm Name"><input value={form.firmName} onChange={e => upd("firmName", e.target.value)} placeholder="e.g. Patel & Sons" /></F>
+              <F l="Date of Registration"><input type="date" value={form.regDate} onChange={e => upd("regDate", e.target.value)} /></F>
+            </div>
+            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10, marginBottom: 14 }}>
+              <F l="Firm Registration Number"><input value={form.regNo} onChange={e => upd("regNo", e.target.value)} placeholder="Firm Registration Number" /></F>
+              <F l="Firm PAN"><input value={form.firmPan} onChange={e => upd("firmPan", e.target.value)} placeholder="Firm PAN Card No." /></F>
+            </div>
+            <F l="Partners (Comma separated)"><input value={form.partners} onChange={e => upd("partners", e.target.value)} placeholder="e.g. Partner A, Partner B" style={{ marginBottom: 14 }} /></F>
+          </div>
+        )}
+
         <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
           <F l="Number of Existing Loans"><input type="number" min="0" value={form.existingLoans} onChange={e => upd("existingLoans", e.target.value)} /></F>
-          <F l="Existing Loan Details (bank / EMI)"><input value={form.existingLoanDetails} onChange={e => upd("existingLoanDetails", e.target.value)} placeholder="e.g. HDFC Car Loan ₹8,000/mo" /></F>
+          <F l="Existing Loan / OD / CC Details"><input value={form.existingLoanDetails} onChange={e => upd("existingLoanDetails", e.target.value)} placeholder="e.g. Cash Credit Limit ₹15 Lacs" /></F>
         </div>
       </DSSection>
 
