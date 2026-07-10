@@ -193,7 +193,11 @@ async function analyseDocumentsAI(employmentType, currentStep, receivedText, loa
       method: "POST", headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ contents: [{ parts }], generationConfig: { temperature: 0.1, maxOutputTokens: 1024 } })
     });
-    if (!res.ok) throw new Error("API error");
+    if (!res.ok) {
+      const errData = await res.json().catch(() => ({}));
+      const errMsg = errData.error?.message || `Status ${res.status}`;
+      throw new Error(`Gemini API error: ${errMsg}`);
+    }
     const data = await res.json();
     const text = data.candidates?.[0]?.content?.parts?.[0]?.text || "";
     const match = text.match(/\{[\s\S]*\}/);
@@ -3388,7 +3392,11 @@ Instructions:
         }
       })
     });
-    if (!res.ok) throw new Error("Gemini API error");
+    if (!res.ok) {
+      const errData = await res.json().catch(() => ({}));
+      const errMsg = errData.error?.message || `Status ${res.status}`;
+      throw new Error(`Gemini API error: ${errMsg}`);
+    }
     const data = await res.json();
     return data.candidates?.[0]?.content?.parts?.[0]?.text || "No response generated.";
   } catch (e) {
