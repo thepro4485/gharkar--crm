@@ -170,14 +170,14 @@ function td() { return new Date().toISOString().slice(0, 10); }
 function gid() { return Date.now().toString(36) + Math.random().toString(36).slice(2, 6); }
 function tsNow() { return new Date().toISOString(); }
 
-const API_BASE = 'https://Ghar Kar-crm.onrender.com/api';
-const GEMINI_KEY = "AIzaSyC93b-mQ3Q8VC3V3kvfFtOngns3AH2Y2gc";
+const API_BASE = 'https://gharkar-crm.onrender.com/api';
+const GEMINI_KEY = import.meta.env.VITE_GEMINI_KEY || "";
 
 async function analyseDocumentsAI(employmentType, currentStep, receivedText, loanDetails) {
   const docSet = DOC_REQUIREMENTS[employmentType] || DOC_REQUIREMENTS["Salaried"];
   const allDocs = Object.entries(docSet).flatMap(([cat, docs]) => docs.map(d => `[${cat}] ${d}`));
   const prompt = `You are an expert home loan processor in India. Analyse the documents received and identify what is present, missing, and any concerns.\nBORROWER: ${loanDetails.name || "Client"}, Employment: ${employmentType}, Loan: ${loanDetails.loanType || "Home Loan"}, Amount: Rs.${Number(loanDetails.loanAmount || 0).toLocaleString("en-IN")}\nPROCESS STEP: ${currentStep}\nREQUIRED DOCUMENTS:\n${allDocs.map((d, i) => `${i + 1}. ${d}`).join("\n")}\nDOCUMENTS RECEIVED (described by loan officer):\n${receivedText}\nRespond ONLY in this exact JSON format:{"confirmed":["names of docs clearly present"],"missing":["names of docs not mentioned"],"concerns":["any red flags or issues"],"nextAction":"specific next step the officer should take now","score":0}`;
-  try {
+  try {Q
     const res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${GEMINI_KEY}`, {
       method: "POST", headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ contents: [{ parts: [{ text: prompt }] }], generationConfig: { temperature: 0.1, maxOutputTokens: 1024 } })
