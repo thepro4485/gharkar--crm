@@ -38,11 +38,14 @@ button{font-family:'DM Sans',sans-serif;cursor:pointer;transition:all 0.18s ease
 .pulse{animation:pulse 2s infinite}
 .step-done{animation:stepComplete 0.4s ease}
 ::-webkit-scrollbar{width:5px}::-webkit-scrollbar-thumb{background:${T.border};border-radius:4px}
+.ds-tab-content{display:none}
+.ds-tab-content.active{display:block}
 @media print{
-  header,.no-print{display:none!important}
+  header,.no-print,.no-print-ds{display:none!important}
   body{background:#fff}
   .posh-card{box-shadow:none;border:1px solid #ddd}
   .print-page{padding:0}
+  .ds-tab-content{display:block!important;page-break-inside:avoid;margin-bottom:24px}
 }
 `;
 
@@ -2474,51 +2477,355 @@ function SiteVisitsTab({ lead, onUpdate }) {
 }
 
 // ─── DETAIL SHEET TAB ────────────────────────────────────────────────────────
-function DetailSheetTab({ lead, onUpdate }) {
-  const hasCoApp = lead.coApplicant && lead.coApplicant.trim().toLowerCase() !== "none" && lead.coApplicant.trim() !== "";
-  const [form, setForm] = useState({
+// ─── CLIENT DETAIL SHEET HELPERS ──────────────────────────────────────────────
+const getInitialFormState = (lead) => {
+  const state = {
     employmentType: lead.employmentType || "Salaried",
-    address: lead.address || "",
-    fatherName: lead.fatherName || "",
-    motherName: lead.motherName || "",
-    marital: lead.marital || "Unmarried",
-    spouseName: lead.spouseName || "",
-    children: lead.children || "0",
-    existingLoans: lead.existingLoans || "0",
-    existingLoanDetails: lead.existingLoanDetails || "",
-    coAddress: lead.coAddress || "",
-    coFatherName: lead.coFatherName || "",
-    coMotherName: lead.coMotherName || "",
-    coMarital: lead.coMarital || "Unmarried",
-    coSpouseName: lead.coSpouseName || "",
-    coChildren: lead.coChildren || "0",
-    coExistingLoans: lead.coExistingLoans || "0",
-    coExistingLoanDetails: lead.coExistingLoanDetails || "",
-    coPhone: lead.coPhone || "",
-    coEmail: lead.coEmail || "",
-    coRelation: lead.coRelation || "",
-    
-    // Pvt Ltd specific
-    companyName: lead.companyName || "",
-    incDate: lead.incDate || "",
-    cin: lead.cin || "",
-    companyPan: lead.companyPan || "",
-    directors: lead.directors || "",
-    
-    // Partnership specific
-    firmName: lead.firmName || "",
-    regDate: lead.regDate || "",
-    regNo: lead.regNo || "",
-    firmPan: lead.firmPan || "",
-    partners: lead.partners || "",
+    propertyName: lead.propertyName || lead.propertyNeed || "",
+    actualDealValue: lead.actualDealValue || "",
+    agreementValue: lead.agreementValue || "",
+    ownContribution: lead.ownContribution || "",
+    loanAmount: lead.loanAmount || "",
+    tenure: lead.tenure || "",
+
+    ref1_name: lead.ref1_name || "",
+    ref1_address: lead.ref1_address || "",
+    ref1_phone: lead.ref1_phone || "",
+    ref1_email: lead.ref1_email || "",
+    ref2_name: lead.ref2_name || "",
+    ref2_address: lead.ref2_address || "",
+    ref2_phone: lead.ref2_phone || "",
+    ref2_email: lead.ref2_email || "",
+  };
+
+  const prefixes = ["", "co1_", "co2_", "co3_"];
+  prefixes.forEach(prefix => {
+    if (prefix === "") {
+      state.name = lead.name || "";
+      state.phone = lead.phone || "";
+      state.email = lead.email || "";
+      state.fatherName = lead.fatherName || "";
+      state.motherName = lead.motherName || "";
+      state.spouseName = lead.spouseName || "";
+      state.currentAddress = lead.address || "";
+      state.companyName = lead.companyName || "";
+      state.gender = lead.gender || "";
+      state.dob = lead.dob || "";
+      state.pan = lead.pan || "";
+      state.aadhar = lead.aadhar || "";
+      state.qualification = lead.qualification || "";
+      state.yearOfPassing = lead.yearOfPassing || "";
+      state.nameBeforeMarriage = lead.nameBeforeMarriage || "";
+      state.children = lead.children || "0";
+      state.dependents = lead.dependents || "0";
+      state.residenceStatus = lead.residenceStatus || "";
+      state.yearsInResidence = lead.yearsInResidence || "0";
+      state.propertiesOwned = lead.propertiesOwned || "0";
+      state.designation = lead.designation || "";
+      state.department = lead.department || "";
+      state.companyWebsite = lead.companyWebsite || "";
+      state.officialEmail = lead.officialEmail || "";
+      state.officeLandline = lead.officeLandline || "";
+      state.hrEmail = lead.hrEmail || "";
+      state.hrPhone = lead.hrPhone || "";
+      state.officeAddress = lead.officeAddress || "";
+      state.totalExperience = lead.totalExperience || "";
+      state.yearsInJob = lead.yearsInJob || "0";
+      state.employeeNumber = lead.employeeNumber || "";
+      state.monthlyGross = lead.monthlyGross || "";
+      state.monthlyNet = lead.monthlyNet || "";
+      state.bankName = lead.bankName || "";
+      state.bankBranch = lead.bankBranch || "";
+      state.bankAccountNo = lead.bankAccountNo || "";
+      state.bankIfsc = lead.bankIfsc || "";
+      state.currentEmi = lead.currentEmi || "";
+      state.aadharAddress = lead.aadharAddress || "";
+    } else if (prefix === "co1_") {
+      state.co1_name = lead.coApplicant || lead.co1_name || "";
+      state.co1_phone = lead.coPhone || lead.co1_phone || "";
+      state.co1_email = lead.coEmail || lead.co1_email || "";
+      state.co1_currentAddress = lead.coAddress || lead.co1_currentAddress || "";
+      state.co1_fatherName = lead.coFatherName || lead.co1_fatherName || "";
+      state.co1_motherName = lead.coMotherName || lead.co1_motherName || "";
+      state.co1_spouseName = lead.coSpouseName || lead.co1_spouseName || "";
+      state.co1_children = lead.coChildren || lead.co1_children || "0";
+      state.co1_gender = lead.co1_gender || "";
+      state.co1_dob = lead.co1_dob || "";
+      state.co1_pan = lead.co1_pan || "";
+      state.co1_aadhar = lead.co1_aadhar || "";
+      state.co1_qualification = lead.co1_qualification || "";
+      state.co1_yearOfPassing = lead.co1_yearOfPassing || "";
+      state.co1_nameBeforeMarriage = lead.co1_nameBeforeMarriage || "";
+      state.co1_dependents = lead.co1_dependents || "0";
+      state.co1_residenceStatus = lead.co1_residenceStatus || "";
+      state.co1_yearsInResidence = lead.co1_yearsInResidence || "0";
+      state.co1_propertiesOwned = lead.co1_propertiesOwned || "0";
+      state.co1_companyName = lead.co1_companyName || "";
+      state.co1_designation = lead.co1_designation || "";
+      state.co1_department = lead.co1_department || "";
+      state.co1_companyWebsite = lead.co1_companyWebsite || "";
+      state.co1_officialEmail = lead.co1_officialEmail || "";
+      state.co1_officeLandline = lead.co1_officeLandline || "";
+      state.co1_hrEmail = lead.co1_hrEmail || "";
+      state.co1_hrPhone = lead.co1_hrPhone || "";
+      state.co1_officeAddress = lead.co1_officeAddress || "";
+      state.co1_totalExperience = lead.co1_totalExperience || "";
+      state.co1_yearsInJob = lead.co1_yearsInJob || "0";
+      state.co1_employeeNumber = lead.co1_employeeNumber || "";
+      state.co1_monthlyGross = lead.co1_monthlyGross || "";
+      state.co1_monthlyNet = lead.co1_monthlyNet || "";
+      state.co1_bankName = lead.co1_bankName || "";
+      state.co1_bankBranch = lead.co1_bankBranch || "";
+      state.co1_bankAccountNo = lead.co1_bankAccountNo || "";
+      state.co1_bankIfsc = lead.co1_bankIfsc || "";
+      state.co1_currentEmi = lead.co1_currentEmi || "";
+      state.co1_aadharAddress = lead.co1_aadharAddress || "";
+    } else {
+      const fields = [
+        "name", "phone", "email", "gender", "pan", "dob", "aadhar", "qualification",
+        "yearOfPassing", "spouseName", "fatherName", "motherName", "nameBeforeMarriage",
+        "children", "dependents", "aadharAddress", "currentAddress", "residenceStatus",
+        "yearsInResidence", "propertiesOwned", "companyName", "designation", "department",
+        "companyWebsite", "officialEmail", "officeLandline", "hrEmail", "hrPhone",
+        "officeAddress", "totalExperience", "yearsInJob", "employeeNumber", "monthlyGross",
+        "monthlyNet", "bankName", "bankBranch", "bankAccountNo", "bankIfsc", "currentEmi"
+      ];
+      fields.forEach(f => {
+        state[prefix + f] = lead[prefix + f] || "";
+      });
+    }
   });
 
-  function upd(k, v) { setForm(f => ({ ...f, [k]: v })); }
-  function save() { onUpdate(lead.id, form); alert("Detail Sheet saved!"); }
+  return state;
+};
 
-  const isCompany = form.employmentType === "Pvt Ltd Company";
-  const isFirm = form.employmentType === "Partnership Firm";
-  const isPersonal = !isCompany && !isFirm;
+function ApplicantFormBlock({ prefix, form, upd, label }) {
+  const isPrimary = prefix === "";
+  const isCompany = isPrimary && form.employmentType === "Pvt Ltd Company";
+  const isFirm = isPrimary && form.employmentType === "Partnership Firm";
+
+  return (
+    <div>
+      <DSSection title={`${label} - Entity / Employment Profile`} accent={T.gold}>
+        <Grid cols={isPrimary ? "1fr 1fr" : "1fr"} gap={16}>
+          {isPrimary && (
+            <F l="Employment / Entity Type">
+              <select value={form.employmentType} onChange={e => upd("employmentType", e.target.value)}>
+                <option value="Salaried">Salaried</option>
+                <option value="Self-Employed">Self-Employed</option>
+                <option value="Pvt Ltd Company">Pvt Ltd Company</option>
+                <option value="Partnership Firm">Partnership Firm</option>
+                <option value="NRI">NRI</option>
+              </select>
+            </F>
+          )}
+          <F l="Full Name *">
+            <input value={form[prefix + "name"] || ""} onChange={e => upd(prefix + "name", e.target.value)} placeholder={`${label} full name`} />
+          </F>
+        </Grid>
+
+        {isCompany && (
+          <div className="fade" style={{ marginTop: 14, borderTop: `1px dashed ${T.border}`, paddingTop: 14 }}>
+            <Grid cols="1fr 1fr" gap={10} mb={10}>
+              <F l="Registered Company Name"><input value={form.companyName || ""} onChange={e => upd("companyName", e.target.value)} placeholder="e.g. Acme Pvt Ltd" /></F>
+              <F l="Date of Incorporation"><input type="date" value={form.incDate || ""} onChange={e => upd("incDate", e.target.value)} /></F>
+            </Grid>
+            <Grid cols="1fr 1fr" gap={10} mb={10}>
+              <F l="Company CIN (Corporate ID Number)"><input value={form.cin || ""} onChange={e => upd("cin", e.target.value)} placeholder="e.g. U12345MH2020PTC123456" /></F>
+              <F l="Company PAN"><input value={form.companyPan || ""} onChange={e => upd("companyPan", e.target.value)} placeholder="Company PAN Card No." /></F>
+            </Grid>
+            <F l="Directors (Comma separated)"><input value={form.directors || ""} onChange={e => upd("directors", e.target.value)} placeholder="e.g. Director A, Director B" style={{ marginBottom: 14 }} /></F>
+          </div>
+        )}
+
+        {isFirm && (
+          <div className="fade" style={{ marginTop: 14, borderTop: `1px dashed ${T.border}`, paddingTop: 14 }}>
+            <Grid cols="1fr 1fr" gap={10} mb={10}>
+              <F l="Registered Firm Name"><input value={form.firmName || ""} onChange={e => upd("firmName", e.target.value)} placeholder="e.g. Patel & Sons" /></F>
+              <F l="Date of Registration"><input type="date" value={form.regDate || ""} onChange={e => upd("regDate", e.target.value)} /></F>
+            </Grid>
+            <Grid cols="1fr 1fr" gap={10} mb={10}>
+              <F l="Firm Registration Number"><input value={form.regNo || ""} onChange={e => upd("regNo", e.target.value)} placeholder="Firm Registration Number" /></F>
+              <F l="Firm PAN"><input value={form.firmPan || ""} onChange={e => upd("firmPan", e.target.value)} placeholder="Firm PAN Card No." /></F>
+            </Grid>
+            <F l="Partners (Comma separated)"><input value={form.partners || ""} onChange={e => upd("partners", e.target.value)} placeholder="e.g. Partner A, Partner B" style={{ marginBottom: 14 }} /></F>
+          </div>
+        )}
+      </DSSection>
+
+      <DSSection title={`${label} - Personal Details`} accent={T.blue}>
+        <Grid cols="1fr 1fr 1fr" gap={10} mb={10}>
+          <F l="Gender">
+            <select value={form[prefix + "gender"] || ""} onChange={e => upd(prefix + "gender", e.target.value)}>
+              <option value="">Select Gender</option>
+              <option value="Male">Male</option>
+              <option value="Female">Female</option>
+              <option value="Other">Other</option>
+            </select>
+          </F>
+          <F l="Date of Birth"><input type="date" value={form[prefix + "dob"] || ""} onChange={e => upd(prefix + "dob", e.target.value)} /></F>
+          <F l="PAN Number"><input value={form[prefix + "pan"] || ""} onChange={e => upd(prefix + "pan", e.target.value)} placeholder="PAN Card No." /></F>
+        </Grid>
+        <Grid cols="1fr 1fr 1fr" gap={10} mb={10}>
+          <F l="Aadhar Number"><input value={form[prefix + "aadhar"] || ""} onChange={e => upd(prefix + "aadhar", e.target.value)} placeholder="Aadhar Card No." /></F>
+          <F l="Mobile Number"><input value={form[prefix + "phone"] || ""} onChange={e => upd(prefix + "phone", e.target.value)} placeholder="Mobile number" /></F>
+          <F l="Email ID"><input value={form[prefix + "email"] || ""} onChange={e => upd(prefix + "email", e.target.value)} placeholder="Email ID" /></F>
+        </Grid>
+        <Grid cols="1fr 1fr" gap={10}>
+          <F l="Qualification"><input value={form[prefix + "qualification"] || ""} onChange={e => upd(prefix + "qualification", e.target.value)} placeholder="Highest Qualification" /></F>
+          <F l="Year of Passing"><input value={form[prefix + "yearOfPassing"] || ""} onChange={e => upd(prefix + "yearOfPassing", e.target.value)} placeholder="Year of graduation" /></F>
+        </Grid>
+      </DSSection>
+
+      <DSSection title={`${label} - Family Details`} accent={T.purple}>
+        <Grid cols="1fr 1fr" gap={10} mb={10}>
+          <F l="Father's Full Name"><input value={form[prefix + "fatherName"] || ""} onChange={e => upd(prefix + "fatherName", e.target.value)} placeholder="Father's name" /></F>
+          <F l="Mother's Full Name"><input value={form[prefix + "motherName"] || ""} onChange={e => upd(prefix + "motherName", e.target.value)} placeholder="Mother's name" /></F>
+        </Grid>
+        <Grid cols="1fr 1fr" gap={10} mb={10}>
+          <F l="Spouse Full Name"><input value={form[prefix + "spouseName"] || ""} onChange={e => upd(prefix + "spouseName", e.target.value)} placeholder="Spouse name" /></F>
+          <F l="Spouse Name before marriage"><input value={form[prefix + "nameBeforeMarriage"] || ""} onChange={e => upd(prefix + "nameBeforeMarriage", e.target.value)} placeholder="Spouse maiden name" /></F>
+        </Grid>
+        <Grid cols="1fr 1fr" gap={10}>
+          <F l="Number of Children"><input type="number" min="0" value={form[prefix + "children"] || "0"} onChange={e => upd(prefix + "children", e.target.value)} /></F>
+          <F l="Total Dependents (excl. children)"><input type="number" min="0" value={form[prefix + "dependents"] || "0"} onChange={e => upd(prefix + "dependents", e.target.value)} /></F>
+        </Grid>
+      </DSSection>
+
+      <DSSection title={`${label} - Residence Details`} accent={T.blue}>
+        <Grid cols="1fr 1fr" gap={10} mb={10}>
+          <F l="Aadhar Address"><textarea value={form[prefix + "aadharAddress"] || ""} onChange={e => upd(prefix + "aadharAddress", e.target.value)} rows={2} placeholder="Address as per Aadhar..."></textarea></F>
+          <F l="Current Residence Address"><textarea value={form[prefix + "currentAddress"] || ""} onChange={e => upd(prefix + "currentAddress", e.target.value)} rows={2} placeholder="Current residence address..."></textarea></F>
+        </Grid>
+        <Grid cols="1fr 1fr 1fr" gap={10}>
+          <F l="House Status (Owned / Rented / Co.provided)">
+            <select value={form[prefix + "residenceStatus"] || ""} onChange={e => upd(prefix + "residenceStatus", e.target.value)}>
+              <option value="">Select Option</option>
+              <option value="Owned">Owned</option>
+              <option value="Rented">Rented</option>
+              <option value="Company Provided">Company Provided</option>
+              <option value="Family Owned">Family Owned</option>
+            </select>
+          </F>
+          <F l="Number of years in current residence"><input type="number" min="0" value={form[prefix + "yearsInResidence"] || "0"} onChange={e => upd(prefix + "yearsInResidence", e.target.value)} /></F>
+          <F l="Number of property you owned"><input type="number" min="0" value={form[prefix + "propertiesOwned"] || "0"} onChange={e => upd(prefix + "propertiesOwned", e.target.value)} /></F>
+        </Grid>
+      </DSSection>
+
+      <DSSection title={`${label} - Employment Details`} accent={T.purple}>
+        <Grid cols="1fr 1fr 1fr" gap={10} mb={10}>
+          <F l="Employer / Company Name"><input value={form[prefix + "companyName"] || ""} onChange={e => upd(prefix + "companyName", e.target.value)} placeholder="Company/Employer Name" /></F>
+          <F l="Designation"><input value={form[prefix + "designation"] || ""} onChange={e => upd(prefix + "designation", e.target.value)} placeholder="e.g. Manager" /></F>
+          <F l="Department"><input value={form[prefix + "department"] || ""} onChange={e => upd(prefix + "department", e.target.value)} placeholder="e.g. Sales" /></F>
+        </Grid>
+        <Grid cols="1fr 1fr 1fr" gap={10} mb={10}>
+          <F l="Company Website"><input value={form[prefix + "companyWebsite"] || ""} onChange={e => upd(prefix + "companyWebsite", e.target.value)} placeholder="e.g. www.website.com" /></F>
+          <F l="Official Email ID"><input value={form[prefix + "officialEmail"] || ""} onChange={e => upd(prefix + "officialEmail", e.target.value)} placeholder="official@domain.com" /></F>
+          <F l="Office Landline Number"><input value={form[prefix + "officeLandline"] || ""} onChange={e => upd(prefix + "officeLandline", e.target.value)} placeholder="Office Landline" /></F>
+        </Grid>
+        <Grid cols="1fr 1fr 1fr" gap={10} mb={10}>
+          <F l="HR Email ID"><input value={form[prefix + "hrEmail"] || ""} onChange={e => upd(prefix + "hrEmail", e.target.value)} placeholder="hr@domain.com" /></F>
+          <F l="HR Contact Number"><input value={form[prefix + "hrPhone"] || ""} onChange={e => upd(prefix + "hrPhone", e.target.value)} placeholder="HR Phone Number" /></F>
+          <F l="Employee Number"><input value={form[prefix + "employeeNumber"] || ""} onChange={e => upd(prefix + "employeeNumber", e.target.value)} placeholder="Employee ID" /></F>
+        </Grid>
+        <Grid cols="1fr 1fr 1fr" gap={10} mb={10}>
+          <F l="Total Work Experience"><input value={form[prefix + "totalExperience"] || ""} onChange={e => upd(prefix + "totalExperience", e.target.value)} placeholder="e.g. 5 Years" /></F>
+          <F l="Years in current job"><input type="number" min="0" value={form[prefix + "yearsInJob"] || "0"} onChange={e => upd(prefix + "yearsInJob", e.target.value)} /></F>
+          <div />
+        </Grid>
+        <F l="Office Address"><textarea value={form[prefix + "officeAddress"] || ""} onChange={e => upd(prefix + "officeAddress", e.target.value)} rows={2} placeholder="Office Physical Address..." style={{ marginBottom: 10 }}></textarea></F>
+        <Grid cols="1fr 1fr" gap={10}>
+          <F l="Monthly Gross Income (₹)"><input type="number" value={form[prefix + "monthlyGross"] || ""} onChange={e => upd(prefix + "monthlyGross", e.target.value)} placeholder="Gross monthly salary" /></F>
+          <F l="Monthly Net Income (₹)"><input type="number" value={form[prefix + "monthlyNet"] || ""} onChange={e => upd(prefix + "monthlyNet", e.target.value)} placeholder="Net monthly take-home" /></F>
+        </Grid>
+      </DSSection>
+
+      <DSSection title={`${label} - Banking & Financials`} accent={T.amber}>
+        <Grid cols="1fr 1fr 1fr" gap={10} mb={10}>
+          <F l="Salary / Current A/c Bank"><input value={form[prefix + "bankName"] || ""} onChange={e => upd(prefix + "bankName", e.target.value)} placeholder="Bank name" /></F>
+          <F l="Branch Name"><input value={form[prefix + "bankBranch"] || ""} onChange={e => upd(prefix + "bankBranch", e.target.value)} placeholder="Branch name" /></F>
+          <F l="Account No."><input value={form[prefix + "bankAccountNo"] || ""} onChange={e => upd(prefix + "bankAccountNo", e.target.value)} placeholder="Account number" /></F>
+        </Grid>
+        <Grid cols="1fr 1fr" gap={10}>
+          <F l="IFSC Code"><input value={form[prefix + "bankIfsc"] || ""} onChange={e => upd(prefix + "bankIfsc", e.target.value)} placeholder="11-digit IFSC" /></F>
+          <F l="Current Obligation - EMI (₹)"><input type="number" value={form[prefix + "currentEmi"] || ""} onChange={e => upd(prefix + "currentEmi", e.target.value)} placeholder="Total monthly obligations" /></F>
+        </Grid>
+      </DSSection>
+    </div>
+  );
+}
+
+function PropertyDealBlock({ form, upd }) {
+  return (
+    <DSSection title="Property & Deal Details" accent={T.gold}>
+      <Grid cols="1fr 1fr" gap={10} mb={10}>
+        <F l="Property Name"><input value={form.propertyName || ""} onChange={e => upd("propertyName", e.target.value)} placeholder="e.g. Ghar Kar Heights" /></F>
+        <F l="Loan Amount Requested (₹)"><input type="number" value={form.loanAmount || ""} onChange={e => upd("loanAmount", e.target.value)} placeholder="e.g. 5000000" /></F>
+      </Grid>
+      <Grid cols="1fr 1fr" gap={10} mb={10}>
+        <F l="Actual Deal Value (₹)"><input type="number" value={form.actualDealValue || ""} onChange={e => upd("actualDealValue", e.target.value)} placeholder="Actual market/deal value" /></F>
+        <F l="Agreement Value (₹)"><input type="number" value={form.agreementValue || ""} onChange={e => upd("agreementValue", e.target.value)} placeholder="Value on sale agreement" /></F>
+      </Grid>
+      <Grid cols="1fr 1fr" gap={10}>
+        <F l="Own Contribution (₹)"><input type="number" value={form.ownContribution || ""} onChange={e => upd("ownContribution", e.target.value)} placeholder="Client contribution amount" /></F>
+        <F l="Tenure Requested (Years)"><input type="number" value={form.tenure || ""} onChange={e => upd("tenure", e.target.value)} placeholder="Requested loan tenure" /></F>
+      </Grid>
+    </DSSection>
+  );
+}
+
+function ReferencesBlock({ form, upd }) {
+  return (
+    <div>
+      <DSSection title="Reference 1 (Mandatory)" accent={T.red}>
+        <Grid cols="1fr 1fr" gap={10} mb={10}>
+          <F l="Full Name *"><input value={form.ref1_name || ""} onChange={e => upd("ref1_name", e.target.value)} placeholder="Reference 1 Name" /></F>
+          <F l="Phone Number *"><input value={form.ref1_phone || ""} onChange={e => upd("ref1_phone", e.target.value)} placeholder="Reference 1 Phone" /></F>
+        </Grid>
+        <Grid cols="1fr 1fr" gap={10}>
+          <F l="Email ID"><input value={form.ref1_email || ""} onChange={e => upd("ref1_email", e.target.value)} placeholder="Reference 1 Email" /></F>
+          <F l="Address"><textarea value={form.ref1_address || ""} onChange={e => upd("ref1_address", e.target.value)} rows={2} placeholder="Reference 1 Address..."></textarea></F>
+        </Grid>
+      </DSSection>
+      <DSSection title="Reference 2 (Mandatory)" accent={T.red}>
+        <Grid cols="1fr 1fr" gap={10} mb={10}>
+          <F l="Full Name *"><input value={form.ref2_name || ""} onChange={e => upd("ref2_name", e.target.value)} placeholder="Reference 2 Name" /></F>
+          <F l="Phone Number *"><input value={form.ref2_phone || ""} onChange={e => upd("ref2_phone", e.target.value)} placeholder="Reference 2 Phone" /></F>
+        </Grid>
+        <Grid cols="1fr 1fr" gap={10}>
+          <F l="Email ID"><input value={form.ref2_email || ""} onChange={e => upd("ref2_email", e.target.value)} placeholder="Reference 2 Email" /></F>
+          <F l="Address"><textarea value={form.ref2_address || ""} onChange={e => upd("ref2_address", e.target.value)} rows={2} placeholder="Reference 2 Address..."></textarea></F>
+        </Grid>
+      </DSSection>
+    </div>
+  );
+}
+
+function DetailSheetTab({ lead, onUpdate }) {
+  const [form, setForm] = useState(() => getInitialFormState(lead));
+  const [subTab, setSubTab] = useState("applicant");
+
+  useEffect(() => {
+    setForm(getInitialFormState(lead));
+  }, [lead]);
+
+  function upd(k, v) {
+    setForm(f => ({ ...f, [k]: v }));
+  }
+
+  function save() {
+    onUpdate(lead.id, form);
+    alert("Detail Sheet saved!");
+  }
+
+  const subTabs = [
+    { id: "applicant", label: "Applicant" },
+    { id: "coapp1", label: "Co-Applicant 1" },
+    { id: "coapp2", label: "Co-Applicant 2" },
+    { id: "coapp3", label: "Co-Applicant 3" },
+    { id: "property", label: "Property & Deal" },
+    { id: "references", label: "References" },
+  ];
 
   return (
     <div className="fade print-page">
@@ -2533,107 +2840,54 @@ function DetailSheetTab({ lead, onUpdate }) {
         </div>
       </div>
 
-      <DSSection title="Primary Applicant / Business Entity" accent={T.gold}>
-        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 16, marginBottom: 16 }}>
-          <DSReadField label="Full Name" value={lead.name} />
-          <DSReadField label="Mobile" value={lead.phone} />
-          <DSReadField label="Email" value={lead.email} />
-          <DSReadField label="Loan Type" value={lead.loanType} />
-          <DSReadField label="Loan Amount" value={lead.loanAmount ? `₹${Number(lead.loanAmount).toLocaleString("en-IN")}` : null} />
-          
-          <F l="Employment / Entity Type">
-            <select value={form.employmentType} onChange={e => upd("employmentType", e.target.value)}>
-              <option value="Salaried">Salaried</option>
-              <option value="Self-Employed">Self-Employed</option>
-              <option value="Pvt Ltd Company">Pvt Ltd Company</option>
-              <option value="Partnership Firm">Partnership Firm</option>
-              <option value="NRI">NRI</option>
-            </select>
-          </F>
-        </div>
+      <div style={{ display: "flex", gap: 4, marginBottom: 20, background: T.creamDark, borderRadius: 12, padding: 4 }} className="no-print">
+        {subTabs.map(t => (
+          <button 
+            key={t.id} 
+            onClick={() => setSubTab(t.id)} 
+            style={{ 
+              flex: 1, 
+              padding: "9px 0", 
+              border: "none", 
+              borderRadius: 9, 
+              background: subTab === t.id ? T.navy : "transparent", 
+              color: subTab === t.id ? T.gold : T.textMid, 
+              fontWeight: subTab === t.id ? 600 : 400, 
+              fontSize: 13, 
+              cursor: "pointer", 
+              transition: "all 0.2s" 
+            }}
+          >
+            {t.label}
+          </button>
+        ))}
+      </div>
 
-        <F l="Current Address / Office Address"><textarea value={form.address} onChange={e => upd("address", e.target.value)} rows={2} placeholder="Full physical address..." /></F>
-        <div style={{ marginTop: 14 }} />
+      <div className={`ds-tab-content ${subTab === "applicant" ? "active" : ""}`}>
+        <ApplicantFormBlock prefix="" form={form} upd={upd} label="Primary Applicant" />
+      </div>
 
-        {isPersonal && (
-          <div className="fade">
-            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10, marginBottom: 14 }}>
-              <F l="Father's Full Name"><input value={form.fatherName} onChange={e => upd("fatherName", e.target.value)} placeholder="Father's name" /></F>
-              <F l="Mother's Full Name"><input value={form.motherName} onChange={e => upd("motherName", e.target.value)} placeholder="Mother's name" /></F>
-            </div>
-            <DSRadio label="Marital Status" value={form.marital} onChange={v => upd("marital", v)} options={["Unmarried", "Married"]} />
-            {form.marital === "Married" && (
-              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10, marginBottom: 14 }}>
-                <F l="Spouse Full Name"><input value={form.spouseName} onChange={e => upd("spouseName", e.target.value)} placeholder="Spouse name" /></F>
-                <F l="Number of Children"><input type="number" min="0" value={form.children} onChange={e => upd("children", e.target.value)} /></F>
-              </div>
-            )}
-          </div>
-        )}
+      <div className={`ds-tab-content ${subTab === "coapp1" ? "active" : ""}`}>
+        <ApplicantFormBlock prefix="co1_" form={form} upd={upd} label="Co-Applicant 1" />
+      </div>
 
-        {isCompany && (
-          <div className="fade">
-            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10, marginBottom: 14 }}>
-              <F l="Registered Company Name"><input value={form.companyName} onChange={e => upd("companyName", e.target.value)} placeholder="e.g. Acme Pvt Ltd" /></F>
-              <F l="Date of Incorporation"><input type="date" value={form.incDate} onChange={e => upd("incDate", e.target.value)} /></F>
-            </div>
-            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10, marginBottom: 14 }}>
-              <F l="Company CIN (Corporate ID Number)"><input value={form.cin} onChange={e => upd("cin", e.target.value)} placeholder="e.g. U12345MH2020PTC123456" /></F>
-              <F l="Company PAN"><input value={form.companyPan} onChange={e => upd("companyPan", e.target.value)} placeholder="Company PAN Card No." /></F>
-            </div>
-            <F l="Directors (Comma separated)"><input value={form.directors} onChange={e => upd("directors", e.target.value)} placeholder="e.g. Director A, Director B" style={{ marginBottom: 14 }} /></F>
-          </div>
-        )}
+      <div className={`ds-tab-content ${subTab === "coapp2" ? "active" : ""}`}>
+        <ApplicantFormBlock prefix="co2_" form={form} upd={upd} label="Co-Applicant 2" />
+      </div>
 
-        {isFirm && (
-          <div className="fade">
-            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10, marginBottom: 14 }}>
-              <F l="Registered Firm Name"><input value={form.firmName} onChange={e => upd("firmName", e.target.value)} placeholder="e.g. Patel & Sons" /></F>
-              <F l="Date of Registration"><input type="date" value={form.regDate} onChange={e => upd("regDate", e.target.value)} /></F>
-            </div>
-            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10, marginBottom: 14 }}>
-              <F l="Firm Registration Number"><input value={form.regNo} onChange={e => upd("regNo", e.target.value)} placeholder="Firm Registration Number" /></F>
-              <F l="Firm PAN"><input value={form.firmPan} onChange={e => upd("firmPan", e.target.value)} placeholder="Firm PAN Card No." /></F>
-            </div>
-            <F l="Partners (Comma separated)"><input value={form.partners} onChange={e => upd("partners", e.target.value)} placeholder="e.g. Partner A, Partner B" style={{ marginBottom: 14 }} /></F>
-          </div>
-        )}
+      <div className={`ds-tab-content ${subTab === "coapp3" ? "active" : ""}`}>
+        <ApplicantFormBlock prefix="co3_" form={form} upd={upd} label="Co-Applicant 3" />
+      </div>
 
-        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
-          <F l="Number of Existing Loans"><input type="number" min="0" value={form.existingLoans} onChange={e => upd("existingLoans", e.target.value)} /></F>
-          <F l="Existing Loan / OD / CC Details"><input value={form.existingLoanDetails} onChange={e => upd("existingLoanDetails", e.target.value)} placeholder="e.g. Cash Credit Limit ₹15 Lacs" /></F>
-        </div>
-      </DSSection>
+      <div className={`ds-tab-content ${subTab === "property" ? "active" : ""}`}>
+        <PropertyDealBlock form={form} upd={upd} />
+      </div>
 
-      {hasCoApp && (
-        <DSSection title={`Co-Applicant — ${lead.coApplicant}`} accent={T.blue}>
-          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 16, marginBottom: 16 }}>
-            <DSReadField label="Co-Applicant Name" value={lead.coApplicant} />
-            <div><F l="Mobile"><input value={form.coPhone} onChange={e => upd("coPhone", e.target.value)} placeholder="Co-applicant mobile" /></F></div>
-            <div><F l="Email"><input value={form.coEmail} onChange={e => upd("coEmail", e.target.value)} placeholder="Co-applicant email" /></F></div>
-            <div><F l="Relationship to Applicant"><input value={form.coRelation} onChange={e => upd("coRelation", e.target.value)} placeholder="e.g. Spouse, Parent, Sibling" /></F></div>
-          </div>
-          <F l="Co-Applicant Current Residential Address"><textarea value={form.coAddress} onChange={e => upd("coAddress", e.target.value)} rows={2} placeholder="Full current address..." /></F>
-          <div style={{ marginTop: 14 }} />
-          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10, marginBottom: 14 }}>
-            <F l="Father's Full Name"><input value={form.coFatherName} onChange={e => upd("coFatherName", e.target.value)} placeholder="Father's name" /></F>
-            <F l="Mother's Full Name"><input value={form.coMotherName} onChange={e => upd("coMotherName", e.target.value)} placeholder="Mother's name" /></F>
-          </div>
-          <DSRadio label="Marital Status" value={form.coMarital} onChange={v => upd("coMarital", v)} options={["Unmarried", "Married"]} />
-          {form.coMarital === "Married" && (
-            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10, marginBottom: 14 }}>
-              <F l="Spouse Full Name"><input value={form.coSpouseName} onChange={e => upd("coSpouseName", e.target.value)} placeholder="Spouse name" /></F>
-              <F l="Number of Children"><input type="number" min="0" value={form.coChildren} onChange={e => upd("coChildren", e.target.value)} /></F>
-            </div>
-          )}
-          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
-            <F l="Number of Existing Loans"><input type="number" min="0" value={form.coExistingLoans} onChange={e => upd("coExistingLoans", e.target.value)} /></F>
-            <F l="Existing Loan Details (bank / EMI)"><input value={form.coExistingLoanDetails} onChange={e => upd("coExistingLoanDetails", e.target.value)} placeholder="e.g. SBI Home Loan ₹22,000/mo" /></F>
-          </div>
-        </DSSection>
-      )}
+      <div className={`ds-tab-content ${subTab === "references" ? "active" : ""}`}>
+        <ReferencesBlock form={form} upd={upd} />
+      </div>
 
-      <button onClick={save} className="posh-btn no-print" style={{ background: T.navy, color: T.gold, width: "100%", justifyContent: "center", marginTop: 4 }}>Save Detail Sheet</button>
+      <button onClick={save} className="posh-btn no-print" style={{ background: T.navy, color: T.gold, width: "100%", justifyContent: "center", marginTop: 24 }}>Save Detail Sheet</button>
     </div>
   );
 }
