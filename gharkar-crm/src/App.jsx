@@ -3199,6 +3199,12 @@ function ProjectDirectory() {
     setNewProj({ name: "", builder: "", city: "", location: "", status: "Pre-Approved", bank: "", apfNum: "" });
   }
 
+  function handleDelete(id) {
+    if (window.confirm("Are you sure you want to delete this project from the APF directory?")) {
+      setProjects(projects.filter(p => p.id !== id));
+    }
+  }
+
   return (
     <div className="fade">
       <ST>🏗️ Builder & Project Pre-Approval (APF) Directory</ST>
@@ -3216,6 +3222,7 @@ function ProjectDirectory() {
               <th style={{ padding: 10, color: T.navy }}>Location</th>
               <th style={{ padding: 10, color: T.navy }}>Status</th>
               <th style={{ padding: 10, color: T.navy }}>Approved Banks & APF Numbers</th>
+              <th style={{ padding: 10, color: T.navy, textAlign: "center" }}>Action</th>
             </tr>
           </thead>
           <tbody>
@@ -3233,6 +3240,21 @@ function ProjectDirectory() {
                       </span>
                     ))}
                   </div>
+                </td>
+                <td style={{ padding: 12, textAlign: "center" }}>
+                  <button 
+                    onClick={() => handleDelete(p.id)} 
+                    style={{ 
+                      background: "transparent", 
+                      border: "none", 
+                      color: T.red, 
+                      cursor: "pointer", 
+                      fontSize: 16 
+                    }}
+                    title="Delete Project"
+                  >
+                    🗑️
+                  </button>
                 </td>
               </tr>
             ))}
