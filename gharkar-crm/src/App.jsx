@@ -592,7 +592,7 @@ function Shell({ session, onLogout, navItems, children, activeNav, setActiveNav,
 }
 
 // ─── ADMIN APP ────────────────────────────────────────────────────────────────
-const AN = [{ id: "dashboard", label: "Dashboard" }, { id: "kpf", label: "📊 KPF" }, { id: "users", label: "Users" }, { id: "leads", label: "All Leads" }, { id: "logs", label: "Daily Logs" }, { id: "pipeline", label: "Pipeline" }, { id: "escalations", label: "Escalations" }, { id: "external", label: "External Follow-Ups" }, { id: "calculator", label: "🧮 Calculator" }, { id: "hr", label: "🤝 HR" }, { id: "marketing", label: "📢 Marketing" }, { id: "comms", label: "📞 Dialer & Comms" }, { id: "ai_assistant", label: "🤖 AI Assistant" }];
+const AN = [{ id: "dashboard", label: "Dashboard" }, { id: "kpf", label: "📊 KPF" }, { id: "users", label: "Users" }, { id: "leads", label: "All Leads" }, { id: "logs", label: "Daily Logs" }, { id: "pipeline", label: "Pipeline" }, { id: "escalations", label: "Escalations" }, { id: "external", label: "External Follow-Ups" }, { id: "calculator", label: "🧮 Calculator" }, { id: "bank_matrix", label: "🏦 Bank Matrix" }, { id: "apf_directory", label: "🏗️ APF Directory" }];
 function AdminApp({ store, persist, session, onLogout }) {
   const [nav, setNav] = useState("dashboard");
   const [sel, setSel] = useState(null);
@@ -614,30 +614,26 @@ function AdminApp({ store, persist, session, onLogout }) {
     {nav === "escalations" && <EscalationView store={store} persist={persist} />}
     {nav === "external" && <ExternalFollowups store={store} persist={persist} />}
     {nav === "calculator" && <EMICalculator />}
-    {nav === "comms" && <CommunicationsModule store={store} persist={persist} session={session} />}
-    {nav === "hr" && <HRModule store={store} />}
-    {nav === "marketing" && <MarketingModule store={store} persist={persist} />}
-    {nav === "ai_assistant" && <AIAssistantTab store={store} session={session} />}
+    {nav === "bank_matrix" && <BankMatrix />}
+    {nav === "apf_directory" && <ProjectDirectory />}
   </Shell>);
 }
 
 // ─── DEVELOPER APP ────────────────────────────────────────────────────────────
-const DEV_AN = [{ id: "inventory", label: "🏗️ Inventory" }, { id: "ai_assistant", label: "🤖 AI Assistant" }];
+const DEV_AN = [{ id: "inventory", label: "🏗️ Inventory" }];
 function DeveloperApp({ store, persist, session, onLogout }) {
   const [nav, setNav] = useState("inventory");
   return (<Shell session={session} onLogout={onLogout} navItems={DEV_AN} activeNav={nav} setActiveNav={setNav} store={store} persist={persist}>
     {nav === "inventory" && <InventoryModule />}
-    {nav === "ai_assistant" && <AIAssistantTab store={store} session={session} />}
   </Shell>);
 }
 
 // ─── AGENT APP ────────────────────────────────────────────────────────────────
-const AGENT_AN = [{ id: "postsales", label: "🔑 Post-Sales" }, { id: "ai_assistant", label: "🤖 AI Assistant" }];
+const AGENT_AN = [{ id: "postsales", label: "🔑 Post-Sales" }];
 function AgentApp({ store, persist, session, onLogout }) {
   const [nav, setNav] = useState("postsales");
   return (<Shell session={session} onLogout={onLogout} navItems={AGENT_AN} activeNav={nav} setActiveNav={setNav} store={store} persist={persist}>
     {nav === "postsales" && <PostSalesModule store={store} />}
-    {nav === "ai_assistant" && <AIAssistantTab store={store} session={session} />}
   </Shell>);
 }
 
@@ -1165,7 +1161,7 @@ function ExternalFollowups({ store, persist }) {
 }
 
 // ─── EXECUTIVE APP ────────────────────────────────────────────────────────────
-const EN = [{ id: "today", label: "Today" }, { id: "leads", label: "My Leads" }, { id: "add", label: "Add Lead" }, { id: "followups", label: "Follow-Ups" }, { id: "comms", label: "📞 Comms" }, { id: "guide", label: "Process Guide" }, { id: "external", label: "External" }, { id: "log", label: "Daily Log" }, { id: "calculator", label: "🧮 Calculator" }, { id: "ai_assistant", label: "🤖 AI Assistant" }];
+const EN = [{ id: "today", label: "Today" }, { id: "leads", label: "My Leads" }, { id: "add", label: "Add Lead" }, { id: "followups", label: "Follow-Ups" }, { id: "guide", label: "Process Guide" }, { id: "external", label: "External" }, { id: "log", label: "Daily Log" }, { id: "calculator", label: "🧮 Calculator" }, { id: "bank_matrix", label: "🏦 Bank Matrix" }, { id: "apf_directory", label: "🏗️ APF Directory" }];
 function ExecutiveApp({ store, persist, session, onLogout }) {
   const [nav, setNav] = useState("today"); const [sel, setSel] = useState(null);
   const myLeads = (store.leads || []).filter(l => l.assignedTo === session.id);
@@ -1199,8 +1195,8 @@ function ExecutiveApp({ store, persist, session, onLogout }) {
     {nav === "external" && <ExecExternal store={store} persist={persist} session={session} />}
     {nav === "log" && <DailyLog session={session} dailyLogs={store.dailyLogs || {}} onSave={saveLog} />}
     {nav === "calculator" && <EMICalculator />}
-    {nav === "comms" && <CommunicationsModule store={store} persist={persist} session={session} />}
-    {nav === "ai_assistant" && <AIAssistantTab store={store} session={session} />}
+    {nav === "bank_matrix" && <BankMatrix />}
+    {nav === "apf_directory" && <ProjectDirectory />}
   </Shell>);
 }
 
@@ -1391,7 +1387,7 @@ function LeadDetail({ lead, store, onBack, onUpdate, onDelete, isAdmin, fieldOnl
   const allDone = step.actions.every(a => !!done[a]);
   const asgn = store.users.find(u => u.id === lead.assignedTo);
   const maxStep = fieldOnly ? Math.max(...LEAD_STEP_IDS) : 39;
-  const tabs = fieldOnly ? ["current", "notes", "history"] : ["current", "allsteps", "comm", "docchecklist", "aidocs", "detailsheet", "financials", "campaigns", "notes", "history"];
+  const tabs = fieldOnly ? ["current", "notes", "history"] : ["current", "allsteps", "comm", "docchecklist", "aidocs", "detailsheet", "financials", "logins", "portal", "notes", "history"];
 
   const wasAllDone = useRef(allDone);
   useEffect(() => {
@@ -1468,7 +1464,7 @@ function LeadDetail({ lead, store, onBack, onUpdate, onDelete, isAdmin, fieldOnl
     </div>
     <div style={{ display: "flex", gap: 1, marginBottom: 14, borderBottom: `1px solid ${T.border}`, overflowX: "auto" }}>
       {tabs.map(t => <button key={t} onClick={() => setTab(t)} style={{ padding: "9px 14px", border: "none", background: "none", color: tab === t ? cm.color : T.textLight, fontWeight: tab === t ? 600 : 400, borderBottom: tab === t ? `2px solid ${cm.color}` : "2px solid transparent", cursor: "pointer", textTransform: "capitalize", whiteSpace: "nowrap", fontSize: 13 }}>
-        {t === "current" ? "Current Step" : t === "allsteps" ? "All 39 Steps" : t === "sitevisits" ? "📍 Site Visits & Follow-up" : t === "comm" ? "Communication" : t === "docchecklist" ? "📋 Docs" : t === "aidocs" ? "🤖 AI Analysis" : t === "detailsheet" ? "🧧 Detail Sheet" : t === "financials" ? "💰 Financials" : t === "campaigns" ? "🚀 Campaigns" : t === "notes" ? "Notes" : t === "history" ? "History" : t}
+        {t === "current" ? "Current Step" : t === "allsteps" ? "All 39 Steps" : t === "sitevisits" ? "📍 Site Visits & Follow-up" : t === "comm" ? "Communication" : t === "docchecklist" ? "📋 Docs" : t === "aidocs" ? "🤖 AI Analysis" : t === "detailsheet" ? "🧧 Detail Sheet" : t === "financials" ? "💰 Financials" : t === "logins" ? "🏦 Bank Logins" : t === "portal" ? "🌐 Client Portal" : t === "notes" ? "Notes" : t === "history" ? "History" : t}
       </button>)}
     </div>
 
@@ -1654,7 +1650,8 @@ function LeadDetail({ lead, store, onBack, onUpdate, onDelete, isAdmin, fieldOnl
     {tab === "aidocs" && !fieldOnly && <AiDocsTab lead={lead} />}
     {tab === "detailsheet" && !fieldOnly && <DetailSheetTab lead={lead} onUpdate={onUpdate} />}
     {tab === "financials" && !fieldOnly && <FinancialsTab lead={lead} onUpdate={onUpdate} />}
-    {tab === "campaigns" && !fieldOnly && <CampaignsTab lead={lead} onUpdate={onUpdate} />}
+    {tab === "logins" && !fieldOnly && <BankLoginsTab lead={lead} onUpdate={onUpdate} />}
+    {tab === "portal" && !fieldOnly && <ClientPortalSim lead={lead} onUpdate={onUpdate} />}
 
     {tab === "notes" && (
       <div className="fade">
@@ -2975,77 +2972,6 @@ function FinancialsTab({ lead, onUpdate }) {
   </div>);
 }
 
-// ─── CAMPAIGNS TAB ──────────────────────────────────────────────────────────────
-function CampaignsTab({ lead, onUpdate }) {
-  const activeCamp = lead.activeCampaign;
-  const automations = lead.automations || { aiCalling: false, autoWhatsapp: false, chatbots: false };
-
-  function toggleAutomation(key) {
-    onUpdate(lead.id, { automations: { ...automations, [key]: !automations[key] } });
-  }
-
-  function setCamp(name) {
-    onUpdate(lead.id, { activeCampaign: name, campaignStartDate: td() });
-  }
-
-  const CAMPS = [
-    { name: "3-Year NRI Nurture", desc: "Sends an automated market update and property offers every 45 days via WhatsApp and Email for 3 years.", tags: ["NRI", "Slow"] },
-    { name: "Aggressive Closure", desc: "High-frequency follow-ups every 3 days. Includes ROI calculators and limited time bonanza offers.", tags: ["Hot Lead"] },
-    { name: "Re-churn Inactive", desc: "For dead leads. Sends a 'Still looking?' message and then pushes educational property content every 15 days.", tags: ["Dead Lead"] }
-  ];
-
-  return (<div className="fade">
-    <Card title="Drip Marketing & Automation">
-      <div style={{ fontSize: 13, color: T.text, marginBottom: 16 }}>Automate engagement and nurture this lead without human involvement.</div>
-      {activeCamp ? (
-        <div style={{ background: T.greenBg, border: `1px solid ${T.green}40`, padding: 16, borderRadius: 12, display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-          <div>
-            <div style={{ fontWeight: 700, color: T.green, fontSize: 15, marginBottom: 4 }}>Active: {activeCamp}</div>
-            <div style={{ fontSize: 12, color: T.green, opacity: 0.8 }}>Started on {lead.campaignStartDate}</div>
-          </div>
-          <Btn onClick={() => onUpdate(lead.id, { activeCampaign: null })} c={T.red}>Stop Campaign</Btn>
-        </div>
-      ) : (
-        <div style={{ display: "grid", gap: 12 }}>
-          {CAMPS.map(c => (
-            <div key={c.name} style={{ border: `1px solid ${T.border}`, padding: 16, borderRadius: 12, background: T.white }}>
-              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 6 }}>
-                <div style={{ fontWeight: 700, fontSize: 15, color: T.navy }}>{c.name}</div>
-                <Btn onClick={() => setCamp(c.name)} c={T.blue}>Start Campaign</Btn>
-              </div>
-              <div style={{ fontSize: 13, color: T.textLight, marginBottom: 8 }}>{c.desc}</div>
-              <div style={{ display: "flex", gap: 6 }}>
-                {c.tags.map(t => <Tg key={t} c={T.purple}>{t}</Tg>)}
-              </div>
-            </div>
-          ))}
-        </div>
-      )}
-    </Card>
-
-    <Card title="Marketing & Communication Automator">
-      <div style={{ fontSize: 13, color: T.textLight, marginBottom: 16 }}>Predefine actions based on customer behavior. AI will automatically call or message them on your behalf.</div>
-
-      <div style={{ display: "grid", gap: 12 }}>
-        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", border: `1px solid ${automations.aiCalling ? T.green : T.border}`, background: automations.aiCalling ? T.greenBg : T.white, padding: 14, borderRadius: 10 }}>
-          <div>
-            <div style={{ fontWeight: 600, color: automations.aiCalling ? T.green : T.navy, fontSize: 14 }}>🤖 AI Calling for Auto Follow-Ups</div>
-            <div style={{ fontSize: 12, color: T.textLight, marginTop: 4 }}>AI automatically calls the lead if they miss a scheduled site visit or become inactive.</div>
-          </div>
-          <Btn onClick={() => toggleAutomation("aiCalling")} c={automations.aiCalling ? T.red : T.navy}>{automations.aiCalling ? "Deactivate" : "Activate AI"}</Btn>
-        </div>
-
-        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", border: `1px solid ${automations.autoWhatsapp ? T.green : T.border}`, background: automations.autoWhatsapp ? T.greenBg : T.white, padding: 14, borderRadius: 10 }}>
-          <div>
-            <div style={{ fontWeight: 600, color: automations.autoWhatsapp ? T.green : T.navy, fontSize: 14 }}>📱 Auto WhatsApp Communications</div>
-            <div style={{ fontSize: 12, color: T.textLight, marginTop: 4 }}>Send an immediate automated brochure and welcome text when lead status changes to "Contacted".</div>
-          </div>
-          <Btn onClick={() => toggleAutomation("autoWhatsapp")} c={automations.autoWhatsapp ? T.red : T.navy}>{automations.autoWhatsapp ? "Deactivate" : "Activate Bot"}</Btn>
-        </div>
-      </div>
-    </Card>
-  </div>);
-}
 
 // ─── INVENTORY MODULE ─────────────────────────────────────────────────────────
 function InventoryModule() {
@@ -3142,359 +3068,6 @@ function InventoryModule() {
   </div>);
 }
 
-// ─── HR MODULE ────────────────────────────────────────────────────────────────
-function HRModule({ store }) {
-  const [payables, setPayables] = useState([
-    { id: 1, agent: "Vikas Sharma", proj: "Ghar Kar Heights", amount: 112500, status: "pending", date: "" },
-    { id: 2, agent: "Ramesh Kumar", proj: "Ghar Kar Residency", amount: 45000, status: "pending", date: "" }
-  ]);
-  const [travel, setTravel] = useState([
-    { id: 1, agent: "Ramesh Kumar", desc: "Site Visit Fuel", amt: 450, status: "pending" }
-  ]);
-
-  function payComm(id) {
-    setPayables(prev => prev.map(p => p.id === id ? { ...p, status: "paid", date: td() } : p));
-  }
-  function approveTravel() {
-    setTravel(prev => prev.map(t => ({ ...t, status: "approved" })));
-  }
-
-  return (<div className="fade">
-    <ST>🤝 HR & Hierarchy</ST>
-    <Grid cols="1fr 1fr" gap={14} mb={14}>
-      <Card title="Agent Commission Structures">
-        <div style={{ fontSize: 13, color: T.textLight, marginBottom: 12 }}>Define project-wise commission payouts.</div>
-        <div style={{ background: T.white, border: `1px solid ${T.border}`, borderRadius: 8, padding: 10, display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 8 }}>
-          <span style={{ fontSize: 14, fontWeight: 600 }}>Direct Sale</span><Tg c={T.green}>2.5%</Tg>
-        </div>
-        <div style={{ background: T.white, border: `1px solid ${T.border}`, borderRadius: 8, padding: 10, display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-          <span style={{ fontSize: 14, fontWeight: 600 }}>Hierarchy (Team Lead)</span><Tg c={T.blue}>0.5%</Tg>
-        </div>
-      </Card>
-      <Card title="Travel & Expense Management">
-        <div style={{ fontSize: 13, color: T.textLight, marginBottom: 12 }}>Manage agent travel requests.</div>
-        {travel.map(t => (
-          <div key={t.id} style={{ background: t.status === "pending" ? "#FFF8E1" : T.greenBg, border: `1px solid ${t.status === "pending" ? T.amber : T.green}40`, padding: 10, borderRadius: 8, marginBottom: 8 }}>
-            <div style={{ fontSize: 13, fontWeight: 600, color: t.status === "pending" ? T.amber : T.green }}>{t.agent} - {t.desc}</div>
-            <div style={{ fontSize: 11, color: T.textLight, marginTop: 4 }}>Requested ₹{t.amt} · {t.status === "pending" ? "Pending Approval" : "Approved"}</div>
-          </div>
-        ))}
-        {travel.some(t => t.status === "pending") && <Btn onClick={approveTravel} c={T.amber} full>Approve All Pending</Btn>}
-      </Card>
-    </Grid>
-    <Card title="Commission Payables & Balances">
-      <table style={{ width: "100%", textAlign: "left", fontSize: 13, borderCollapse: "collapse" }}>
-        <thead>
-          <tr style={{ borderBottom: `2px solid ${T.border}` }}>
-            <th style={{ padding: "8px 0", color: T.navy }}>Agent Name</th>
-            <th style={{ padding: "8px 0", color: T.navy }}>Project</th>
-            <th style={{ padding: "8px 0", color: T.navy }}>Payable</th>
-            <th style={{ padding: "8px 0", color: T.navy }}>Status</th>
-            <th style={{ padding: "8px 0", color: T.navy }}>Action</th>
-          </tr>
-        </thead>
-        <tbody>
-          {payables.map(p => (
-            <tr key={p.id} style={{ borderBottom: `1px solid ${T.border}` }}>
-              <td style={{ padding: "10px 0", fontWeight: 500 }}>{p.agent}</td><td style={{ padding: "10px 0" }}>{p.proj}</td><td style={{ padding: "10px 0", fontWeight: 700 }}>₹{p.amount.toLocaleString()}</td>
-              <td style={{ padding: "10px 0" }}>{p.status === "pending" ? <Tg c={T.amber}>Pending</Tg> : <Tg c={T.green}>Paid {p.date}</Tg>}</td>
-              <td style={{ padding: "10px 0" }}>{p.status === "pending" && <button onClick={() => payComm(p.id)} style={{ fontSize: 11, padding: "4px 10px", background: T.white, border: `1px solid ${T.green}`, color: T.green, borderRadius: 4, cursor: "pointer" }}>Settle</button>}</td>
-            </tr>
-          ))}
-        </tbody>
-      </table>
-    </Card>
-  </div>);
-}
-
-// ─── MARKETING MODULE ─────────────────────────────────────────────────────────
-function MarketingModule({ store, persist }) {
-  const [newOffer, setNewOffer] = useState({ title: "", desc: "" });
-  const [walkins, setWalkins] = useState(142);
-  const [tab, setTab] = useState("automator");
-  const [newRule, setNewRule] = useState({ k: "", r: "" });
-  const [showAutoModal, setShowAutoModal] = useState(false);
-  const [newAutoRule, setNewAutoRule] = useState({ trigger: "When lead status changes...", action: "Send WhatsApp" });
-
-  const mkt = store.marketing || {
-    offers: [{ id: 1, title: "Diwali Gold Coin Bonanza!", desc: "Close 3 bookings before Nov 15th to win a 10g Gold Coin." }],
-    keywordRules: [{ id: 1, k: "price, pricing, cost", r: "Sending automated pricing sheet..." }, { id: 2, k: "location, map, directions", r: "Sending Google Maps pin..." }],
-    automatorRules: []
-  };
-
-  function save(upd) { persist({ ...store, marketing: { ...mkt, ...upd } }); }
-
-  function addOffer() {
-    if (!newOffer.title) return;
-    save({ offers: [{ id: gid(), ...newOffer }, ...mkt.offers] });
-    setNewOffer({ title: "", desc: "" });
-  }
-  function delOffer(id) { save({ offers: mkt.offers.filter(x => x.id !== id) }); }
-
-  function addRule() {
-    if (!newRule.k) return;
-    save({ keywordRules: [...mkt.keywordRules, { id: gid(), ...newRule }] });
-    setNewRule({ k: "", r: "" });
-  }
-  function delRule(id) { save({ keywordRules: mkt.keywordRules.filter(x => x.id !== id) }); }
-
-  function saveAutoRule() {
-    save({ automatorRules: [...(mkt.automatorRules || []), { id: gid(), ...newAutoRule }] });
-    setShowAutoModal(false);
-  }
-
-  return (<div className="fade">
-    <ST>📢 Marketing & Automations</ST>
-    <div style={{ display: "flex", gap: 4, marginBottom: 20, background: T.creamDark, borderRadius: 12, padding: 4 }}>
-      {[{ id: "automator", label: "Workflow Automator" }, { id: "chatbots", label: "Chatbots & Auto Responders" }, { id: "rechurn", label: "Lead Rechurn Process" }, { id: "events", label: "Events & Offers" }].map(t => (
-        <button key={t.id} onClick={() => setTab(t.id)} style={{ flex: 1, padding: "9px 0", border: "none", borderRadius: 9, background: tab === t.id ? T.navy : "transparent", color: tab === t.id ? T.gold : T.textMid, fontWeight: tab === t.id ? 600 : 400, fontSize: 13, cursor: "pointer", transition: "all 0.2s" }}>{t.label}</button>
-      ))}
-    </div>
-
-    {tab === "automator" && (
-      <Card title="Customer Journey Automator" accent={T.blue}>
-        <div style={{ fontSize: 13, color: T.textLight, marginBottom: 16 }}>Predefine actions based on customer behavior. Connect activities to specific triggers and build an intelligent strategy to engage the customer journey.</div>
-        <div style={{ background: T.cream, border: `1px solid ${T.border}`, borderRadius: 12, padding: 16, marginBottom: 14 }}>
-          <div style={{ fontWeight: 600, color: T.navy, marginBottom: 8 }}>1. Pre-Visit Nurturing Flow</div>
-          <div style={{ display: "flex", flexWrap: "wrap", gap: 10, alignItems: "center", fontSize: 13 }}>
-            <span style={{ background: T.white, padding: "6px 12px", borderRadius: 20, border: `1px solid ${T.border}` }}>New Lead Assigned</span>
-            <span>➔</span>
-            <span style={{ background: T.white, padding: "6px 12px", borderRadius: 20, border: `1px solid ${T.border}` }}>Wait 5 Mins</span>
-            <span>➔</span>
-            <span style={{ background: T.greenBg, color: T.green, padding: "6px 12px", borderRadius: 20, border: `1px solid ${T.green}` }}>Auto WhatsApp Brochure</span>
-            <span>➔</span>
-            <span style={{ background: T.blueBg, color: T.blue, padding: "6px 12px", borderRadius: 20, border: `1px solid ${T.blue}` }}>Auto Email Pricing</span>
-          </div>
-        </div>
-        <div style={{ background: T.cream, border: `1px solid ${T.border}`, borderRadius: 12, padding: 16, marginBottom: 14 }}>
-          <div style={{ fontWeight: 600, color: T.navy, marginBottom: 8 }}>2. Site Visit Reminders</div>
-          <div style={{ display: "flex", flexWrap: "wrap", gap: 10, alignItems: "center", fontSize: 13 }}>
-            <span style={{ background: T.white, padding: "6px 12px", borderRadius: 20, border: `1px solid ${T.border}` }}>Site Visit Scheduled</span>
-            <span>➔</span>
-            <span style={{ background: T.white, padding: "6px 12px", borderRadius: 20, border: `1px solid ${T.border}` }}>1 Day Before</span>
-            <span>➔</span>
-            <span style={{ background: T.amberBg, color: T.amber, padding: "6px 12px", borderRadius: 20, border: `1px solid ${T.amber}` }}>Automated IVR Call</span>
-            <span>➔</span>
-            <span style={{ background: T.greenBg, color: T.green, padding: "6px 12px", borderRadius: 20, border: `1px solid ${T.green}` }}>WhatsApp Location Map</span>
-          </div>
-        </div>
-
-        {(mkt.automatorRules || []).map((rule, idx) => (
-          <div key={rule.id} style={{ background: T.white, border: `1px solid ${T.border}`, borderRadius: 12, padding: 16, marginBottom: 14 }}>
-            <div style={{ display: "flex", justifyContent: "space-between" }}>
-              <div style={{ fontWeight: 600, color: T.navy, marginBottom: 8 }}>{3 + idx}. Custom Rule</div>
-              <button onClick={() => save({ automatorRules: (mkt.automatorRules || []).filter(r => r.id !== rule.id) })} style={{ background: "none", border: "none", cursor: "pointer", fontSize: 16 }}>🗑️</button>
-            </div>
-            <div style={{ display: "flex", flexWrap: "wrap", gap: 10, alignItems: "center", fontSize: 13 }}>
-              <span style={{ background: T.white, padding: "6px 12px", borderRadius: 20, border: `1px solid ${T.border}` }}>{rule.trigger}</span>
-              <span>➔</span>
-              <span style={{ background: T.purpleBg, color: T.purple, padding: "6px 12px", borderRadius: 20, border: `1px solid ${T.purple}` }}>{rule.action}</span>
-            </div>
-          </div>
-        ))}
-
-        <Btn c={T.navy} onClick={() => setShowAutoModal(true)}>+ Create New Automation Rule</Btn>
-
-        {showAutoModal && (
-          <div style={{ position: "fixed", top: 0, left: 0, right: 0, bottom: 0, background: "rgba(11,20,55,0.55)", zIndex: 999, display: "flex", alignItems: "center", justifyContent: "center", padding: "1rem" }}>
-            <div style={{ background: T.white, borderRadius: 18, padding: "28px", maxWidth: 420, width: "100%" }}>
-              <div style={{ fontFamily: "'Playfair Display',serif", fontSize: 18, fontWeight: 700, color: T.navy, marginBottom: 12 }}>New Automation Rule</div>
-              <F l="Trigger Event"><select value={newAutoRule.trigger} onChange={e => setNewAutoRule({ ...newAutoRule, trigger: e.target.value })} style={{ marginBottom: 12, width: "100%", padding: 8 }}><option>When lead status changes...</option><option>When date reached...</option></select></F>
-              <F l="Action to Take"><select value={newAutoRule.action} onChange={e => setNewAutoRule({ ...newAutoRule, action: e.target.value })} style={{ marginBottom: 12, width: "100%", padding: 8 }}><option>Send WhatsApp</option><option>Trigger IVR</option><option>Send Email</option></select></F>
-              <div style={{ display: "flex", gap: 10, marginTop: 14 }}>
-                <Btn c={T.navy} full onClick={saveAutoRule}>Save Rule</Btn>
-                <button onClick={() => setShowAutoModal(false)} style={{ flex: 1, padding: "11px", background: "transparent", color: T.textMid, border: `1px solid ${T.border}`, borderRadius: 10, fontWeight: 600, cursor: "pointer" }}>Cancel</button>
-              </div>
-            </div>
-          </div>
-        )}
-      </Card>
-    )}
-
-    {tab === "chatbots" && (
-      <Grid cols="1fr 1fr" gap={16} mb={14}>
-        <Card title="Keyword Auto-Responders" accent={T.green}>
-          <div style={{ fontSize: 13, color: T.textLight, marginBottom: 16 }}>Set up auto-responses based on keywords sent by customers.</div>
-          <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
-            {mkt.keywordRules.map((kr) => (
-              <div key={kr.id} style={{ border: `1px solid ${T.border}`, borderRadius: 8, padding: 10, background: T.white, display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-                <div>
-                  <div style={{ fontSize: 12, fontWeight: 700, color: T.navy, marginBottom: 4 }}>Keywords: <Tg c={T.navy}>{kr.k}</Tg></div>
-                  <div style={{ fontSize: 13, color: T.text }}>Reply: {kr.r}</div>
-                </div>
-                <button onClick={() => delRule(kr.id)} style={{ background: "none", border: "none", cursor: "pointer", fontSize: 16 }} title="Delete Rule">🗑️</button>
-              </div>
-            ))}
-          </div>
-          <div style={{ marginTop: 14 }}>
-            <input value={newRule.k} onChange={e => setNewRule(x => ({ ...x, k: e.target.value }))} placeholder="Keywords (comma separated)" style={{ width: "100%", marginBottom: 8, padding: 8 }} />
-            <input value={newRule.r} onChange={e => setNewRule(x => ({ ...x, r: e.target.value }))} placeholder="Auto-Response Message" style={{ width: "100%", marginBottom: 8, padding: 8 }} />
-            <Btn c={T.green} full onClick={addRule}>Add Keyword Rule</Btn>
-          </div>
-        </Card>
-        <Card title="AI Conversational Bot" accent={T.purple}>
-          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 16 }}>
-            <div style={{ fontWeight: 600, color: T.navy }}>Gemini Powered AI Agent</div>
-            <Tg c={T.green}>Active</Tg>
-          </div>
-          <div style={{ fontSize: 13, color: T.textLight, marginBottom: 16 }}>The AI agent will answer natural language queries based on your project inventory and pricing data. It can qualify leads before passing them to humans.</div>
-          <div style={{ background: T.cream, padding: 12, borderRadius: 8, fontSize: 13, marginBottom: 16 }}>
-            <div style={{ color: T.textMid, marginBottom: 6 }}><strong>User:</strong> Are there any 3BHKs available under 1 Crore?</div>
-            <div style={{ color: T.purple }}><strong>Bot:</strong> Yes! We have 2 units available in Ghar Kar Heights starting at 95 Lakhs. Would you like me to schedule a site visit?</div>
-          </div>
-          <Btn c={T.purple} full>Configure AI Knowledge Base</Btn>
-        </Card>
-      </Grid>
-    )}
-
-    {tab === "rechurn" && (
-      <Card title="Lead Rechurn & Drip Campaigns" accent={T.amber}>
-        <div style={{ fontSize: 13, color: T.textLight, marginBottom: 16 }}>Auto engage your unproductive/inactive customers for the next 3 years. Turn dead leads into new opportunities without manual effort.</div>
-        <table style={{ width: "100%", textAlign: "left", fontSize: 13, borderCollapse: "collapse", marginBottom: 20 }}>
-          <thead>
-            <tr style={{ borderBottom: `2px solid ${T.border}` }}>
-              <th style={{ padding: "8px 0", color: T.navy }}>Campaign Name</th>
-              <th style={{ padding: "8px 0", color: T.navy }}>Target Audience</th>
-              <th style={{ padding: "8px 0", color: T.navy }}>Duration</th>
-              <th style={{ padding: "8px 0", color: T.navy }}>Status</th>
-            </tr>
-          </thead>
-          <tbody>
-            <tr style={{ borderBottom: `1px solid ${T.border}` }}>
-              <td style={{ padding: "10px 0", fontWeight: 500 }}>3-Year Dead Lead Nurture</td><td style={{ padding: "10px 0" }}>Lost/Dropped Leads</td><td style={{ padding: "10px 0" }}>36 Months</td><td style={{ padding: "10px 0" }}><Tg c={T.green}>Running</Tg></td>
-            </tr>
-            <tr style={{ borderBottom: `1px solid ${T.border}` }}>
-              <td style={{ padding: "10px 0", fontWeight: 500 }}>Festive Revival</td><td style={{ padding: "10px 0" }}>No Response (Last 60 Days)</td><td style={{ padding: "10px 0" }}>14 Days</td><td style={{ padding: "10px 0" }}><Tg c={T.amber}>Paused</Tg></td>
-            </tr>
-          </tbody>
-        </table>
-        <Btn c={T.amber}>Build New Rechurn Campaign</Btn>
-      </Card>
-    )}
-
-    {tab === "events" && (
-      <>
-        <Grid cols="1fr 1fr" gap={14} mb={14}>
-          <Card title="Bonanza Offers">
-            <div style={{ fontSize: 13, color: T.textLight, marginBottom: 10 }}>Active offers shown in the Agent Mobile App.</div>
-            <div style={{ display: "flex", gap: 8, marginBottom: 10 }}>
-              <input value={newOffer.title} onChange={e => setNewOffer(x => ({ ...x, title: e.target.value }))} placeholder="Offer Title" style={{ flex: 1 }} />
-              <Btn onClick={addOffer} c={T.navy}>Add</Btn>
-            </div>
-            <input value={newOffer.desc} onChange={e => setNewOffer(x => ({ ...x, desc: e.target.value }))} placeholder="Description (e.g. Close 3 bookings to win...)" style={{ width: "100%", marginBottom: 12 }} />
-
-            <div style={{ display: "grid", gap: 8, maxHeight: 200, overflowY: "auto" }}>
-              {mkt.offers.map(o => (
-                <div key={o.id} style={{ border: `1px solid ${T.blue}40`, background: `${T.blue}10`, padding: 12, borderRadius: 8, display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-                  <div>
-                    <div style={{ fontSize: 14, fontWeight: 700, color: T.blue }}>{o.title}</div>
-                    <div style={{ fontSize: 12, color: T.text, marginTop: 4 }}>{o.desc}</div>
-                  </div>
-                  <button onClick={() => delOffer(o.id)} style={{ background: "none", border: "none", cursor: "pointer", fontSize: 16 }} title="Delete Offer">🗑️</button>
-                </div>
-              ))}
-            </div>
-          </Card>
-          <Card title="Cust Mela Tracker">
-            <div style={{ fontSize: 13, color: T.textLight, marginBottom: 10 }}>Track live walk-ins during events.</div>
-            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", border: `1px solid ${T.border}`, padding: 12, borderRadius: 8 }}>
-              <div>
-                <div style={{ fontWeight: 600 }}>Pune Mega Mela</div>
-                <div style={{ fontSize: 11, color: T.textLight }}>Today</div>
-              </div>
-              <div style={{ display: "flex", alignItems: "center", gap: 14 }}>
-                <div style={{ fontSize: 28, fontWeight: 700, color: T.green }}>{walkins}</div>
-                <button onClick={() => setWalkins(w => w + 1)} style={{ background: T.greenBg, border: `1px solid ${T.green}`, color: T.green, padding: "8px 12px", borderRadius: 8, cursor: "pointer", fontWeight: 700, fontSize: 16 }}>+1</button>
-              </div>
-            </div>
-          </Card>
-        </Grid>
-        <Card title="Marketing Creatives Access (Collateral)">
-          <div style={{ display: "flex", gap: 10, overflowX: "auto", paddingBottom: 6 }}>
-            {["Brochures", "Floor Plans", "Walkthrough Videos", "Price Highlights"].map(f => (
-              <div key={f} style={{ minWidth: 140, padding: 20, background: T.white, border: `1px solid ${T.border}`, borderRadius: 12, textAlign: "center", cursor: "pointer", transition: "transform 0.2s" }} onMouseEnter={e => e.currentTarget.style.transform = "scale(1.05)"} onMouseLeave={e => e.currentTarget.style.transform = "scale(1)"}>
-                <div style={{ fontSize: 30, marginBottom: 8 }}>📁</div>
-                <div style={{ fontSize: 13, fontWeight: 600 }}>{f}</div>
-              </div>
-            ))}
-          </div>
-        </Card>
-      </>
-    )}
-  </div>);
-}
-
-// ─── POST-SALES MODULE ────────────────────────────────────────────────────────
-function PostSalesModule({ store }) {
-  const [doc, setDoc] = useState(null);
-  const [escalations, setEscalations] = useState([
-    { id: 1, issue: "Plumbing Leakage in Kitchen", unit: "A-204", days: 2, priority: "High Priority" }
-  ]);
-  const [checks, setChecks] = useState({ pdi: true, keys: true, maint: false });
-
-  function renderDocPreview() {
-    if (!doc) return null;
-    return (<div style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.5)", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 9999 }}>
-      <div style={{ background: T.white, padding: 40, borderRadius: 12, width: 500, boxShadow: "0 10px 40px rgba(0,0,0,0.2)", fontFamily: "serif" }}>
-        <div style={{ textAlign: "center", borderBottom: "2px solid #000", paddingBottom: 10, marginBottom: 20 }}>
-          <h2 style={{ margin: 0, color: T.navy }}>Ghar Kar Developers</h2>
-          <div style={{ fontSize: 12, color: "#666" }}>123, Real Estate Avenue, Pune, India</div>
-        </div>
-        <h3 style={{ textAlign: "center", textTransform: "uppercase", letterSpacing: 1 }}>{doc}</h3>
-        <p style={{ fontSize: 14, lineHeight: 1.6 }}>To Whom It May Concern,</p>
-        <p style={{ fontSize: 14, lineHeight: 1.6 }}>This document serves as the official <strong>{doc}</strong> for the property unit allocated to the respective buyer. All terms and conditions as per the signed agreement are applicable.</p>
-        <p style={{ fontSize: 14, lineHeight: 1.6 }}>Date: {td()}</p>
-        <div style={{ marginTop: 40, display: "flex", justifyContent: "space-between" }}>
-          <div><div style={{ borderTop: "1px solid #000", width: 120, paddingTop: 4, fontSize: 12 }}>Authorized Signatory</div></div>
-          <div><div style={{ borderTop: "1px solid #000", width: 120, paddingTop: 4, fontSize: 12 }}>Buyer Signature</div></div>
-        </div>
-        <div style={{ display: "flex", gap: 10, marginTop: 40, fontFamily: "sans-serif" }}>
-          <Btn full c={T.navy} onClick={() => alert("Document Sent to Printer.")}>🖨️ Print</Btn>
-          <Btn full c={T.red} onClick={() => setDoc(null)}>Close</Btn>
-        </div>
-      </div>
-    </div>);
-  }
-
-  return (<div className="fade">
-    {renderDocPreview()}
-    <ST>🔑 Post-Sales & Handover</ST>
-    <Grid cols="1fr 1fr" gap={14} mb={14}>
-      <Card title="Document Generation">
-        <div style={{ fontSize: 13, color: T.textLight, marginBottom: 12 }}>Auto-generate legally binding documents.</div>
-        <div style={{ display: "grid", gap: 8 }}>
-          <Btn onClick={() => setDoc("Demand Letter")} c={T.navy}>Generate Demand Letter</Btn>
-          <Btn onClick={() => setDoc("Allotment Letter")} c={T.blue}>Generate Allotment Letter</Btn>
-          <Btn onClick={() => setDoc("Possession Letter")} c={T.gold}>Generate Possession Letter</Btn>
-        </div>
-      </Card>
-      <Card title="Handover & Bank Checklists">
-        <div style={{ fontSize: 13, color: T.textLight, marginBottom: 12 }}>Manage structural handovers.</div>
-        <label style={{ display: "flex", alignItems: "center", gap: 8, fontSize: 13, marginBottom: 6 }}><input type="checkbox" checked={checks.pdi} onChange={e => setChecks(x => ({ ...x, pdi: e.target.checked }))} /> Pre-Delivery Inspection (PDI) Clear</label>
-        <label style={{ display: "flex", alignItems: "center", gap: 8, fontSize: 13, marginBottom: 6 }}><input type="checkbox" checked={checks.keys} onChange={e => setChecks(x => ({ ...x, keys: e.target.checked }))} /> Key Handover Signed</label>
-        <label style={{ display: "flex", alignItems: "center", gap: 8, fontSize: 13, marginBottom: 6 }}><input type="checkbox" checked={checks.maint} onChange={e => setChecks(x => ({ ...x, maint: e.target.checked }))} /> Maintenance Deposit Collected</label>
-      </Card>
-    </Grid>
-    <Card title="Customer Escalations (Post-Purchase)">
-      {escalations.length === 0 ? (
-        <div style={{ fontSize: 13, color: T.textLight, padding: 20, textAlign: "center" }}>No pending escalations.</div>
-      ) : escalations.map(esc => (
-        <div key={esc.id} style={{ background: "#FFEBEE", border: `1px solid ${T.red}40`, padding: 12, borderRadius: 8, marginBottom: 8 }}>
-          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-            <div style={{ fontSize: 14, fontWeight: 700, color: T.red }}>{esc.issue}</div>
-            <Tg c={T.red}>{esc.priority}</Tg>
-          </div>
-          <div style={{ fontSize: 12, color: T.text, marginTop: 4 }}>Unit {esc.unit} · Raised {esc.days} days ago</div>
-          <div style={{ marginTop: 10, display: "flex", gap: 8 }}>
-            <Btn c={T.red} onClick={() => alert("Maintenance team notified.")}>Assign to Maintenance</Btn>
-            <Btn c={T.green} onClick={() => setEscalations(prev => prev.filter(e => e.id !== esc.id))}>Mark Resolved</Btn>
-          </div>
-        </div>
-      ))}
-    </Card>
-  </div>);
-}
-
 // ─── PRIMITIVES ───────────────────────────────────────────────────────────────
 const LBL = { fontSize: 11, fontWeight: 700, color: T.textMid, textTransform: "uppercase", letterSpacing: 0.9, display: "block", marginBottom: 6 };
 function ST({ children }) { return <div style={{ fontFamily: "'Playfair Display',serif", fontSize: 22, fontWeight: 700, color: T.navy, marginBottom: 20, paddingBottom: 12, borderBottom: `2px solid ${T.gold}40`, display: "flex", alignItems: "center", gap: 10 }}>{children}</div>; }
@@ -3505,273 +3078,430 @@ function Btn({ onClick, c, children, full }) { return <button onClick={onClick} 
 function Grid({ cols, gap, mb, children }) { return <div style={{ display: "grid", gridTemplateColumns: cols, gap, marginBottom: mb }}>{children}</div>; }
 function F({ l, children }) { return <div style={{ marginBottom: 2 }}><label style={LBL}>{l}</label>{children}</div>; }
 
-// ─── COMMUNICATIONS & DIALER MODULE ──────────────────────────────────────────
-function CommunicationsModule({ store, persist, session }) {
-  const [tab, setTab] = useState("dialer");
-  const [dialNum, setDialNum] = useState("");
-  const [calling, setCalling] = useState(false);
+// ─── BANK MATRIX ─────────────────────────────────────────────────────────────
+const BANK_CRITERIA = [
+  { bank: "State Bank of India (SBI)", roi: "8.40% - 9.10%", maxFoir: 60, maxLtv: 90, fee: "0.35% (Min ₹2,000, Max ₹10,000)", tenure: 30, remarks: "0.05% concession for women. Max age 75 at maturity." },
+  { bank: "HDFC Bank", roi: "8.50% - 9.30%", maxFoir: 55, maxLtv: 80, fee: "0.50% or ₹3,000", tenure: 30, remarks: "Quick pre-approvals for salary account holders." },
+  { bank: "ICICI Bank", roi: "8.65% - 9.50%", maxFoir: 55, maxLtv: 80, fee: "0.50% of loan amount", tenure: 30, remarks: "Special benefits for self-employed professionals." },
+  { bank: "Axis Bank", roi: "8.75% - 9.60%", maxFoir: 50, maxLtv: 80, fee: "Up to 1% of loan amount", tenure: 30, remarks: "Special rates for green home certifications." },
+  { bank: "LIC Housing Finance", roi: "8.50% - 9.15%", maxFoir: 60, maxLtv: 90, fee: "₹10,000 fixed flat fee", tenure: 30, remarks: "Longer tenure support for younger applicants." },
+  { bank: "Bank of Baroda", roi: "8.45% - 9.25%", maxFoir: 55, maxLtv: 90, fee: "Nil for limited period offer", tenure: 30, remarks: "Fast legal processing." }
+];
 
-  const comms = store.comms || { aiCallOnAssign: false, aiCallForLeadGen: true, scheduledIVR: true };
-  function saveComms(upd) { persist({ ...store, comms: { ...comms, ...upd } }); }
+function BankMatrix() {
+  const [grossIncome, setGrossIncome] = useState(150000);
+  const [existingEmi, setExistingEmi] = useState(20000);
+  const [propertyValue, setPropertyValue] = useState(6000000);
 
-  return (<div className="fade">
-    <ST>📞 Communications & Dialer</ST>
-    <div style={{ display: "flex", gap: 4, marginBottom: 20, background: T.creamDark, borderRadius: 12, padding: 4 }}>
-      {[{ id: "dialer", label: "GSM Auto-Dialer" }, { id: "whatsapp", label: "WhatsApp Automation" }, { id: "ai_ivr", label: "AI Calling & IVR" }].map(t => (
-        <button key={t.id} onClick={() => setTab(t.id)} style={{ flex: 1, padding: "9px 0", border: "none", borderRadius: 9, background: tab === t.id ? T.navy : "transparent", color: tab === t.id ? T.gold : T.textMid, fontWeight: tab === t.id ? 600 : 400, fontSize: 13, cursor: "pointer", transition: "all 0.2s" }}>{t.label}</button>
-      ))}
-    </div>
-
-    {tab === "dialer" && (
-      <Grid cols="300px 1fr" gap={16}>
-        <div style={{ background: "#111b21", borderRadius: 20, padding: 24, color: "#fff", display: "flex", flexDirection: "column", boxShadow: "0 20px 40px rgba(0,0,0,0.2)" }}>
-          <div style={{ fontSize: 12, color: "#667781", textTransform: "uppercase", letterSpacing: 1, marginBottom: 20, textAlign: "center" }}>Tele Caller Integration</div>
-          <div style={{ background: "#202c33", borderRadius: 12, padding: 16, fontSize: 24, textAlign: "center", minHeight: 60, marginBottom: 24, letterSpacing: 2, display: "flex", alignItems: "center", justifyContent: "center" }}>
-            {dialNum || "Enter Number"}
-          </div>
-          <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 12, marginBottom: 24 }}>
-            {["1", "2", "3", "4", "5", "6", "7", "8", "9", "*", "0", "#"].map(k => (
-              <button key={k} onClick={() => setDialNum(d => d + k)} style={{ background: "#2a3942", border: "none", borderRadius: "50%", width: 64, height: 64, color: "#fff", fontSize: 24, fontWeight: 500, margin: "0 auto", cursor: "pointer", transition: "background 0.1s" }} onMouseDown={e => e.currentTarget.style.background = "#3c515d"} onMouseUp={e => e.currentTarget.style.background = "#2a3942"}>{k}</button>
-            ))}
-          </div>
-          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 12 }}>
-            <button onClick={() => setDialNum(d => d.slice(0, -1))} style={{ background: "none", border: "none", color: "#667781", fontSize: 24, cursor: "pointer", width: 64 }}>⌫</button>
-            <button onClick={() => { if (dialNum) setCalling(!calling); }} style={{ background: calling ? T.red : T.green, border: "none", borderRadius: "50%", width: 64, height: 64, color: "#fff", fontSize: 28, cursor: "pointer", boxShadow: `0 8px 16px ${calling ? T.red : T.green}40` }}>{calling ? "📴" : "📞"}</button>
-            <div style={{ width: 64 }}></div>
-          </div>
-          {calling && <div style={{ textAlign: "center", color: T.green, marginTop: 16, fontSize: 14, fontWeight: 600 }}>Connected... 00:14</div>}
-        </div>
-        <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
-          <Card title="Intelligent Auto-Looping" accent={T.blue}>
-            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 12 }}>
-              <div style={{ fontSize: 13, color: T.text }}>Auto-loop through pending leads and schedule calls automatically. SIM-based dialer will connect calls one by one.</div>
-              <Btn c={T.blue}>Start Auto-Dialer</Btn>
-            </div>
-            <div style={{ background: T.cream, padding: 12, borderRadius: 8, display: "flex", alignItems: "center", gap: 12 }}>
-              <div style={{ width: 10, height: 10, borderRadius: "50%", background: T.amber }} />
-              <div style={{ fontSize: 13, color: T.navy, fontWeight: 600 }}>Next Call: Rahul Sharma (Lead #402) in 14s...</div>
-            </div>
-          </Card>
-          <Card title="Call History & Logs">
-            <table style={{ width: "100%", textAlign: "left", fontSize: 13, borderCollapse: "collapse" }}>
-              <thead><tr style={{ borderBottom: `2px solid ${T.border}` }}><th style={{ padding: 8 }}>Name/Number</th><th style={{ padding: 8 }}>Duration</th><th style={{ padding: 8 }}>Status</th><th style={{ padding: 8 }}>Time</th></tr></thead>
-              <tbody>
-                <tr style={{ borderBottom: `1px solid ${T.border}` }}><td style={{ padding: 8 }}>+91 9876543210</td><td style={{ padding: 8 }}>02:14</td><td style={{ padding: 8, color: T.green }}>Answered</td><td style={{ padding: 8 }}>10:45 AM</td></tr>
-                <tr style={{ borderBottom: `1px solid ${T.border}` }}><td style={{ padding: 8 }}>Rahul Sharma</td><td style={{ padding: 8 }}>00:00</td><td style={{ padding: 8, color: T.red }}>Missed</td><td style={{ padding: 8 }}>10:30 AM</td></tr>
-                <tr style={{ borderBottom: `1px solid ${T.border}` }}><td style={{ padding: 8 }}>Priya Singh</td><td style={{ padding: 8 }}>05:32</td><td style={{ padding: 8, color: T.green }}>Answered</td><td style={{ padding: 8 }}>09:15 AM</td></tr>
-              </tbody>
-            </table>
-          </Card>
-        </div>
-      </Grid>
-    )}
-
-    {tab === "whatsapp" && (
-      <Card title="Approved WhatsApp Templates" accent={T.green}>
-        <div style={{ fontSize: 13, color: T.textLight, marginBottom: 16 }}>Manage Meta-approved WhatsApp templates for automated messaging. Note: Manual bulk messaging has been disabled.</div>
-        <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
-          {["Project Launch Flyer", "Payment Milestone Reminder", "Site Visit Location Map", "Meeting Confirmation"].map(t => (
-            <div key={t} style={{ border: `1px solid ${T.border}`, borderRadius: 8, padding: 12, background: T.white, display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-              <div>
-                <div style={{ fontWeight: 600, fontSize: 14, color: T.navy }}>{t}</div>
-                <div style={{ fontSize: 12, color: T.green, marginTop: 4 }}>✓ Approved by Meta</div>
-              </div>
-              <button style={{ background: "none", border: "none", color: T.blue, cursor: "pointer", fontSize: 13, fontWeight: 600 }}>Edit Template</button>
-            </div>
-          ))}
-        </div>
-      </Card>
-    )}
-
-    {tab === "ai_ivr" && (
-      <Card title="AI Calling & IVR Settings" accent={T.purple}>
-        <div style={{ fontSize: 13, color: T.textLight, marginBottom: 20 }}>Configure advanced calling automations.</div>
-
-        <div style={{ border: `1px solid ${T.border}`, borderRadius: 10, padding: 16, marginBottom: 12 }}>
-          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 8 }}>
-            <div style={{ fontWeight: 600, color: T.navy }}>🤖 AI Calling for Lead Generation</div>
-            <Tg c={comms.aiCallForLeadGen ? T.green : T.amber}>{comms.aiCallForLeadGen ? "Active" : "Paused"}</Tg>
-          </div>
-          <div style={{ fontSize: 13, color: T.textLight, marginBottom: 12 }}>AI-powered system engages prospects 24/7. When a prospect shows high intent, it routes the call to a human executive.</div>
-          <div style={{ display: "flex", gap: 10 }}>
-            <Btn c={T.purple} onClick={() => alert("Configure Script Editor opened. (Simulated)")}>Configure Script</Btn>
-            <Btn c={comms.aiCallForLeadGen ? T.red : T.green} onClick={() => saveComms({ aiCallForLeadGen: !comms.aiCallForLeadGen })}>{comms.aiCallForLeadGen ? "Pause AI" : "Activate AI"}</Btn>
-          </div>
-        </div>
-
-        <div style={{ border: `1px solid ${T.border}`, borderRadius: 10, padding: 16, marginBottom: 12 }}>
-          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 8 }}>
-            <div style={{ fontWeight: 600, color: T.navy }}>⚡ Auto Call on Lead Assigning</div>
-            <Tg c={comms.aiCallOnAssign ? T.green : T.amber}>{comms.aiCallOnAssign ? "Active" : "Paused"}</Tg>
-          </div>
-          <div style={{ fontSize: 13, color: T.textLight, marginBottom: 12 }}>System automatically triggers a call connecting the executive to the prospect instantly upon assigning.</div>
-          <Btn c={comms.aiCallOnAssign ? T.red : T.navy} onClick={() => saveComms({ aiCallOnAssign: !comms.aiCallOnAssign })}>{comms.aiCallOnAssign ? "Deactivate" : "Activate"}</Btn>
-        </div>
-
-        <div style={{ border: `1px solid ${T.border}`, borderRadius: 10, padding: 16 }}>
-          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 8 }}>
-            <div style={{ fontWeight: 600, color: T.navy }}>📅 Scheduled IVR Followups</div>
-            <Tg c={comms.scheduledIVR ? T.green : T.amber}>{comms.scheduledIVR ? "Active" : "Paused"}</Tg>
-          </div>
-          <div style={{ fontSize: 13, color: T.textLight, marginBottom: 12 }}>Scheduled and pending activities automatically trigger an IVR call to employees and customers.</div>
-          <div style={{ display: "flex", gap: 10 }}>
-            <Btn c={T.navy} onClick={() => alert("Configure IVR Menu opened. (Simulated)")}>Configure IVR Menu</Btn>
-            <Btn c={comms.scheduledIVR ? T.red : T.green} onClick={() => saveComms({ scheduledIVR: !comms.scheduledIVR })}>{comms.scheduledIVR ? "Pause IVR" : "Activate IVR"}</Btn>
-          </div>
-        </div>
-      </Card>
-    )}
-  </div>);
-}
-
-// ─── AI ASSISTANT FUNCTIONS ───────────────────────────────────────────────────
-const getCrmSummary = (store) => {
-  const leads = store.leads || [];
-  const users = store.users || [];
-  const escalations = store.escalations || [];
-  
-  return {
-    totalLeads: leads.length,
-    leadsByStep: leads.reduce((acc, l) => {
-      acc[l.currentStep] = (acc[l.currentStep] || 0) + 1;
-      return acc;
-    }, {}),
-    leadsList: leads.map(l => ({
-      name: l.name,
-      amount: l.loanAmount,
-      step: l.currentStep,
-      status: l.status,
-      assignedTo: users.find(u => u.id === l.assignedTo)?.name || "Unassigned"
-    })).slice(0, 30),
-    totalUsers: users.length,
-    usersList: users.map(u => ({ name: u.name, role: u.role, active: u.active })),
-    escalationsCount: escalations.length,
-    escalationDetails: escalations.map(e => ({ leadName: e.leadName, reason: e.reason, date: e.date }))
-  };
-};
-
-async function callGeminiAssistant(prompt, store, history = []) {
-  const summary = getCrmSummary(store);
-  const systemInstruction = `You are the Ghar Kar CRM Intelligent AI Assistant. You have access to the current state of the CRM. Use this context to answer queries accurately, professionally, and helpfully.
-CRM Context Data:
-${JSON.stringify(summary, null, 2)}
-
-Instructions:
-- Answer questions based on the CRM context provided.
-- Be concise and actionable.
-- Format numbers in Indian Rupees (e.g. ₹85,00,000) or standard formats.
-- If asked to write email or WhatsApp templates, make them premium, friendly, and professional.
-- Refer to users and leads by their actual names present in the context.`;
-
-  const contents = [
-    { role: "user", parts: [{ text: systemInstruction }] },
-    ...history.map(msg => ({
-      role: msg.sender === "ai" ? "model" : "user",
-      parts: [{ text: msg.text }]
-    })),
-    { role: "user", parts: [{ text: prompt }] }
-  ];
-
-  try {
-    const res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${GEMINI_KEY}`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        contents,
-        generationConfig: {
-          temperature: 0.7,
-          maxOutputTokens: 2048
-        }
-      })
-    });
-    if (!res.ok) {
-      const errData = await res.json().catch(() => ({}));
-      const errMsg = errData.error?.message || `Status ${res.status}`;
-      throw new Error(`Gemini API error: ${errMsg}`);
-    }
-    const data = await res.json();
-    return data.candidates?.[0]?.content?.parts?.[0]?.text || "No response generated.";
-  } catch (e) {
-    console.error("Gemini assistant error:", e);
-    return `Error connecting to Gemini AI: ${e.message}. Please verify that your API key is correctly configured in your .env file.`;
-  }
-}
-
-// ─── AI ASSISTANT TAB COMPONENT ───────────────────────────────────────────────
-function AIAssistantTab({ store, session }) {
-  const [messages, setMessages] = useState([
-    { sender: "ai", text: `Hello ${session?.name || "there"}! I am your Ghar Kar CRM Assistant. How can I help you manage your leads, analyze performance, or draft communications today?` }
-  ]);
-  const [input, setInput] = useState("");
-  const [loading, setLoading] = useState(false);
-  const chatEndRef = useRef(null);
-
-  useEffect(() => {
-    chatEndRef.current?.scrollIntoView({ behavior: "smooth" });
-  }, [messages, loading]);
-
-  const quickPrompts = [
-    { label: "📊 Lead Summary", prompt: "Give me a quick summary of our current leads, which steps they are in, and who they are assigned to." },
-    { label: "⚠️ Active Escalations", prompt: "Are there any active escalations? List them and who is responsible." },
-    { label: "📈 Pipeline Health", prompt: "Analyze the current sales pipeline distribution and tell me if there are any bottlenecks." },
-    { label: "✍️ WhatsApp Template", prompt: "Draft a friendly WhatsApp message for re-engaging a lead whose loan sanction is pending." }
-  ];
-
-  async function handleSend(textToSend) {
-    const prompt = textToSend || input;
-    if (!prompt.trim()) return;
-
-    const newMessages = [...messages, { sender: "user", text: prompt }];
-    setMessages(newMessages);
-    setInput("");
-    setLoading(true);
-
-    const apiHistory = messages.slice(-6);
-
-    const reply = await callGeminiAssistant(prompt, store, apiHistory);
-    setMessages(prev => [...prev, { sender: "ai", text: reply }]);
-    setLoading(false);
+  function calculateMaxLoan(emiCapability, roiStr, maxTenureYrs) {
+    if (emiCapability <= 0) return 0;
+    const roiNum = parseFloat(roiStr) || 8.5;
+    const r = (roiNum / 12) / 100;
+    const n = maxTenureYrs * 12;
+    const p = emiCapability * (Math.pow(1 + r, n) - 1) / (r * Math.pow(1 + r, n));
+    return Math.round(p);
   }
 
   return (
-    <div className="fade" style={{ display: "grid", gridTemplateColumns: "240px 1fr", gap: 16, height: "calc(100vh - 160px)", minHeight: 500 }}>
-      {/* Sidebar - Quick Prompts */}
-      <div style={{ background: T.white, border: `1px solid ${T.border}`, borderRadius: 18, padding: 16, display: "flex", flexDirection: "column", gap: 12 }}>
-        <div style={{ fontWeight: 700, color: T.navy, fontSize: 14, borderBottom: `1px solid ${T.border}`, paddingBottom: 8, display: "flex", alignItems: "center", gap: 6 }}>
-          <span>💡</span> Quick Queries
+    <div className="fade">
+      <ST>🏦 Bank Eligibility & ROI Comparison Matrix</ST>
+      <Card title="Interactive Eligibility Calculator" accent={T.gold}>
+        <Grid cols="1fr 1fr 1fr" gap={14} mb={10}>
+          <F l="Monthly Gross Income (₹)"><input type="number" value={grossIncome} onChange={e => setGrossIncome(Number(e.target.value))} placeholder="Combined Gross Monthly Salary" /></F>
+          <F l="Existing Monthly EMIs (₹)"><input type="number" value={existingEmi} onChange={e => setExistingEmi(Number(e.target.value))} placeholder="All current loan EMIs" /></F>
+          <F l="Property Value (₹)"><input type="number" value={propertyValue} onChange={e => setPropertyValue(Number(e.target.value))} placeholder="Market Value of Property" /></F>
+        </Grid>
+        <div style={{ fontSize: 12, color: T.textLight, marginTop: 8 }}>
+          Calculates eligible loan amounts based on combined FOIR and LTV guidelines dynamically.
         </div>
-        <div style={{ display: "flex", flexDirection: "column", gap: 8, flex: 1, overflowY: "auto" }}>
-          {quickPrompts.map((qp, i) => (
-            <button 
-              key={i} 
-              onClick={() => handleSend(qp.prompt)}
-              disabled={loading}
-              style={{
-                textAlign: "left",
-                padding: "10px 12px",
-                background: T.cream,
-                border: `1px solid ${T.border}`,
-                borderRadius: 10,
-                fontSize: 12,
-                fontWeight: 500,
-                color: T.navy,
-                cursor: loading ? "not-allowed" : "pointer",
-                transition: "all 0.2s"
-              }}
-              onMouseEnter={e => { if (!loading) e.target.style.background = T.creamDark; }}
-              onMouseLeave={e => { if (!loading) e.target.style.background = T.cream; }}
-            >
-              {qp.label}
-            </button>
-          ))}
+      </Card>
+
+      <Card title="Bank-wise Comparison Matrix">
+        <div style={{ overflowX: "auto" }}>
+          <table style={{ width: "100%", textAlign: "left", fontSize: 13, borderCollapse: "collapse" }}>
+            <thead>
+              <tr style={{ borderBottom: `2px solid ${T.border}` }}>
+                <th style={{ padding: "10px 8px", color: T.navy }}>Bank Name</th>
+                <th style={{ padding: "10px 8px", color: T.navy }}>Interest Rate (ROI)</th>
+                <th style={{ padding: "10px 8px", color: T.navy }}>Max FOIR</th>
+                <th style={{ padding: "10px 8px", color: T.navy }}>Max LTV Limit</th>
+                <th style={{ padding: "10px 8px", color: T.navy }}>Processing Fee</th>
+                <th style={{ padding: "10px 8px", color: T.navy }}>Max Loan (FOIR)</th>
+                <th style={{ padding: "10px 8px", color: T.navy }}>Max Loan (LTV)</th>
+                <th style={{ padding: "10px 8px", color: T.navy, fontWeight: 700 }}>Final Eligible Loan</th>
+              </tr>
+            </thead>
+            <tbody>
+              {BANK_CRITERIA.map((b, idx) => {
+                const maxFoirAmount = (grossIncome * b.maxFoir / 100) - existingEmi;
+                const emiCap = Math.max(0, maxFoirAmount);
+                const maxLoanFoir = calculateMaxLoan(emiCap, b.roi, b.tenure);
+                const maxLoanLtv = Math.round(propertyValue * b.maxLtv / 100);
+                const finalEligible = Math.min(maxLoanFoir, maxLoanLtv);
+
+                return (
+                  <tr key={idx} style={{ borderBottom: `1px solid ${T.border}` }}>
+                    <td style={{ padding: "12px 8px", fontWeight: 600 }}>{b.bank}</td>
+                    <td style={{ padding: "12px 8px" }}><Tg c={T.green}>{b.roi}</Tg></td>
+                    <td style={{ padding: "12px 8px" }}>{b.maxFoir}%</td>
+                    <td style={{ padding: "12px 8px" }}>{b.maxLtv}%</td>
+                    <td style={{ padding: "12px 8px", fontSize: 11, color: T.textMid }}>{b.fee}</td>
+                    <td style={{ padding: "12px 8px" }}>₹{maxLoanFoir.toLocaleString("en-IN")}</td>
+                    <td style={{ padding: "12px 8px" }}>₹{maxLoanLtv.toLocaleString("en-IN")}</td>
+                    <td style={{ padding: "12px 8px", fontWeight: 700, color: finalEligible > 0 ? T.blue : T.red }}>
+                      ₹{finalEligible.toLocaleString("en-IN")}
+                    </td>
+                  </tr>
+                );
+              })}
+            </tbody>
+          </table>
         </div>
-        <div style={{ fontSize: 11, color: T.textLight, textAlign: "center", borderTop: `1px solid ${T.border}`, paddingTop: 10 }}>
-          Powering CRM with Gemini AI
-        </div>
+      </Card>
+    </div>
+  );
+}
+
+// ─── APF DIRECTORY ────────────────────────────────────────────────────────────
+const INITIAL_PROJECTS = [
+  { id: 1, name: "Ghar Kar Heights", builder: "Ghar Kar Developers", city: "Pune", location: "Hinjewadi", status: "Pre-Approved", apf: { "HDFC": "APF-789312", "SBI": "APF-564231", "ICICI": "APF-231908" } },
+  { id: 2, name: "Amanora Gateway", builder: "City Corporation", city: "Pune", location: "Hadapsar", status: "Pre-Approved", apf: { "HDFC": "APF-112233", "Axis": "APF-445566", "LIC HFL": "APF-778899" } },
+  { id: 3, name: "Blue Ridge", builder: "Paranjape Schemes", city: "Pune", location: "Hinjewadi", status: "Pre-Approved", apf: { "SBI": "APF-909090", "ICICI": "APF-808080", "Bank of Baroda": "APF-707070" } },
+  { id: 4, name: "Pride World City", builder: "Pride Group", city: "Pune", location: "Charholi", status: "Pending", apf: { "HDFC": "APF-324151" } }
+];
+
+function ProjectDirectory() {
+  const [projects, setProjects] = useState(INITIAL_PROJECTS);
+  const [search, setSearch] = useState("");
+  const [showAddModal, setShowAddModal] = useState(false);
+  const [newProj, setNewProj] = useState({ name: "", builder: "", city: "", location: "", status: "Pre-Approved", bank: "", apfNum: "" });
+
+  const filtered = projects.filter(p => 
+    p.name.toLowerCase().includes(search.toLowerCase()) ||
+    p.builder.toLowerCase().includes(search.toLowerCase()) ||
+    p.location.toLowerCase().includes(search.toLowerCase())
+  );
+
+  function handleAdd() {
+    if (!newProj.name || !newProj.builder) return;
+    const apf = newProj.bank ? { [newProj.bank]: newProj.apfNum } : {};
+    const item = {
+      id: Date.now(),
+      name: newProj.name,
+      builder: newProj.builder,
+      city: newProj.city || "Pune",
+      location: newProj.location,
+      status: newProj.status,
+      apf
+    };
+    setProjects([item, ...projects]);
+    setShowAddModal(false);
+    setNewProj({ name: "", builder: "", city: "", location: "", status: "Pre-Approved", bank: "", apfNum: "" });
+  }
+
+  return (
+    <div className="fade">
+      <ST>🏗️ Builder & Project Pre-Approval (APF) Directory</ST>
+      <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 16, gap: 10 }}>
+        <input value={search} onChange={e => setSearch(e.target.value)} placeholder="Search projects by name, builder, or location..." style={{ maxWidth: 400 }} />
+        <Btn c={T.navy} onClick={() => setShowAddModal(true)}>+ Add Project</Btn>
       </div>
 
-      {/* Main Chat Interface */}
-      <div style={{ display: "flex", flexDirection: "column", background: T.white, border: `1px solid ${T.border}`, borderRadius: 18, overflow: "hidden" }}>
+      <Card title="Pre-Approved Projects List">
+        <table style={{ width: "100%", textAlign: "left", fontSize: 13, borderCollapse: "collapse" }}>
+          <thead>
+            <tr style={{ borderBottom: `2px solid ${T.border}` }}>
+              <th style={{ padding: 10, color: T.navy }}>Project</th>
+              <th style={{ padding: 10, color: T.navy }}>Builder</th>
+              <th style={{ padding: 10, color: T.navy }}>Location</th>
+              <th style={{ padding: 10, color: T.navy }}>Status</th>
+              <th style={{ padding: 10, color: T.navy }}>Approved Banks & APF Numbers</th>
+            </tr>
+          </thead>
+          <tbody>
+            {filtered.map(p => (
+              <tr key={p.id} style={{ borderBottom: `1px solid ${T.border}` }}>
+                <td style={{ padding: 12, fontWeight: 600 }}>{p.name}</td>
+                <td style={{ padding: 12 }}>{p.builder}</td>
+                <td style={{ padding: 12 }}>{p.location}, {p.city}</td>
+                <td style={{ padding: 12 }}><Tg c={p.status === "Pre-Approved" ? T.green : T.amber}>{p.status}</Tg></td>
+                <td style={{ padding: 12 }}>
+                  <div style={{ display: "flex", flexWrap: "wrap", gap: 6 }}>
+                    {Object.entries(p.apf || {}).map(([bank, code]) => (
+                      <span key={bank} style={{ fontSize: 11, background: T.blueBg, color: T.blue, padding: "2px 8px", borderRadius: 4, border: `1px solid #90CAF9` }}>
+                        <strong>{bank}</strong>: {code}
+                      </span>
+                    ))}
+                  </div>
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </Card>
+
+      {showAddModal && (
+        <div style={{ position: "fixed", top: 0, left: 0, right: 0, bottom: 0, background: "rgba(11,20,55,0.55)", zIndex: 999, display: "flex", alignItems: "center", justifyContent: "center", padding: "1rem" }}>
+          <div style={{ background: T.white, borderRadius: 18, padding: 28, maxWidth: 450, width: "100%" }}>
+            <div style={{ fontFamily: "'Playfair Display',serif", fontSize: 18, fontWeight: 700, color: T.navy, marginBottom: 16 }}>Add Pre-Approved Project</div>
+            <Grid cols="1fr 1fr" gap={10} mb={10}>
+              <F l="Project Name *"><input value={newProj.name} onChange={e => setNewProj({ ...newProj, name: e.target.value })} placeholder="Project name" /></F>
+              <F l="Builder Name *"><input value={newProj.builder} onChange={e => setNewProj({ ...newProj, builder: e.target.value })} placeholder="Builder name" /></F>
+            </Grid>
+            <Grid cols="1fr 1fr" gap={10} mb={10}>
+              <F l="City"><input value={newProj.city} onChange={e => setNewProj({ ...newProj, city: e.target.value })} placeholder="Pune" /></F>
+              <F l="Location"><input value={newProj.location} onChange={e => setNewProj({ ...newProj, location: e.target.value })} placeholder="e.g. Hinjewadi" /></F>
+            </Grid>
+            <Grid cols="1fr 1fr" gap={10} mb={10}>
+              <F l="APF Bank"><input value={newProj.bank} onChange={e => setNewProj({ ...newProj, bank: e.target.value })} placeholder="e.g. HDFC" /></F>
+              <F l="APF Number"><input value={newProj.apfNum} onChange={e => setNewProj({ ...newProj, apfNum: e.target.value })} placeholder="e.g. APF-903214" /></F>
+            </Grid>
+            <F l="Status">
+              <select value={newProj.status} onChange={e => setNewProj({ ...newProj, status: e.target.value })} style={{ width: "100%" }}>
+                <option value="Pre-Approved">Pre-Approved</option>
+                <option value="Pending">Pending</option>
+              </select>
+            </F>
+            <div style={{ display: "flex", gap: 10, marginTop: 20 }}>
+              <Btn c={T.navy} full onClick={handleAdd}>Save Project</Btn>
+              <button onClick={() => setShowAddModal(false)} style={{ flex: 1, padding: "11px", background: "transparent", color: T.textMid, border: `1px solid ${T.border}`, borderRadius: 10, fontWeight: 600, cursor: "pointer" }}>Cancel</button>
+            </div>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+// ─── BANK LOGINS TAB ──────────────────────────────────────────────────────────
+function BankLoginsTab({ lead, onUpdate }) {
+  const logins = lead.bankLogins || [];
+  const [showAdd, setShowAdd] = useState(false);
+  const [newLogin, setNewLogin] = useState({ bank: "HDFC Bank", refNo: "", status: "Logged In", date: td() });
+  const [queryInput, setQueryInput] = useState({ desc: "", loginId: null });
+
+  function addLogin() {
+    const item = { id: gid(), ...newLogin, queries: [] };
+    onUpdate(lead.id, { bankLogins: [...logins, item] });
+    setShowAdd(false);
+    setNewLogin({ bank: "HDFC Bank", refNo: "", status: "Logged In", date: td() });
+  }
+
+  function updateStatus(id, stat) {
+    const updated = logins.map(l => l.id === id ? { ...l, status: stat } : l);
+    onUpdate(lead.id, { bankLogins: updated });
+  }
+
+  function addQuery(loginId) {
+    if (!queryInput.desc.trim()) return;
+    const updated = logins.map(l => {
+      if (l.id !== loginId) return l;
+      const q = { id: gid(), desc: queryInput.desc.trim(), status: "Open", dateRaised: td(), dateResolved: "" };
+      return { ...l, queries: [...(l.queries || []), q] };
+    });
+    onUpdate(lead.id, { bankLogins: updated });
+    setQueryInput({ desc: "", loginId: null });
+  }
+
+  function resolveQuery(loginId, queryId) {
+    const updated = logins.map(l => {
+      if (l.id !== loginId) return l;
+      return {
+        ...l,
+        queries: l.queries.map(q => q.id === queryId ? { ...q, status: "Resolved", dateResolved: td() } : q)
+      };
+    });
+    onUpdate(lead.id, { bankLogins: updated });
+  }
+
+  return (
+    <div className="fade">
+      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 16 }}>
+        <div style={{ fontSize: 14, color: T.textLight }}>Track parallel submissions to multiple banks.</div>
+        <Btn c={T.navy} onClick={() => setShowAdd(true)}>+ New Bank Submission</Btn>
+      </div>
+
+      {showAdd && (
+        <Card title="New Bank Submission Details" accent={T.blue}>
+          <Grid cols="1fr 1fr 1fr" gap={10} mb={10}>
+            <F l="Bank Name">
+              <select value={newLogin.bank} onChange={e => setNewLogin({ ...newLogin, bank: e.target.value })}>
+                <option>HDFC Bank</option>
+                <option>State Bank of India (SBI)</option>
+                <option>ICICI Bank</option>
+                <option>Axis Bank</option>
+                <option>LIC Housing Finance</option>
+                <option>Bank of Baroda</option>
+              </select>
+            </F>
+            <F l="File/Reference Number"><input value={newLogin.refNo} onChange={e => setNewLogin({ ...newLogin, refNo: e.target.value })} placeholder="e.g. REF-8910" /></F>
+            <F l="Submission Date"><input type="date" value={newLogin.date} onChange={e => setNewLogin({ ...newLogin, date: e.target.value })} /></F>
+          </Grid>
+          <div style={{ display: "flex", gap: 10 }}>
+            <Btn c={T.navy} onClick={addLogin}>Add Submission</Btn>
+            <button onClick={() => setShowAdd(false)} style={{ padding: "10px 18px", background: "transparent", color: T.textMid, border: `1px solid ${T.border}`, borderRadius: 10, fontWeight: 600, cursor: "pointer" }}>Cancel</button>
+          </div>
+        </Card>
+      )}
+
+      {logins.length === 0 && <div style={{ background: T.white, padding: 30, borderRadius: 14, textAlign: "center", color: T.textLight, border: `1px solid ${T.border}` }}>No bank logins recorded yet for this lead. Click "+ New Bank Submission" above to add one.</div>}
+
+      {logins.map(l => (
+        <Card key={l.id} title={`${l.bank}`} accent={T.gold}>
+          <div style={{ display: "flex", justifyContent: "space-between", flexWrap: "wrap", borderBottom: `1px solid ${T.border}`, paddingBottom: 12, marginBottom: 12 }}>
+            <div style={{ fontSize: 13 }}>
+              <strong>File Ref:</strong> {l.refNo || "—"} · <strong>Logged on:</strong> {l.date}
+            </div>
+            <div>
+              <label style={{ fontSize: 12, fontWeight: 600, marginRight: 8, color: T.textMid }}>Status:</label>
+              <select value={l.status} onChange={e => updateStatus(l.id, e.target.value)} style={{ padding: "4px 8px", borderRadius: 6, fontSize: 12, width: 160 }}>
+                <option>Logged In</option>
+                <option>Underwriter Review</option>
+                <option>Valuation Initiated</option>
+                <option>Legal Check</option>
+                <option>Sanctioned</option>
+                <option>Rejected</option>
+              </select>
+            </div>
+          </div>
+
+          <div style={{ marginBottom: 10 }}>
+            <div style={{ fontSize: 12, fontWeight: 700, color: T.navy, marginBottom: 8 }}>Credit Query Logs ({l.queries?.filter(q => q.status === "Open").length || 0} Open)</div>
+            
+            {(l.queries || []).length === 0 && <div style={{ fontSize: 12, color: T.textLight, fontStyle: "italic", marginBottom: 8 }}>No queries raised.</div>}
+            
+            {(l.queries || []).map(q => (
+              <div key={q.id} style={{ display: "flex", justifyContent: "space-between", background: q.status === "Open" ? T.redBg : T.greenBg, border: `1px solid ${q.status === "Open" ? T.red : T.green}20`, borderRadius: 8, padding: 10, marginBottom: 6 }}>
+                <div>
+                  <div style={{ fontSize: 13, color: T.text }}>{q.desc}</div>
+                  <div style={{ fontSize: 11, color: T.textLight, marginTop: 4 }}>Raised: {q.dateRaised} {q.status === "Resolved" && `· Resolved: ${q.dateResolved}`}</div>
+                </div>
+                {q.status === "Open" ? (
+                  <button onClick={() => resolveQuery(l.id, q.id)} style={{ fontSize: 11, background: T.white, border: `1px solid ${T.green}`, color: T.green, padding: "2px 8px", borderRadius: 4, cursor: "pointer" }}>Mark Resolved</button>
+                ) : (
+                  <span style={{ fontSize: 11, color: T.green, fontWeight: 600 }}>Resolved</span>
+                )}
+              </div>
+            ))}
+
+            {queryInput.loginId === l.id ? (
+              <div style={{ display: "flex", gap: 10, marginTop: 10 }}>
+                <input value={queryInput.desc} onChange={e => setQueryInput({ ...queryInput, desc: e.target.value })} placeholder="Describe credit query..." style={{ flex: 1, padding: 8 }} />
+                <Btn c={T.navy} onClick={() => addQuery(l.id)}>Save Query</Btn>
+                <button onClick={() => setQueryInput({ desc: "", loginId: null })} style={{ background: "transparent", border: "none", color: T.textLight, fontSize: 13, cursor: "pointer" }}>Cancel</button>
+              </div>
+            ) : (
+              <button onClick={() => setQueryInput({ desc: "", loginId: l.id })} style={{ fontSize: 12, background: "transparent", border: `1.5px dashed ${T.border}`, borderRadius: 6, width: "100%", padding: 6, color: T.textMid, cursor: "pointer", fontWeight: 600 }}>+ Log Query from Credit Underwriter</button>
+            )}
+          </div>
+        </Card>
+      ))}
+    </div>
+  );
+}
+
+// ─── CLIENT PORTAL SIMULATOR ──────────────────────────────────────────────────
+function ClientPortalSim({ lead, onUpdate }) {
+  const [simActive, setSimActive] = useState(false);
+  const empType = lead.employmentType || "Salaried";
+  const docSet = DOC_REQUIREMENTS[empType] || DOC_REQUIREMENTS["Salaried"];
+  const received = lead.docsReceived || {};
+
+  function handleSimUpload(doc) {
+    onUpdate(lead.id, { docsReceived: { ...received, [doc]: true } });
+    alert(`[Simulation] ${doc} uploaded by client and synchronized!`);
+  }
+
+  const portalLink = `https://portal.gharkar.com/upload/${lead.id}`;
+
+  return (
+    <div className="fade">
+      <Card title="Client Portal Configuration" accent={T.blue}>
+        <div style={{ fontSize: 13, color: T.text, marginBottom: 12 }}>
+          Send this secure portal link to the customer. They can upload documents directly from their mobile or desktop without password login.
+        </div>
+        <div style={{ display: "flex", gap: 10, alignItems: "center", background: T.cream, padding: 12, borderRadius: 10, border: `1px solid ${T.border}`, marginBottom: 16 }}>
+          <span style={{ fontSize: 13, fontWeight: 700, color: T.navy, flex: 1, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{portalLink}</span>
+          <Btn c={T.blue} onClick={() => { navigator.clipboard.writeText(portalLink); alert("Link copied to clipboard!"); }}>Copy Link</Btn>
+          <Btn c={T.navy} onClick={() => setSimActive(!simActive)}>{simActive ? "Close Simulator" : "Open Simulator"}</Btn>
+        </div>
+      </Card>
+
+      {simActive && (
+        <div className="fade" style={{ display: "flex", justifyContent: "center", marginTop: 20 }}>
+          <div style={{
+            width: 375,
+            minHeight: 650,
+            border: "12px solid #0B1437",
+            borderRadius: 36,
+            background: "#F7F3EC",
+            display: "flex",
+            flexDirection: "column",
+            boxShadow: "0 24px 48px rgba(11,20,55,0.25)",
+            overflow: "hidden"
+          }}>
+            <div style={{ height: 28, background: "#0B1437", display: "flex", justifyContent: "center", alignItems: "center" }}>
+              <div style={{ width: 60, height: 4, background: "#8888AA", borderRadius: 2 }} />
+            </div>
+
+            <div style={{ flex: 1, padding: "16px", overflowY: "auto", display: "flex", flexDirection: "column", gap: 12 }}>
+              <div style={{ textAlign: "center", marginBottom: 8 }}>
+                <div style={{ fontSize: 18, fontWeight: 700, color: T.navy, fontFamily: "'Playfair Display',serif" }}>Ghar Kar Portal</div>
+                <div style={{ fontSize: 11, color: T.textLight, marginTop: 2 }}>Secure Document Upload</div>
+              </div>
+
+              <div style={{ background: T.white, border: `1px solid ${T.border}`, borderRadius: 14, padding: 12 }}>
+                <div style={{ fontSize: 13, fontWeight: 600, color: T.navy }}>Welcome {lead.name}</div>
+                <div style={{ fontSize: 11, color: T.textLight, marginTop: 3 }}>
+                  Please upload files required for your <strong>{lead.loanType || "Home Loan"}</strong> application.
+                </div>
+              </div>
+
+              {Object.entries(docSet).map(([cat, docs]) => (
+                <div key={cat} style={{ background: T.white, border: `1px solid ${T.border}`, borderRadius: 14, padding: 12 }}>
+                  <div style={{ fontSize: 11, fontWeight: 700, color: T.navy, textTransform: "uppercase", letterSpacing: 0.5, borderBottom: `1px solid ${T.border}`, paddingBottom: 6, marginBottom: 8 }}>{cat}</div>
+                  <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+                    {docs.map((doc, idx) => {
+                      const done = !!received[doc];
+                      return (
+                        <div key={idx} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 10, borderBottom: idx < docs.length - 1 ? `0.5px solid ${T.border}` : "none", paddingBottom: 6 }}>
+                          <span style={{ fontSize: 12, color: done ? T.textLight : T.text, textDecoration: done ? "line-through" : "none", flex: 1 }}>{doc}</span>
+                          {done ? (
+                            <span style={{ fontSize: 11, color: T.green, fontWeight: 600 }}>✓ Uploaded</span>
+                          ) : (
+                            <button 
+                              onClick={() => handleSimUpload(doc)}
+                              style={{
+                                fontSize: 11,
+                                padding: "4px 8px",
+                                background: T.blue,
+                                color: T.white,
+                                border: "none",
+                                borderRadius: 6,
+                                cursor: "pointer",
+                                fontWeight: 600
+                              }}
+                            >
+                              Upload
+                            </button>
+                          )}
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+              ))}
+            </div>
+
+            <div style={{ height: 20, display: "flex", justifyContent: "center", alignItems: "center", background: "#EDE6D8" }}>
+              <div style={{ width: 100, height: 4, background: "#8888AA", borderRadius: 2 }} />
+            </div>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}"hidden" }}>
         {/* Header */}
         <div style={{ padding: "14px 20px", background: T.navy, color: T.white, display: "flex", alignItems: "center", justifyContent: "space-between" }}>
           <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
