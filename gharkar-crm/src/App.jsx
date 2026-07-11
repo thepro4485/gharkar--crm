@@ -2487,6 +2487,7 @@ const getInitialFormState = (lead) => {
     ownContribution: lead.ownContribution || "",
     loanAmount: lead.loanAmount || "",
     tenure: lead.tenure || "",
+    profession: lead.profession || "",
 
     ref1_name: lead.ref1_name || "",
     ref1_address: lead.ref1_address || "",
@@ -2603,16 +2604,18 @@ function ApplicantFormBlock({ prefix, form, upd, label }) {
   const isPrimary = prefix === "";
   const isCompany = isPrimary && form.employmentType === "Pvt Ltd Company";
   const isFirm = isPrimary && form.employmentType === "Partnership Firm";
+  const isSep = isPrimary && form.employmentType === "Self-Employed Professional";
 
   return (
     <div>
       <DSSection title={`${label} - Entity / Employment Profile`} accent={T.gold}>
-        <Grid cols={isPrimary ? "1fr 1fr" : "1fr"} gap={16}>
+        <Grid cols={isPrimary ? (isSep ? "1fr 1fr 1fr" : "1fr 1fr") : "1fr"} gap={16}>
           {isPrimary && (
             <F l="Employment / Entity Type">
               <select value={form.employmentType} onChange={e => upd("employmentType", e.target.value)}>
                 <option value="Salaried">Salaried</option>
                 <option value="Self-Employed">Self-Employed</option>
+                <option value="Self-Employed Professional">Self-Employed Professional</option>
                 <option value="Pvt Ltd Company">Pvt Ltd Company</option>
                 <option value="Partnership Firm">Partnership Firm</option>
                 <option value="NRI">NRI</option>
@@ -2622,6 +2625,11 @@ function ApplicantFormBlock({ prefix, form, upd, label }) {
           <F l="Full Name *">
             <input value={form[prefix + "name"] || ""} onChange={e => upd(prefix + "name", e.target.value)} placeholder={`${label} full name`} />
           </F>
+          {isSep && (
+            <F l="Profession *">
+              <input value={form.profession || ""} onChange={e => upd("profession", e.target.value)} placeholder="e.g. Doctor, CA, Architect" />
+            </F>
+          )}
         </Grid>
 
         {isCompany && (
