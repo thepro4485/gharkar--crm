@@ -1365,6 +1365,7 @@ function TodayView({ leads, session, onSel }) {
     {active.filter(l => l.followUp && l.followUp > td()).length > 0 && <Card title="Upcoming">{active.filter(l => l.followUp && l.followUp > td()).map(l => <CC key={l.id} lead={l} onSel={onSel} />)}</Card>}
   </div>);
 }
+
 function CC({ lead, onSel, urgent }) {
   const step = STEPS.find(s => s.id === lead.currentStep); const cm = CAT_META[step?.cat] || {};
   return (<div onClick={() => onSel(lead.id)} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "8px 0", borderTop: `0.5px solid ${T.border}`, cursor: "pointer", gap: 10 }}>
@@ -1387,7 +1388,7 @@ function LeadDetail({ lead, store, onBack, onUpdate, onDelete, isAdmin, fieldOnl
   const allDone = step.actions.every(a => !!done[a]);
   const asgn = store.users.find(u => u.id === lead.assignedTo);
   const maxStep = fieldOnly ? Math.max(...LEAD_STEP_IDS) : 39;
-  const tabs = fieldOnly ? ["current", "notes", "history"] : ["current", "allsteps", "comm", "docchecklist", "aidocs", "detailsheet", "financials", "logins", "portal", "notes", "history"];
+  const tabs = fieldOnly ? ["current", "notes", "history"] : ["current", "allsteps", "comm", "docchecklist", "aidocs", "detailsheet", "financials", "logins", "notes", "history"];
 
   const wasAllDone = useRef(allDone);
   useEffect(() => {
@@ -1464,7 +1465,7 @@ function LeadDetail({ lead, store, onBack, onUpdate, onDelete, isAdmin, fieldOnl
     </div>
     <div style={{ display: "flex", gap: 1, marginBottom: 14, borderBottom: `1px solid ${T.border}`, overflowX: "auto" }}>
       {tabs.map(t => <button key={t} onClick={() => setTab(t)} style={{ padding: "9px 14px", border: "none", background: "none", color: tab === t ? cm.color : T.textLight, fontWeight: tab === t ? 600 : 400, borderBottom: tab === t ? `2px solid ${cm.color}` : "2px solid transparent", cursor: "pointer", textTransform: "capitalize", whiteSpace: "nowrap", fontSize: 13 }}>
-        {t === "current" ? "Current Step" : t === "allsteps" ? "All 39 Steps" : t === "sitevisits" ? "📍 Site Visits & Follow-up" : t === "comm" ? "Communication" : t === "docchecklist" ? "📋 Docs" : t === "aidocs" ? "🤖 AI Analysis" : t === "detailsheet" ? "🧧 Detail Sheet" : t === "financials" ? "💰 Financials" : t === "logins" ? "🏦 Bank Logins" : t === "portal" ? "🌐 Client Portal" : t === "notes" ? "Notes" : t === "history" ? "History" : t}
+        {t === "current" ? "Current Step" : t === "allsteps" ? "All 39 Steps" : t === "sitevisits" ? "📍 Site Visits & Follow-up" : t === "comm" ? "Communication" : t === "docchecklist" ? "📋 Docs" : t === "aidocs" ? "🤖 AI Analysis" : t === "detailsheet" ? "🧧 Detail Sheet" : t === "financials" ? "💰 Financials" : t === "logins" ? "🏦 Bank Logins" : t === "notes" ? "Notes" : t === "history" ? "History" : t}
       </button>)}
     </div>
 
@@ -1651,7 +1652,6 @@ function LeadDetail({ lead, store, onBack, onUpdate, onDelete, isAdmin, fieldOnl
     {tab === "detailsheet" && !fieldOnly && <DetailSheetTab lead={lead} onUpdate={onUpdate} />}
     {tab === "financials" && !fieldOnly && <FinancialsTab lead={lead} onUpdate={onUpdate} />}
     {tab === "logins" && !fieldOnly && <BankLoginsTab lead={lead} onUpdate={onUpdate} />}
-    {tab === "portal" && !fieldOnly && <ClientPortalSim lead={lead} onUpdate={onUpdate} />}
 
     {tab === "notes" && (
       <div className="fade">
@@ -3422,105 +3422,3 @@ function BankLoginsTab({ lead, onUpdate }) {
   );
 }
 
-// ─── CLIENT PORTAL SIMULATOR ──────────────────────────────────────────────────
-function ClientPortalSim({ lead, onUpdate }) {
-  const [simActive, setSimActive] = useState(false);
-  const empType = lead.employmentType || "Salaried";
-  const docSet = DOC_REQUIREMENTS[empType] || DOC_REQUIREMENTS["Salaried"];
-  const received = lead.docsReceived || {};
-
-  function handleSimUpload(doc) {
-    onUpdate(lead.id, { docsReceived: { ...received, [doc]: true } });
-    alert(`[Simulation] ${doc} uploaded by client and synchronized!`);
-  }
-
-  const portalLink = `https://portal.gharkar.com/upload/${lead.id}`;
-
-  return (
-    <div className="fade">
-      <Card title="Client Portal Configuration" accent={T.blue}>
-        <div style={{ fontSize: 13, color: T.text, marginBottom: 12 }}>
-          Send this secure portal link to the customer. They can upload documents directly from their mobile or desktop without password login.
-        </div>
-        <div style={{ display: "flex", gap: 10, alignItems: "center", background: T.cream, padding: 12, borderRadius: 10, border: `1px solid ${T.border}`, marginBottom: 16 }}>
-          <span style={{ fontSize: 13, fontWeight: 700, color: T.navy, flex: 1, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{portalLink}</span>
-          <Btn c={T.blue} onClick={() => { navigator.clipboard.writeText(portalLink); alert("Link copied to clipboard!"); }}>Copy Link</Btn>
-          <Btn c={T.navy} onClick={() => setSimActive(!simActive)}>{simActive ? "Close Simulator" : "Open Simulator"}</Btn>
-        </div>
-      </Card>
-
-      {simActive && (
-        <div className="fade" style={{ display: "flex", justifyContent: "center", marginTop: 20 }}>
-          <div style={{
-            width: 375,
-            minHeight: 650,
-            border: "12px solid #0B1437",
-            borderRadius: 36,
-            background: "#F7F3EC",
-            display: "flex",
-            flexDirection: "column",
-            boxShadow: "0 24px 48px rgba(11,20,55,0.25)",
-            overflow: "hidden"
-          }}>
-            <div style={{ height: 28, background: "#0B1437", display: "flex", justifyContent: "center", alignItems: "center" }}>
-              <div style={{ width: 60, height: 4, background: "#8888AA", borderRadius: 2 }} />
-            </div>
-
-            <div style={{ flex: 1, padding: "16px", overflowY: "auto", display: "flex", flexDirection: "column", gap: 12 }}>
-              <div style={{ textAlign: "center", marginBottom: 8 }}>
-                <div style={{ fontSize: 18, fontWeight: 700, color: T.navy, fontFamily: "'Playfair Display',serif" }}>Ghar Kar Portal</div>
-                <div style={{ fontSize: 11, color: T.textLight, marginTop: 2 }}>Secure Document Upload</div>
-              </div>
-
-              <div style={{ background: T.white, border: `1px solid ${T.border}`, borderRadius: 14, padding: 12 }}>
-                <div style={{ fontSize: 13, fontWeight: 600, color: T.navy }}>Welcome {lead.name}</div>
-                <div style={{ fontSize: 11, color: T.textLight, marginTop: 3 }}>
-                  Please upload files required for your <strong>{lead.loanType || "Home Loan"}</strong> application.
-                </div>
-              </div>
-
-              {Object.entries(docSet).map(([cat, docs]) => (
-                <div key={cat} style={{ background: T.white, border: `1px solid ${T.border}`, borderRadius: 14, padding: 12 }}>
-                  <div style={{ fontSize: 11, fontWeight: 700, color: T.navy, textTransform: "uppercase", letterSpacing: 0.5, borderBottom: `1px solid ${T.border}`, paddingBottom: 6, marginBottom: 8 }}>{cat}</div>
-                  <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
-                    {docs.map((doc, idx) => {
-                      const done = !!received[doc];
-                      return (
-                        <div key={idx} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 10, borderBottom: idx < docs.length - 1 ? `0.5px solid ${T.border}` : "none", paddingBottom: 6 }}>
-                          <span style={{ fontSize: 12, color: done ? T.textLight : T.text, textDecoration: done ? "line-through" : "none", flex: 1 }}>{doc}</span>
-                          {done ? (
-                            <span style={{ fontSize: 11, color: T.green, fontWeight: 600 }}>✓ Uploaded</span>
-                          ) : (
-                            <button 
-                              onClick={() => handleSimUpload(doc)}
-                              style={{
-                                fontSize: 11,
-                                padding: "4px 8px",
-                                background: T.blue,
-                                color: T.white,
-                                border: "none",
-                                borderRadius: 6,
-                                cursor: "pointer",
-                                fontWeight: 600
-                              }}
-                            >
-                              Upload
-                            </button>
-                          )}
-                        </div>
-                      );
-                    })}
-                  </div>
-                </div>
-              ))}
-            </div>
-
-            <div style={{ height: 20, display: "flex", justifyContent: "center", alignItems: "center", background: "#EDE6D8" }}>
-              <div style={{ width: 100, height: 4, background: "#8888AA", borderRadius: 2 }} />
-            </div>
-          </div>
-        </div>
-      )}
-    </div>
-  );
-}
