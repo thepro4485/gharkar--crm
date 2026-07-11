@@ -1959,7 +1959,7 @@ function LeadTable({ leads, users, onSelect, onDelete }) {
 
 
 function AddLeadForm({ onAdd }) {
-  const [f, setF] = useState({ name: "", phone: "", intention: "Want to Buy", source: "Online", sourceName: "", propertyNeed: "Flat", bhk: "2BHK", budget: "", city: "", notes: "", employmentType: "Salaried" });
+  const [f, setF] = useState({ name: "", phone: "", intention: "Want to Buy", source: "Online", sourceName: "", propertyNeed: "Flat", bhk: "2BHK", budget: "", city: "", notes: "", employmentType: "Salaried", nriType: "" });
   const [errs, setErrs] = useState({});
   const s = (k, v) => { setF(p => ({ ...p, [k]: v })); setErrs(e => ({ ...e, [k]: "" })); };
 
@@ -1991,14 +1991,27 @@ function AddLeadForm({ onAdd }) {
         <F l="Lead Intention"><select value={f.intention} onChange={e => s("intention", e.target.value)}>{["Want to Sell", "Want to Rent", "For Rent", "Want to Buy"].map(t => <option key={t}>{t}</option>)}</select></F>
         <div><F l="City *"><input value={f.city} onChange={e => s("city", e.target.value)} placeholder="e.g. Pune" style={{ borderColor: errs.city ? T.red : undefined }} /></F><Err field="city" /></div>
       </Grid>
-      <Grid cols="1fr 1fr" gap={10}>
-        <F l="Employment Type"><select value={f.employmentType} onChange={e => s("employmentType", e.target.value)}>
+      <Grid cols={f.employmentType === "NRI" ? "1fr 1fr 1fr" : "1fr 1fr"} gap={10}>
+        <F l="Employment Type"><select value={f.employmentType} onChange={e => {
+          s("employmentType", e.target.value);
+          if (e.target.value === "NRI") {
+            s("nriType", "Salaried");
+          } else {
+            s("nriType", "");
+          }
+        }}>
           <option value="Salaried">Salaried</option>
           <option value="Self-Employed">Self-Employed</option>
           <option value="Pvt Ltd Company">Pvt Ltd Company</option>
           <option value="Partnership Firm">Partnership Firm</option>
           <option value="NRI">NRI</option>
         </select></F>
+        {f.employmentType === "NRI" && (
+          <F l="NRI Type"><select value={f.nriType || "Salaried"} onChange={e => s("nriType", e.target.value)}>
+            <option value="Salaried">Salaried</option>
+            <option value="Self-Employed">Self-Employed</option>
+          </select></F>
+        )}
         <F l="Lead Source"><select value={f.source} onChange={e => s("source", e.target.value)}>{["Agent", "Customer", "Newspaper", "Online", "Google", "Hoardings"].map(t => <option key={t}>{t}</option>)}</select></F>
       </Grid>
       {(f.source === "Agent" || f.source === "Customer") && (
@@ -2481,6 +2494,7 @@ function SiteVisitsTab({ lead, onUpdate }) {
 const getInitialFormState = (lead) => {
   const state = {
     employmentType: lead.employmentType || "Salaried",
+    nriType: lead.nriType || "",
     propertyName: lead.propertyName || lead.propertyNeed || "",
     actualDealValue: lead.actualDealValue || "",
     agreementValue: lead.agreementValue || "",
@@ -2605,20 +2619,36 @@ function ApplicantFormBlock({ prefix, form, upd, label }) {
   const isCompany = isPrimary && form.employmentType === "Pvt Ltd Company";
   const isFirm = isPrimary && form.employmentType === "Partnership Firm";
   const isSep = isPrimary && form.employmentType === "Self-Employed Professional";
+  const isNri = isPrimary && form.employmentType === "NRI";
 
   return (
     <div>
       <DSSection title={`${label} - Entity / Employment Profile`} accent={T.gold}>
-        <Grid cols={isPrimary ? (isSep ? "1fr 1fr 1fr" : "1fr 1fr") : "1fr"} gap={16}>
+        <Grid cols={isPrimary ? ((isSep || isNri) ? "1fr 1fr 1fr" : "1fr 1fr") : "1fr"} gap={16}>
           {isPrimary && (
             <F l="Employment / Entity Type">
-              <select value={form.employmentType} onChange={e => upd("employmentType", e.target.value)}>
+              <select value={form.employmentType} onChange={e => {
+                upd("employmentType", e.target.value);
+                if (e.target.value === "NRI") {
+                  upd("nriType", "Salaried");
+                } else {
+                  upd("nriType", "");
+                }
+              }}>
                 <option value="Salaried">Salaried</option>
                 <option value="Self-Employed">Self-Employed</option>
                 <option value="Self-Employed Professional">Self-Employed Professional</option>
                 <option value="Pvt Ltd Company">Pvt Ltd Company</option>
                 <option value="Partnership Firm">Partnership Firm</option>
                 <option value="NRI">NRI</option>
+              </select>
+            </F>
+          )}
+          {isNri && (
+            <F l="NRI Type">
+              <select value={form.nriType || "Salaried"} onChange={e => upd("nriType", e.target.value)}>
+                <option value="Salaried">Salaried</option>
+                <option value="Self-Employed">Self-Employed</option>
               </select>
             </F>
           )}
