@@ -1179,7 +1179,7 @@ function ExecutiveApp({ store, persist, session, onLogout }) {
     persist({ ...store, leads: [nl, ...(store.leads || [])] });
     setNav("leads");
   }
-  function saveLog(text) { const logs = { ...(store.dailyLogs || {}) }; if (!logs[session.id]) logs[session.id] = {}; logs[session.id][td()] = text; persist({ ...store, dailyLogs: logs }); }
+  function saveLog(text) { const logs = { ...(store.dailyLogs || {}) }; logs[session.id] = { ...(logs[session.id] || {}) }; logs[session.id][td()] = text; persist({ ...store, dailyLogs: logs }); }
   if (sel) {
     const lead = myLeads.find(l => l.id === sel); if (!lead) { setSel(null); return null; }
     return (<Shell session={session} onLogout={onLogout} navItems={EN} activeNav={nav} setActiveNav={v => { setSel(null); setNav(v); }} store={store} persist={persist}>
@@ -1261,7 +1261,7 @@ function FieldApp({ store, persist, session, onLogout }) {
   }
   function updLead(id, upd) { persist({ ...store, leads: (store.leads || []).map(l => l.id === id ? { ...l, ...upd } : l) }); }
   function delLead(id) { if (!window.confirm("Delete this lead permanently?")) return; persist({ ...store, leads: (store.leads || []).filter(l => l.id !== id) }); setSel(null); }
-  function saveLog(text) { const logs = { ...(store.dailyLogs || {}) }; if (!logs[session.id]) logs[session.id] = {}; logs[session.id][td()] = text; persist({ ...store, dailyLogs: logs }); }
+  function saveLog(text) { const logs = { ...(store.dailyLogs || {}) }; logs[session.id] = { ...(logs[session.id] || {}) }; logs[session.id][td()] = text; persist({ ...store, dailyLogs: logs }); }
   if (sel) {
     const lead = myLeads.find(l => l.id === sel); if (!lead) { setSel(null); return null; }
     return (<Shell session={session} onLogout={onLogout} navItems={FN} activeNav={nav} setActiveNav={v => { setSel(null); setNav(v); }} store={store} persist={persist}>
