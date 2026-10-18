@@ -1,53 +1,18 @@
-import { useState, useEffect, useCallback, useRef } from "react";
+import { useState, useEffect, useCallback, useRef, useId, cloneElement, isValidElement } from "react";
+import "./App.css";
 
 const T = {
-  navy: "#0B1437", navyMid: "#112057", navyLight: "#1A2F6E",
-  gold: "#D4A853", goldLight: "#F0C97A", goldDim: "#A07830",
-  cream: "#F7F3EC", creamDark: "#EDE6D8",
-  green: "#1A7A4A", greenBg: "#E8F5EE",
-  red: "#C0392B", redBg: "#FDECEA",
-  blue: "#1A5FA8", blueBg: "#E8F0FB",
-  amber: "#B8730A", amberBg: "#FEF3E2",
-  purple: "#6A1B9A", purpleBg: "#F3E5F5",
-  text: "#1A1A2E", textMid: "#4A4A6A", textLight: "#8888AA",
-  white: "#FFFFFF", border: "#E2DDD5",
+  navy: "#14233B", navyMid: "#1C3150", navyLight: "#284566",
+  gold: "#C59B55", goldLight: "#E9CA92", goldDim: "#8B672F",
+  cream: "#F4F6F8", creamDark: "#E8ECF1",
+  green: "#237653", greenBg: "#EDF7F1",
+  red: "#BB433D", redBg: "#FFF1EF",
+  blue: "#356CAA", blueBg: "#EEF4FC",
+  amber: "#97651F", amberBg: "#FCF5E8",
+  purple: "#79559F", purpleBg: "#F4EFF8",
+  text: "#1D2B40", textMid: "#526175", textLight: "#65758B",
+  white: "#FFFFFF", border: "#E1E6ED",
 };
-
-const STYLE = `
-@import url('https://fonts.googleapis.com/css2?family=Playfair+Display:wght@500;700&family=DM+Sans:wght@300;400;500;600&display=swap');
-*{box-sizing:border-box;margin:0;padding:0}
-body{font-family:'DM Sans',sans-serif;background:${T.cream};color:${T.text}}
-input,select,textarea{font-family:'DM Sans',sans-serif;font-size:14px;background:${T.white};border:1px solid ${T.border};border-radius:10px;padding:10px 14px;width:100%;outline:none;color:${T.text};transition:border 0.2s,box-shadow 0.2s}
-input:focus,select:focus,textarea:focus{border-color:${T.gold};box-shadow:0 0 0 3px ${T.gold}22}
-button{font-family:'DM Sans',sans-serif;cursor:pointer;transition:all 0.18s ease}
-.posh-card{background:${T.white};border:1px solid ${T.border};border-radius:18px;padding:20px 22px;margin-bottom:16px;box-shadow:0 2px 16px rgba(11,20,55,0.06),0 1px 4px rgba(11,20,55,0.04);transition:box-shadow 0.2s ease}
-.posh-card:hover{box-shadow:0 6px 28px rgba(11,20,55,0.11),0 2px 8px rgba(11,20,55,0.06)}
-.posh-btn{display:inline-flex;align-items:center;gap:7px;padding:11px 24px;border:none;border-radius:12px;font-weight:600;font-size:14px;letter-spacing:0.2px;transition:all 0.18s ease}
-.posh-btn:hover{transform:translateY(-1px);filter:brightness(1.08);box-shadow:0 6px 20px rgba(0,0,0,0.18)}
-.posh-btn:active{transform:translateY(0)}
-.stat-card{background:${T.white};border:1px solid ${T.border};border-radius:16px;padding:18px 14px;text-align:center;box-shadow:0 2px 12px rgba(11,20,55,0.05);transition:all 0.2s ease}
-.stat-card:hover{transform:translateY(-2px);box-shadow:0 8px 24px rgba(11,20,55,0.1)}
-.tab-btn{padding:10px 16px;border:none;background:none;font-weight:400;cursor:pointer;white-space:nowrap;font-size:13px;transition:all 0.15s;border-bottom:2px solid transparent;letter-spacing:0.1px}
-.tab-btn.active{font-weight:600;border-bottom-width:2px}
-@keyframes fadeIn{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:translateY(0)}}
-@keyframes slideDown{from{opacity:0;transform:translateY(-12px)}to{opacity:1;transform:translateY(0)}}
-@keyframes pulse{0%,100%{opacity:1}50%{opacity:0.6}}
-@keyframes stepComplete{0%{transform:scale(1)}50%{transform:scale(1.04)}100%{transform:scale(1)}}
-.fade{animation:fadeIn 0.22s ease}
-.slide{animation:slideDown 0.2s ease}
-.pulse{animation:pulse 2s infinite}
-.step-done{animation:stepComplete 0.4s ease}
-::-webkit-scrollbar{width:5px}::-webkit-scrollbar-thumb{background:${T.border};border-radius:4px}
-.ds-tab-content{display:none}
-.ds-tab-content.active{display:block}
-@media print{
-  header,.no-print,.no-print-ds{display:none!important}
-  body{background:#fff}
-  .posh-card{box-shadow:none;border:1px solid #ddd}
-  .print-page{padding:0}
-  .ds-tab-content{display:block!important;page-break-inside:avoid;margin-bottom:24px}
-}
-`;
 
 const STEPS = [
   { id: 1, cat: "lead", label: "Lead Generation", desc: "Identify and source potential home loan clients from referrals, online portals, builders, DSAs, and walk-ins.", actions: ["Record lead source (referral / portal / builder / walk-in / DSA)", "Note referral person name if applicable", "Log initial details immediately", "Assign to team member"], portalCheck: false },
@@ -314,27 +279,22 @@ function useReminders(session, store, persist) {
 function ReminderPopup({ popup, onDismiss }) {
   if (!popup) return null;
   return (
-    <div style={{ position: "fixed", top: 0, left: 0, right: 0, bottom: 0, background: "rgba(11,20,55,0.55)", zIndex: 999, display: "flex", alignItems: "center", justifyContent: "center", padding: "1rem" }}>
+    <Dialog title="Reminder" onClose={onDismiss}>
       <div style={{ background: T.white, borderRadius: 18, padding: "28px 28px", maxWidth: 400, width: "100%", boxShadow: "0 20px 60px rgba(0,0,0,0.3)" }} className="slide">
         <div style={{ fontSize: 28, marginBottom: 12, textAlign: "center" }}>{popup.type === "portal" ? "🏦" : "⏰"}</div>
-        <div style={{ fontFamily: "'Playfair Display',serif", fontSize: 18, fontWeight: 700, color: T.navy, marginBottom: 8, textAlign: "center" }}>
+        <div style={{ fontFamily: "var(--font-display)", fontSize: 18, fontWeight: 700, color: T.navy, marginBottom: 8, textAlign: "center" }}>
           {popup.type === "portal" ? "Portal Check Reminder" : "Task Reminder"}
         </div>
         <div style={{ fontSize: 14, color: T.textMid, lineHeight: 1.7, textAlign: "center", marginBottom: 20 }}>{popup.msg}</div>
         <button onClick={onDismiss} style={{ width: "100%", padding: "11px", background: T.navy, color: T.white, border: "none", borderRadius: 10, fontWeight: 600, fontSize: 14, cursor: "pointer" }}>Got it — checking now</button>
       </div>
-    </div>
+    </Dialog>
   );
 }
 
 // ─── NOTIFICATION BELL ────────────────────────────────────────────────────────
-function NotifBell({ count, onClick }) {
-  return (
-    <button onClick={onClick} style={{ position: "relative", background: "rgba(255,255,255,0.08)", border: "0.5px solid rgba(255,255,255,0.15)", borderRadius: 7, color: "rgba(255,255,255,0.8)", fontSize: 16, padding: "5px 10px", display: "flex", alignItems: "center", gap: 4 }}>
-      🔔
-      {count > 0 && <span style={{ position: "absolute", top: -4, right: -4, background: T.red, color: "#fff", borderRadius: "50%", fontSize: 10, width: 18, height: 18, display: "flex", alignItems: "center", justifyContent: "center", fontWeight: 700 }}>{count > 9 ? "9+" : count}</span>}
-    </button>
-  );
+function NotifBell({ count, onClick, expanded }) {
+  return <button type="button" className="icon-button notification-trigger" onClick={onClick} aria-label={`Notifications${count ? `, ${count} unread` : ""}`} aria-expanded={expanded} aria-controls="notification-panel"><UIIcon name="bell" />{count > 0 && <span className="notification-count">{count > 9 ? "9+" : count}</span>}</button>;
 }
 
 export default function App() {
@@ -456,8 +416,7 @@ export default function App() {
 
   if (loading) return (
     <div style={{ height: '100vh', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', background: `linear-gradient(135deg,${T.navy} 0%,${T.navyMid} 60%,${T.navyLight} 100%)` }}>
-      <style>{STYLE}</style>
-      <div style={{ fontFamily: "'Playfair Display',serif", fontSize: 28, fontWeight: 700, color: T.gold, marginBottom: 12 }}>Ghar Kar CRM</div>
+      <div style={{ fontFamily: "var(--font-display)", fontSize: 28, fontWeight: 700, color: T.gold, marginBottom: 12 }}>Ghar Kar CRM</div>
       <div style={{ display: 'flex', gap: 6, marginBottom: 16 }}>
         {[0, 1, 2].map(i => <div key={i} className="pulse" style={{ width: 8, height: 8, borderRadius: '50%', background: T.gold, animationDelay: `${i * 0.2}s` }} />)}
       </div>
@@ -473,59 +432,157 @@ export default function App() {
   return <ExecutiveApp store={store} persist={persist} session={session} onLogout={logout} />;
 }
 
+function UIIcon({ name = "home", size = 20, ...props }) {
+  const paths = {
+    home: "m3 10 9-7 9 7v10a1 1 0 0 1-1 1h-5v-7H9v7H4a1 1 0 0 1-1-1Z",
+    dashboard: "M3 3h7v7H3zM14 3h7v7h-7zM3 14h7v7H3zM14 14h7v7h-7z",
+    kpf: "M4 20h17M7 16V9m5 7V4m5 12v-6",
+    users: "M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2M16 3a4 4 0 0 1 0 8M22 21v-2a4 4 0 0 0-3-3.87M13 7a4 4 0 1 1-8 0 4 4 0 0 1 8 0",
+    leads: "M9 5H5a2 2 0 0 0-2 2v13a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V7a2 2 0 0 0-2-2h-4M9 3h6v4H9zM7 12h10M7 17h6",
+    logs: "M8 3h12v18H4V7m4-4v4H4m4-4L4 7m4 5h8m-8 5h8",
+    pipeline: "M3 5h5v5H3zM16 14h5v5h-5zM5 10v6h11M8 7h10v7",
+    escalations: "m12 3 10 18H2Zm0 6v5m0 3v.1",
+    external: "M21 9v-6h-6M21 3l-9 9M10 3H5a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-5",
+    calculator: "M5 2h14v20H5zM8 5h8v4H8zM8 13h1m3 0h1m3 0h.1M8 17h1m3 0h1m3 0h.1",
+    bank_matrix: "m3 9 9-6 9 6H3Zm2 3v7m5-7v7m4-7v7m5-7v7M2 22h20",
+    apf_directory: "M4 21V7l8-4v18M12 8h8v13M2 21h20M7 9h1m-1 4h1m-1 4h1m8-5h1m-1 4h1",
+    today: "M4 5h16v16H4zM8 2v6m8-6v6M4 10h16m-11 5h2",
+    add: "M12 5v14M5 12h14",
+    followups: "M21 12a9 9 0 1 1-3-6.7M21 3v6h-6M12 7v5l3 2",
+    guide: "M12 5c-3-2-6-2-10-1v15c4-1 7-1 10 1 3-2 6-2 10-1V4c-4-1-7-1-10 1Zm0 0v15",
+    bell: "M18 8a6 6 0 0 0-12 0c0 7-3 7-3 9h18c0-2-3-2-3-9M10 21h4",
+    arrow: "M5 12h14m-6-6 6 6-6 6",
+    close: "m6 6 12 12M6 18 18 6",
+    menu: "M4 6h16M4 12h16M4 18h16",
+    eye: "M2 12s3-7 10-7 10 7 10 7-3 7-10 7S2 12 2 12Zm13 0a3 3 0 1 1-6 0 3 3 0 0 1 6 0",
+    logout: "M9 4H4v16h5M9 12h12m-5-5 5 5-5 5",
+    check: "m5 12 4 4L19 6",
+  };
+  const alias = { log: "logs", inventory: "apf_directory", postsales: "home", mystatus: "leads" };
+  return <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.65" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true" focusable="false" {...props}><path d={paths[alias[name] || name] || paths.home} /></svg>;
+}
+
+function Dialog({ children, title, onClose }) {
+  const ref = useRef(null);
+  const closeRef = useRef(onClose);
+  closeRef.current = onClose;
+  useEffect(() => {
+    const previous = document.activeElement;
+    const overflow = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+    const root = ref.current;
+    const focusable = () => [...root.querySelectorAll('button:not([disabled]), input:not([disabled]), select:not([disabled]), textarea:not([disabled]), a[href], [tabindex="0"]')].filter(el => el.getClientRects().length);
+    (focusable()[0] || root).focus();
+    const onKey = e => {
+      if (e.key === "Escape" && closeRef.current) { e.preventDefault(); closeRef.current(); }
+      if (e.key !== "Tab") return;
+      const items = focusable();
+      if (!items.length) { e.preventDefault(); root.focus(); return; }
+      const first = items[0], last = items[items.length - 1];
+      if (e.shiftKey && (document.activeElement === first || document.activeElement === root)) { e.preventDefault(); last.focus(); }
+      else if (!e.shiftKey && document.activeElement === last) { e.preventDefault(); first.focus(); }
+    };
+    root.addEventListener("keydown", onKey);
+    return () => { root.removeEventListener("keydown", onKey); document.body.style.overflow = overflow; if (previous?.isConnected) previous.focus(); };
+  }, []);
+  return <div className="modal-backdrop"><div ref={ref} className="dialog-container" role="dialog" aria-modal="true" aria-label={title} tabIndex={-1}>{children}</div></div>;
+}
+
 function LoginPage({ onLogin }) {
   const [mode, setMode] = useState(null);
   const [u, setU] = useState(""); const [p, setP] = useState(""); const [err, setErr] = useState("");
-  function submit() { if (!onLogin(u, p, mode)) setErr("Invalid credentials or incorrect login portal. Please try again."); }
+  const [showPassword, setShowPassword] = useState(false);
+  const firstField = useRef(null);
+  const firstRole = useRef(null);
+  const hasChosen = useRef(false);
+  useEffect(() => { if (mode) { firstField.current?.focus(); hasChosen.current = true; } else if (hasChosen.current) firstRole.current?.focus(); }, [mode]);
+  function submit(e) { e.preventDefault(); if (!onLogin(u, p, mode)) setErr("Invalid credentials or incorrect login portal. Please try again."); }
+  const portals = [
+    { id: "exec", icon: "leads", title: "Executive Login", desc: "Loan Officers & Office Staff — Full 38-step CRM access, analysis, documents, disbursement" },
+    { id: "field", icon: "users", title: "Field Agent Login", desc: "Field Representatives — Lead capturing, enquiry, and FIR questionnaire only" },
+    { id: "developer", icon: "apf_directory", title: "Developer Login", desc: "Developers / Builders — Inventory management access" },
+    { id: "agent", icon: "home", title: "Agent Login", desc: "Agents — Access to post-sales tracking and handover" },
+  ];
   return (
-    <div style={{ minHeight: "100vh", background: `linear-gradient(135deg,${T.navy} 0%,${T.navyMid} 55%,${T.navyLight} 100%)`, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", padding: "2rem 1rem" }}>
-      <style>{STYLE}</style>
-      <div style={{ marginBottom: 32, textAlign: "center" }}>
-        <div style={{ fontFamily: "'Playfair Display',serif", fontSize: 30, fontWeight: 700, color: T.gold, letterSpacing: 1 }}>Ghar Kar CRM</div>
-        <div style={{ color: "rgba(255,255,255,0.45)", fontSize: 12, marginTop: 4, letterSpacing: 3, textTransform: "uppercase" }}>Ghar Kar CRM — Home Loan Processing Software</div>
-      </div>
-      {!mode ? (
-        <div style={{ display: "flex", flexDirection: "column", gap: 14, width: "100%", maxWidth: 380 }} className="fade">
-          <p style={{ color: "rgba(255,255,255,0.5)", textAlign: "center", fontSize: 14, marginBottom: 4 }}>Select your login type</p>
-          <button onClick={() => setMode("exec")} style={{ background: "transparent", border: `1.5px solid ${T.gold}`, borderRadius: 16, padding: "22px 26px", color: T.white, textAlign: "left", cursor: "pointer" }}>
-            <div style={{ fontFamily: "'Playfair Display',serif", fontSize: 19, fontWeight: 700, color: T.gold, marginBottom: 4 }}>Executive Login</div>
-            <div style={{ fontSize: 13, color: "rgba(255,255,255,0.55)" }}>Loan Officers & Office Staff — Full 38-step CRM access, analysis, documents, disbursement</div>
-          </button>
-          <button onClick={() => setMode("field")} style={{ background: "transparent", border: "1.5px solid rgba(255,255,255,0.22)", borderRadius: 16, padding: "22px 26px", color: T.white, textAlign: "left", cursor: "pointer" }}>
-            <div style={{ fontFamily: "'Playfair Display',serif", fontSize: 19, fontWeight: 700, color: "rgba(255,255,255,0.9)", marginBottom: 4 }}>Field Agent Login</div>
-            <div style={{ fontSize: 13, color: "rgba(255,255,255,0.45)" }}>Field Representatives — Lead capturing, enquiry, and FIR questionnaire only</div>
-          </button>
-          <button onClick={() => setMode("developer")} style={{ background: "transparent", border: "1.5px solid rgba(255,255,255,0.22)", borderRadius: 16, padding: "22px 26px", color: T.white, textAlign: "left", cursor: "pointer" }}>
-            <div style={{ fontFamily: "'Playfair Display',serif", fontSize: 19, fontWeight: 700, color: "rgba(255,255,255,0.9)", marginBottom: 4 }}>Developer Login</div>
-            <div style={{ fontSize: 13, color: "rgba(255,255,255,0.45)" }}>Developers / Builders — Inventory management access</div>
-          </button>
-          <button onClick={() => setMode("agent")} style={{ background: "transparent", border: "1.5px solid rgba(255,255,255,0.22)", borderRadius: 16, padding: "22px 26px", color: T.white, textAlign: "left", cursor: "pointer" }}>
-            <div style={{ fontFamily: "'Playfair Display',serif", fontSize: 19, fontWeight: 700, color: "rgba(255,255,255,0.9)", marginBottom: 4 }}>Agent Login</div>
-            <div style={{ fontSize: 13, color: "rgba(255,255,255,0.45)" }}>Agents — Access to post-sales tracking and handover</div>
-          </button>
-          <button onClick={() => setMode("exec")} style={{ background: "none", border: "none", color: "rgba(255,255,255,0.3)", fontSize: 12, marginTop: 4, textDecoration: "underline", cursor: "pointer" }}>Admin? Use Executive login with admin credentials</button>
-        </div>
-      ) : (
-        <div style={{ background: T.white, borderRadius: 20, padding: "32px 28px", width: "100%", maxWidth: 380, boxShadow: "0 24px 64px rgba(0,0,0,0.35)" }} className="fade">
-          <button onClick={() => { setMode(null); setErr(""); }} style={{ background: "none", border: "none", color: T.textMid, fontSize: 13, marginBottom: 20, cursor: "pointer", padding: 0 }}>← Back</button>
-          <div style={{ fontFamily: "'Playfair Display',serif", fontSize: 21, fontWeight: 700, color: T.navy, marginBottom: 4 }}>{mode === "field" ? "Field Agent" : mode === "developer" ? "Developer" : mode === "agent" ? "Agent" : "Executive"} Sign In</div>
-          <div style={{ fontSize: 13, color: T.textLight, marginBottom: 24 }}>Enter your credentials provided by your manager</div>
-          <label style={LBL}>Username</label>
-          <input value={u} onChange={e => setU(e.target.value)} placeholder="your.username" style={{ marginBottom: 12 }} onKeyDown={e => e.key === "Enter" && submit()} />
-          <label style={LBL}>Password</label>
-          <input type="password" value={p} onChange={e => setP(e.target.value)} placeholder="••••••••" style={{ marginBottom: 6 }} onKeyDown={e => e.key === "Enter" && submit()} />
-          {err && <div style={{ color: T.red, fontSize: 13, marginBottom: 10 }}>{err}</div>}
-          <button onClick={submit} style={{ width: "100%", padding: "12px", background: T.navy, color: T.white, border: "none", borderRadius: 10, fontWeight: 600, fontSize: 15, marginTop: 12, cursor: "pointer" }}>Sign In</button>
-        </div>
-      )}
+    <div className="login-layout">
+      <aside className="login-brand">
+        <div className="brand-lockup"><span className="brand-mark"><UIIcon name="home" size={24} /></span><span>Ghar Kar CRM</span></div>
+        <div className="login-brand-copy"><span className="gold-rule" /><h1>Ghar Kar CRM — Home Loan Processing Software</h1></div>
+        <div className="architecture-art" aria-hidden="true"><div className="architecture-ring" /><div className="architecture-building architecture-building--back" /><div className="architecture-building architecture-building--front" /><div className="architecture-floor" /></div>
+      </aside>
+      <main className="login-content">
+        {!mode ? (
+          <div className="portal-picker fade">
+            <p className="login-heading">Select your login type</p>
+            <div className="portal-grid">{portals.map((portal, i) => <button ref={i === 0 ? firstRole : undefined} key={portal.id} type="button" onClick={() => { setMode(portal.id); setShowPassword(false); }} className={`portal-card${i === 0 ? " portal-card--primary" : ""}`}>
+              <span className="portal-icon"><UIIcon name={portal.icon} size={23} /></span>
+              <span className="portal-title">{portal.title}</span><span className="portal-description">{portal.desc}</span><span className="portal-arrow"><UIIcon name="arrow" size={18} /></span>
+            </button>)}</div>
+            <button type="button" onClick={() => setMode("exec")} className="admin-login-link">Admin? Use Executive login with admin credentials</button>
+          </div>
+        ) : (
+          <form className="login-form fade" onSubmit={submit}>
+            <button type="button" onClick={() => { setMode(null); setErr(""); }} className="back-link">← Back</button>
+            <span className="form-portal-icon"><UIIcon name={portals.find(x => x.id === mode)?.icon} size={26} /></span>
+            <h2 className="login-heading">{mode === "field" ? "Field Agent" : mode === "developer" ? "Developer" : mode === "agent" ? "Agent" : "Executive"} Sign In</h2>
+            <p className="login-description">Enter your credentials provided by your manager</p>
+            <label htmlFor="login-username" style={LBL}>Username</label>
+            <input ref={firstField} id="login-username" name="username" autoComplete="username" autoCapitalize="none" spellCheck={false} value={u} onChange={e => { setU(e.target.value); setErr(""); }} placeholder="your.username" required aria-invalid={!!err} aria-describedby={err ? "login-error" : undefined} />
+            <label htmlFor="login-password" style={LBL}>Password</label>
+            <div className="password-field"><input id="login-password" name="password" autoComplete="current-password" type={showPassword ? "text" : "password"} value={p} onChange={e => { setP(e.target.value); setErr(""); }} placeholder="••••••••" required aria-invalid={!!err} aria-describedby={err ? "login-error" : undefined} />
+              <button type="button" aria-label={showPassword ? "Hide password" : "Show password"} aria-pressed={showPassword} onClick={() => setShowPassword(v => !v)}><UIIcon name="eye" size={19} /></button>
+            </div>
+            {err && <div id="login-error" role="alert" className="login-error">{err}</div>}
+            <button type="submit" className="posh-btn login-submit">Sign In <UIIcon name="arrow" size={18} /></button>
+          </form>
+        )}
+      </main>
     </div>
   );
 }
 
 function Shell({ session, onLogout, navItems, children, activeNav, setActiveNav, store, persist }) {
-  const rc = session.role === "admin" ? T.gold : session.role === "field" ? "#7C83DB" : T.goldDim;
   const { popup, setPopup, escalationAlert, setEscalationAlert } = useReminders(session, store, persist);
   const [showNotifs, setShowNotifs] = useState(false);
+  const [mobileNav, setMobileNav] = useState(false);
+  const menuButton = useRef(null);
+  const workspaceRef = useRef(null);
+  useEffect(() => { if (workspaceRef.current) workspaceRef.current.inert = mobileNav; }, [mobileNav]);
+  const navPanel = useRef(null);
+  const notifsPanel = useRef(null);
+  const headerRef = useRef(null);
+  const role = session.role === "field" ? "Field Agent" : session.role === "admin" ? "Administrator" : session.role === "partner" ? "Channel Partner" : session.role === "developer" ? "Developer" : session.role === "agent" ? "Agent" : "Executive";
+  useEffect(() => {
+    if (!showNotifs) return;
+    const outside = e => { if (!notifsPanel.current?.contains(e.target) && !e.target.closest(".notification-trigger")) setShowNotifs(false); };
+    const escape = e => { if (e.key === "Escape") { setShowNotifs(false); headerRef.current?.querySelector(".notification-trigger")?.focus(); } };
+    document.addEventListener("pointerdown", outside); document.addEventListener("keydown", escape);
+    return () => { document.removeEventListener("pointerdown", outside); document.removeEventListener("keydown", escape); };
+  }, [showNotifs]);
+  useEffect(() => {
+    const media = window.matchMedia("(min-width: 1041px)");
+    const close = e => { if (e.matches) setMobileNav(false); };
+    media.addEventListener("change", close);
+    return () => media.removeEventListener("change", close);
+  }, []);
+  useEffect(() => {
+    if (!mobileNav) return;
+    const previous = document.activeElement;
+    const overflow = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+    navPanel.current?.querySelector('[aria-current="page"]')?.focus();
+    const onKey = e => {
+      if (e.key === "Escape") { e.preventDefault(); setMobileNav(false); }
+      if (e.key !== "Tab") return;
+      const items = [...navPanel.current.querySelectorAll("button")].filter(el => el.getClientRects().length);
+      const first = items[0], last = items[items.length - 1];
+      if (e.shiftKey && document.activeElement === first) { e.preventDefault(); last.focus(); }
+      else if (!e.shiftKey && document.activeElement === last) { e.preventDefault(); first.focus(); }
+    };
+    document.addEventListener("keydown", onKey);
+    return () => { document.body.style.overflow = overflow; document.removeEventListener("keydown", onKey); if (previous?.isConnected) previous.focus(); };
+  }, [mobileNav]);
+  function navigate(id) { setActiveNav(id); setMobileNav(false); setShowNotifs(false); window.scrollTo({ top: 0 }); }
   const myNotifs = (store.notifications || []).filter(n => n.userId === session.id && !n.read);
 
   function markAllRead() {
@@ -535,14 +592,13 @@ function Shell({ session, onLogout, navItems, children, activeNav, setActiveNav,
   }
 
   return (
-    <div style={{ minHeight: "100vh", background: T.cream, display: "flex", flexDirection: "column" }}>
-      <style>{STYLE}</style>
+    <div className="app-shell">
       <ReminderPopup popup={popup} onDismiss={() => setPopup(null)} />
       {escalationAlert && (
-        <div style={{ position: "fixed", top: 0, left: 0, right: 0, bottom: 0, background: "rgba(11,20,55,0.55)", zIndex: 999, display: "flex", alignItems: "center", justifyContent: "center", padding: "1rem" }}>
+        <Dialog title="Escalation Alert" onClose={() => setEscalationAlert(null)}>
           <div style={{ background: T.white, borderRadius: 18, padding: "28px", maxWidth: 420, width: "100%" }} className="slide">
             <div style={{ fontSize: 24, textAlign: "center", marginBottom: 10 }}>⚠️</div>
-            <div style={{ fontFamily: "'Playfair Display',serif", fontSize: 18, fontWeight: 700, color: T.red, marginBottom: 8, textAlign: "center" }}>Escalation Alert</div>
+            <div style={{ fontFamily: "var(--font-display)", fontSize: 18, fontWeight: 700, color: T.red, marginBottom: 8, textAlign: "center" }}>Escalation Alert</div>
             <div style={{ fontSize: 13, color: T.textMid, marginBottom: 14 }}>The following tasks have been pending for over 24 hours. Gaurav Sir has been notified.</div>
             {escalationAlert.map((e, i) => (
               <div key={i} style={{ background: T.redBg, borderRadius: 8, padding: "8px 12px", marginBottom: 6, fontSize: 13, color: T.red }}>
@@ -551,10 +607,10 @@ function Shell({ session, onLogout, navItems, children, activeNav, setActiveNav,
             ))}
             <button onClick={() => setEscalationAlert(null)} style={{ width: "100%", marginTop: 14, padding: "11px", background: T.red, color: T.white, border: "none", borderRadius: 10, fontWeight: 600, cursor: "pointer" }}>Acknowledged — will resolve now</button>
           </div>
-        </div>
+        </Dialog>
       )}
       {showNotifs && (
-        <div style={{ position: "fixed", top: 56, right: 16, width: 320, background: T.white, borderRadius: 14, border: `1px solid ${T.border}`, boxShadow: "0 8px 32px rgba(0,0,0,0.18)", zIndex: 200, padding: 16 }} className="slide">
+        <section ref={notifsPanel} id="notification-panel" aria-label="Notifications" className="notification-panel slide">
           <div style={{ fontWeight: 600, fontSize: 14, color: T.text, marginBottom: 10, display: "flex", justifyContent: "space-between" }}>
             Notifications {myNotifs.length > 0 && <button onClick={markAllRead} style={{ fontSize: 11, color: T.blue, background: "none", border: "none", cursor: "pointer" }}>Mark all read</button>}
           </div>
@@ -565,28 +621,26 @@ function Shell({ session, onLogout, navItems, children, activeNav, setActiveNav,
               <div style={{ fontSize: 12, color: T.textLight, marginTop: 2 }}>{n.msg}</div>
             </div>
           ))}
-        </div>
+        </section>
       )}
-      <header style={{ background: T.navy, padding: "0 16px", display: "flex", alignItems: "center", gap: 8, height: 52, boxShadow: "0 2px 14px rgba(0,0,0,0.22)", position: "sticky", top: 0, zIndex: 100 }}>
-        <div style={{ fontFamily: "'Playfair Display',serif", fontSize: 17, fontWeight: 700, color: T.gold, marginRight: 8, whiteSpace: "nowrap" }}>Ghar Kar CRM</div>
-        <div style={{ flex: 1, display: "flex", gap: 1, overflowX: "auto" }}>
-          {navItems.map(n => (
-            <button key={n.id} onClick={() => setActiveNav(n.id)} style={{ padding: "6px 12px", borderRadius: 7, border: "none", background: activeNav === n.id ? "rgba(212,168,83,0.16)" : "transparent", color: activeNav === n.id ? T.gold : T.goldDim, fontSize: 13, fontWeight: activeNav === n.id ? 600 : 400, whiteSpace: "nowrap", cursor: "pointer" }}>{n.label}</button>
-          ))}
-        </div>
-        <div style={{ display: "flex", alignItems: "center", gap: 8, flexShrink: 0 }}>
-          {session.role === "field" && (
-            <button onClick={() => alert(`✅ Punched in successfully at ${new Date().toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' })}.\nLocation captured.`)} style={{ background: T.greenBg, border: `1px solid ${T.green}50`, borderRadius: 7, color: T.green, fontSize: 12, fontWeight: 600, padding: "5px 10px", cursor: "pointer" }}>Punch In</button>
-          )}
-          <NotifBell count={myNotifs.length} onClick={() => setShowNotifs(v => !v)} />
-          <div style={{ textAlign: "right", display: window.innerWidth > 500 ? "block" : "none" }}>
-            <div style={{ fontSize: 13, fontWeight: 600, color: T.white }}>{session.name}</div>
-            <div style={{ fontSize: 10, color: rc, textTransform: "capitalize" }}>{session.role === "field" ? "Field Agent" : session.role === "admin" ? "Administrator" : session.role === "partner" ? "Channel Partner" : session.role === "developer" ? "Developer" : session.role === "agent" ? "Agent" : "Executive"}</div>
+      <a href="#main-content" className="skip-link">Skip to content</a>
+      {mobileNav && <button type="button" className="nav-scrim no-print" tabIndex={-1} aria-label="Close navigation" onClick={() => setMobileNav(false)} />}
+      <aside ref={navPanel} className={`app-sidebar no-print${mobileNav ? " is-open" : ""}`} id="primary-navigation" role={mobileNav ? "dialog" : undefined} aria-modal={mobileNav || undefined} aria-label="Main navigation">
+        <div className="sidebar-brand"><span className="brand-mark"><UIIcon name="home" size={23} /></span><span>Ghar Kar CRM</span><button type="button" className="sidebar-close icon-button" aria-label="Close navigation" onClick={() => setMobileNav(false)}><UIIcon name="close" /></button></div>
+        <nav className="sidebar-nav" aria-label="Main">{navItems.map(n => <button key={n.id} type="button" onClick={() => navigate(n.id)} className={`nav-item${activeNav === n.id ? " is-active" : ""}`} aria-current={activeNav === n.id ? "page" : undefined}><UIIcon name={n.id} size={19} /><span>{n.label.replace(/^[^A-Za-z]+/, "")}</span>{activeNav === n.id && <span className="nav-active-dot" aria-hidden="true" />}</button>)}</nav>
+        <div className="sidebar-account"><span className="account-avatar" aria-hidden="true">{session.name.split(" ").map(x => x[0]).filter(Boolean).slice(0, 2).join("")}</span><div><strong>{session.name}</strong><span>{role}</span></div><button type="button" className="sidebar-logout" title="Sign out" onClick={onLogout}><UIIcon name="logout" size={17} /><span>Out</span></button></div>
+      </aside>
+      <div ref={workspaceRef} className="app-workspace">
+        <header ref={headerRef} className="app-header">
+          <div className="header-context"><button ref={menuButton} type="button" className="icon-button menu-toggle" aria-label="Open navigation" aria-expanded={mobileNav} aria-controls="primary-navigation" onClick={() => setMobileNav(true)}><UIIcon name="menu" /></button><span className="header-breadcrumb">Ghar Kar CRM</span><span className="breadcrumb-divider" aria-hidden="true">/</span><span className="header-page">{navItems.find(n => n.id === activeNav)?.label.replace(/^[^A-Za-z]+/, "")}</span></div>
+          <div className="header-actions">
+            {session.role === "field" && <button type="button" className="punch-button" onClick={() => alert(`✅ Punched in successfully at ${new Date().toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' })}.\nLocation captured.`)}>Punch In</button>}
+            <NotifBell count={myNotifs.length} onClick={() => setShowNotifs(v => !v)} expanded={showNotifs} />
+            <span className="header-account" title={`${session.name} · ${role}`} aria-label={`${session.name}, ${role}`}>{session.name.split(" ").map(x => x[0]).filter(Boolean).slice(0, 2).join("")}</span>
           </div>
-          <button onClick={onLogout} style={{ background: "rgba(255,255,255,0.08)", border: "0.5px solid rgba(255,255,255,0.15)", borderRadius: 7, color: "rgba(255,255,255,0.65)", fontSize: 12, padding: "5px 10px", cursor: "pointer" }}>Out</button>
-        </div>
-      </header>
-      <main style={{ flex: 1, padding: "1.25rem 1rem", maxWidth: 960, margin: "0 auto", width: "100%" }} onClick={() => showNotifs && setShowNotifs(false)}>{children}</main>
+        </header>
+        <main id="main-content" tabIndex={-1} className="app-main" onClick={() => showNotifs && setShowNotifs(false)}>{children}</main>
+      </div>
     </div>
   );
 }
@@ -695,7 +749,7 @@ function KPFDashboard({ store, onSel }) {
 
   const KPICard = ({ label, value, color, bg, sub }) => (
     <div className="stat-card" style={{ background: bg || T.white, border: `1px solid ${color}22`, padding: "18px 14px" }}>
-      <div style={{ fontSize: 30, fontWeight: 800, color, fontFamily: "'Playfair Display',serif", lineHeight: 1 }}>{value}</div>
+      <div style={{ fontSize: 30, fontWeight: 800, color, fontFamily: "var(--font-display)", lineHeight: 1 }}>{value}</div>
       <div style={{ fontSize: 10, fontWeight: 700, color, textTransform: "uppercase", letterSpacing: 0.9, marginTop: 6, opacity: 0.8 }}>{label}</div>
       {sub && <div style={{ fontSize: 10, color: T.textLight, marginTop: 3 }}>{sub}</div>}
     </div>
@@ -703,11 +757,11 @@ function KPFDashboard({ store, onSel }) {
 
   return (
     <div className="fade">
-      <div style={{ fontFamily: "'Playfair Display',serif", fontSize: 22, fontWeight: 700, color: T.navy, marginBottom: 4 }}>📊 KPF Dashboard</div>
+      <div style={{ fontFamily: "var(--font-display)", fontSize: 22, fontWeight: 700, color: T.navy, marginBottom: 4 }}>📊 KPF Dashboard</div>
       <div style={{ fontSize: 12, color: T.textLight, marginBottom: 20 }}>Key Performance Figures — live snapshot of your entire pipeline.</div>
 
       {/* KPI Cards */}
-      <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit,minmax(120px,1fr))", gap: 10, marginBottom: 20 }}>
+      <div className="responsive-grid" style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit,minmax(120px,1fr))", gap: 10, marginBottom: 20 }}>
         <KPICard label="Total Leads" value={leads.length} color={T.navy} bg="#EEF0FB" />
         <KPICard label="Active Pipeline" value={active.length} color={T.blue} bg={T.blueBg} />
         <KPICard label="Disbursed" value={disbursed.length} color={T.green} bg={T.greenBg} />
@@ -719,7 +773,7 @@ function KPFDashboard({ store, onSel }) {
       </div>
 
       {/* Two col: pipeline funnel + source */}
-      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 14, marginBottom: 14 }}>
+      <div className="responsive-grid" style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 14, marginBottom: 14 }}>
         {/* Pipeline Funnel */}
         <div className="posh-card">
           <div style={{ fontWeight: 700, fontSize: 14, color: T.navy, marginBottom: 16, borderBottom: `1px solid ${T.border}`, paddingBottom: 10 }}>Pipeline by Stage</div>
@@ -728,7 +782,7 @@ function KPFDashboard({ store, onSel }) {
             const pct = Math.round((count / Math.max(leads.length, 1)) * 100);
             return (
               <div key={cat} style={{ marginBottom: 14 }}>
-                <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 5 }}>
+                <div className="responsive-row" style={{ display: "flex", justifyContent: "space-between", marginBottom: 5 }}>
                   <span style={{ fontSize: 12, fontWeight: 600, color: meta.color }}>{meta.label}</span>
                   <span style={{ fontSize: 11, color: T.textMid, fontWeight: 600 }}>{count} &nbsp;<span style={{ color: T.textLight, fontWeight: 400 }}>{pct}%</span></span>
                 </div>
@@ -748,7 +802,7 @@ function KPFDashboard({ store, onSel }) {
             const c = srcColors[i % srcColors.length];
             return (
               <div key={src} style={{ marginBottom: 14 }}>
-                <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 5 }}>
+                <div className="responsive-row" style={{ display: "flex", justifyContent: "space-between", marginBottom: 5 }}>
                   <span style={{ fontSize: 12, fontWeight: 600, color: c }}>{src}</span>
                   <span style={{ fontSize: 11, color: T.textMid, fontWeight: 600 }}>{cnt} &nbsp;<span style={{ color: T.textLight, fontWeight: 400 }}>{pct}%</span></span>
                 </div>
@@ -774,7 +828,7 @@ function KPFDashboard({ store, onSel }) {
             <div key={step.id} style={{ marginBottom: 12, display: "flex", alignItems: "center", gap: 12 }}>
               <div style={{ width: 32, height: 32, borderRadius: 8, background: `${meta.color}15`, display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0, fontSize: 12, fontWeight: 700, color: meta.color }}>{step.id}</div>
               <div style={{ flex: 1 }}>
-                <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 4 }}>
+                <div className="responsive-row" style={{ display: "flex", justifyContent: "space-between", marginBottom: 4 }}>
                   <span style={{ fontSize: 12, fontWeight: 600, color: T.text }}>{step.label}</span>
                   <span style={{ fontSize: 11, fontWeight: 700, color: meta.color }}>{count} lead{count > 1 ? "s" : ""}</span>
                 </div>
@@ -793,7 +847,7 @@ function KPFDashboard({ store, onSel }) {
         {staffPerf.length === 0 && <div style={{ fontSize: 13, color: T.textLight }}>No staff added yet.</div>}
         {staffPerf.length > 0 && (
           <div style={{ overflowX: "auto" }}>
-            <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 13 }}>
+            <div className="table-scroll" role="region" aria-label="Scrollable data table" tabIndex={0}><table style={{ width: "100%", borderCollapse: "collapse", fontSize: 13 }}>
               <thead>
                 <tr style={{ borderBottom: `2px solid ${T.border}` }}>
                   {["Executive", "Leads", "Active", "Disbursed", "Conv%", "Today FU", "Calls", "Visits", "Overdue"].map(h => (
@@ -840,7 +894,7 @@ function KPFDashboard({ store, onSel }) {
                   </tr>
                 ))}
               </tbody>
-            </table>
+            </table></div>
           </div>
         )}
       </div>
@@ -861,11 +915,11 @@ function AdminDash({ store, onSel }) {
   const srcBreakdown = {};
   leads.forEach(l => { const src = l.source || "Other"; srcBreakdown[src] = (srcBreakdown[src] || 0) + 1; });
 
-  return (<div className="fade">
+  return (<div className="fade admin-dashboard">
     <ST>Admin Dashboard</ST>
     <Grid cols="repeat(auto-fit,minmax(120px,1fr))" gap={10} mb={20}>
       {[{ l: "Total Leads", v: leads.length, c: T.navy }, { l: "Active", v: active.length, c: T.blue }, { l: "Sanction", v: leads.filter(l => STEPS.find(s => s.id === l.currentStep)?.cat === "sanction").length, c: T.purple }, { l: "Disbursed", v: done.length, c: T.green }, { l: "Today's Calls", v: todayCalls.length, c: T.amber }, { l: "Overdue", v: overdue.length, c: overdue.length > 0 ? T.red : T.textLight }, { l: "Escalations", v: newEscs, c: newEscs > 0 ? T.red : T.textLight }, { l: "Staff", v: users.length, c: T.navy }].map(m => (
-        <div key={m.l} style={{ background: T.white, borderRadius: 12, padding: "12px 14px", border: `1px solid ${T.border}` }}>
+        <div className="metric-card" key={m.l} style={{ "--metric-color": m.c, background: T.white, borderRadius: 12, padding: "12px 14px", border: `1px solid ${T.border}` }}>
           <div style={{ fontSize: 11, color: T.textLight }}>{m.l}</div>
           <div style={{ fontSize: 24, fontWeight: 600, color: m.c, marginTop: 2 }}>{m.v}</div>
         </div>
@@ -991,7 +1045,7 @@ function AdminLogs({ store, persist }) {
     {dates.length === 0 && selU && <div style={{ fontSize: 13, color: T.textLight }}>No logs submitted by {user?.name} yet.</div>}
     {dates.map(d => (
       <div key={d} style={{ background: T.white, border: `1px solid ${T.border}`, borderRadius: 12, padding: "14px 16px", marginBottom: 10 }}>
-        <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 8 }}>
+        <div className="responsive-row" style={{ display: "flex", justifyContent: "space-between", marginBottom: 8 }}>
           <div style={{ fontWeight: 500, fontSize: 13, color: T.textMid }}>{new Date(d).toLocaleDateString("en-IN", { weekday: "short", year: "numeric", month: "short", day: "numeric" })}</div>
           <button onClick={() => delLog(d)} style={{ background: "none", border: "none", cursor: "pointer", fontSize: 16 }} title="Delete Log">🗑️</button>
         </div>
@@ -1017,7 +1071,7 @@ function AdminPipeline({ store, onSel }) {
     {/* 3-stage doc pipeline visual */}
     <div style={{ marginBottom: 24 }}>
       <div style={{ fontSize: 13, fontWeight: 600, color: T.textMid, marginBottom: 10, textTransform: "uppercase", letterSpacing: 0.8 }}>Document Collection Stages</div>
-      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 10 }}>
+      <div className="responsive-grid" style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 10 }}>
         {docStages.map(ds => (
           <div key={ds} style={{ background: T.white, border: `1px solid ${T.border}`, borderRadius: 12, padding: "12px 14px" }}>
             <div style={{ fontSize: 11, fontWeight: 600, color: T.blue, marginBottom: 6, textTransform: "uppercase", letterSpacing: 0.6 }}>{DOC_STAGE_LABELS[ds]}</div>
@@ -1064,7 +1118,7 @@ function EscalationView({ store, persist }) {
     {escs.length === 0 && <div style={{ fontSize: 13, color: T.textLight }}>No escalations yet.</div>}
     {escs.map(e => (
       <div key={e.id} style={{ background: T.white, border: `1px solid ${T.border}`, borderLeft: `3px solid ${T.red}`, borderRadius: 10, padding: "12px 16px", marginBottom: 10 }}>
-        <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 8, alignItems: "center" }}>
+        <div className="responsive-row" style={{ display: "flex", justifyContent: "space-between", marginBottom: 8, alignItems: "center" }}>
           <div>
             <div style={{ fontWeight: 500, fontSize: 14, color: T.text }}>{e.staffName}</div>
             <div style={{ fontSize: 12, color: T.textLight }}>{e.date}</div>
@@ -1323,7 +1377,7 @@ function TodayView({ leads, session, onSel }) {
   const needsPortal = active.some(l => { const s = STEPS.find(x => x.id === l.currentStep); return s?.portalCheck; });
 
   return (<div className="fade">
-    <div style={{ fontFamily: "'Playfair Display',serif", fontSize: 22, fontWeight: 700, color: T.navy, marginBottom: 4 }}>Good {hr < 12 ? "morning" : hr < 18 ? "afternoon" : "evening"}, {session.name.split(" ")[0]}.</div>
+    <div style={{ fontFamily: "var(--font-display)", fontSize: 22, fontWeight: 700, color: T.navy, marginBottom: 4 }}>Good {hr < 12 ? "morning" : hr < 18 ? "afternoon" : "evening"}, {session.name.split(" ")[0]}.</div>
     <div style={{ fontSize: 13, color: T.textLight, marginBottom: 18 }}>{new Date().toLocaleDateString("en-IN", { weekday: "long", year: "numeric", month: "long", day: "numeric" })}</div>
 
     {needsPortal && (
@@ -1338,7 +1392,7 @@ function TodayView({ leads, session, onSel }) {
 
     <Grid cols="repeat(auto-fit,minmax(110px,1fr))" gap={10} mb={18}>
       {[{ l: "Total", v: leads.length, c: T.navy }, { l: "Active", v: active.length, c: T.blue }, { l: "Sanction", v: leads.filter(l => STEPS.find(s => s.id === l.currentStep)?.cat === "sanction").length, c: T.purple }, { l: "Today's Calls", v: todayCalls.length, c: T.green }, { l: "Overdue", v: overdue.length, c: overdue.length > 0 ? T.red : T.textLight }].map(m => (
-        <div key={m.l} style={{ background: T.white, borderRadius: 12, padding: "12px 14px", border: `1px solid ${T.border}` }}>
+        <div className="metric-card" key={m.l} style={{ "--metric-color": m.c, background: T.white, borderRadius: 12, padding: "12px 14px", border: `1px solid ${T.border}` }}>
           <div style={{ fontSize: 11, color: T.textLight }}>{m.l}</div>
           <div style={{ fontSize: 22, fontWeight: 600, color: m.c, marginTop: 2 }}>{m.v}</div>
         </div>
@@ -1368,7 +1422,7 @@ function TodayView({ leads, session, onSel }) {
 
 function CC({ lead, onSel, urgent }) {
   const step = STEPS.find(s => s.id === lead.currentStep); const cm = CAT_META[step?.cat] || {};
-  return (<div onClick={() => onSel(lead.id)} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "8px 0", borderTop: `0.5px solid ${T.border}`, cursor: "pointer", gap: 10 }}>
+  return (<div className="followup-row" role="button" tabIndex={0} onKeyDown={e => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); onSel(lead.id); } }} onClick={() => onSel(lead.id)} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "8px 0", borderTop: `0.5px solid ${T.border}`, cursor: "pointer", gap: 10 }}>
     <div><div style={{ fontWeight: 500, fontSize: 14, color: T.text }}>{lead.name} <span style={{ fontSize: 12, color: T.textLight }}>· {lead.phone}</span></div>
       <div style={{ fontSize: 12, color: cm.color }}>Step {lead.currentStep}: {step?.label}</div></div>
     <div style={{ fontSize: 11, color: urgent ? T.red : T.textLight, whiteSpace: "nowrap" }}>{lead.followUp}</div>
@@ -1433,14 +1487,14 @@ function LeadDetail({ lead, store, onBack, onUpdate, onDelete, isAdmin, fieldOnl
   const curDocStage = step.docStage;
 
   return (<div className="fade">
-    <div style={{ display: "flex", justifyContent: "space-between" }}>
+    <div className="responsive-row" style={{ display: "flex", justifyContent: "space-between" }}>
       <button onClick={onBack} style={{ background: "none", border: "none", color: T.textMid, fontSize: 13, marginBottom: 12, cursor: "pointer", padding: 0 }}>← Back</button>
       {onDelete && <button onClick={() => onDelete(lead.id)} style={{ background: "none", border: "none", color: T.red, fontSize: 13, marginBottom: 12, cursor: "pointer", padding: 0 }}>Delete Lead</button>}
     </div>
     <div style={{ background: T.white, border: `1px solid ${T.border}`, borderRadius: 14, padding: "16px 20px", marginBottom: 14 }}>
-      <div style={{ display: "flex", justifyContent: "space-between", flexWrap: "wrap", gap: 8 }}>
+      <div className="responsive-row" style={{ display: "flex", justifyContent: "space-between", flexWrap: "wrap", gap: 8 }}>
         <div>
-          <div style={{ fontFamily: "'Playfair Display',serif", fontSize: 20, fontWeight: 700, color: T.navy }}>{lead.name}</div>
+          <div style={{ fontFamily: "var(--font-display)", fontSize: 20, fontWeight: 700, color: T.navy }}>{lead.name}</div>
           <div style={{ fontSize: 13, color: T.textLight, marginTop: 2 }}>{lead.phone}{lead.email && ` · ${lead.email}`}</div>
           <div style={{ fontSize: 13, color: T.textLight }}>{lead.intention || lead.loanType} · {lead.propertyNeed || lead.propertyType}{lead.propertyNeed === "Flat" ? ` (${lead.bhk})` : ""} · Budget: {lead.budget || (lead.loanAmount ? `₹${Number(lead.loanAmount).toLocaleString("en-IN")}` : "—")}</div>
           {asgn && <div style={{ fontSize: 12, color: T.textLight }}>Assigned: {asgn.name}</div>}
@@ -1452,7 +1506,7 @@ function LeadDetail({ lead, store, onBack, onUpdate, onDelete, isAdmin, fieldOnl
           <div style={{ fontSize: 11, color: T.textLight }}>Step {lead.currentStep} of {maxStep}</div>
           <div style={{ display: "flex", gap: 6, alignItems: "center" }}>
             <label style={{ fontSize: 12, color: T.textLight }}>↻</label>
-            <input type="date" value={fu} onChange={e => { setFu(e.target.value); onUpdate(lead.id, { followUp: e.target.value }); }} style={{ width: 145, fontSize: 12, padding: "4px 8px" }} />
+            <input aria-label="Follow-up date" type="date" value={fu} onChange={e => { setFu(e.target.value); onUpdate(lead.id, { followUp: e.target.value }); }} style={{ width: 145, fontSize: 12, padding: "4px 8px" }} />
           </div>
         </div>
       </div>
@@ -1463,8 +1517,8 @@ function LeadDetail({ lead, store, onBack, onUpdate, onDelete, isAdmin, fieldOnl
         <div style={{ fontSize: 11, color: T.textLight }}>{pct}%</div>
       </div>
     </div>
-    <div style={{ display: "flex", gap: 1, marginBottom: 14, borderBottom: `1px solid ${T.border}`, overflowX: "auto" }}>
-      {tabs.map(t => <button key={t} onClick={() => setTab(t)} style={{ padding: "9px 14px", border: "none", background: "none", color: tab === t ? cm.color : T.textLight, fontWeight: tab === t ? 600 : 400, borderBottom: tab === t ? `2px solid ${cm.color}` : "2px solid transparent", cursor: "pointer", textTransform: "capitalize", whiteSpace: "nowrap", fontSize: 13 }}>
+    <div className="detail-tabs" role="group" aria-label="Lead sections" style={{ display: "flex", gap: 1, marginBottom: 14, borderBottom: `1px solid ${T.border}`, overflowX: "auto" }}>
+      {tabs.map(t => <button aria-pressed={tab === t} key={t} onClick={() => setTab(t)} style={{ padding: "9px 14px", border: "none", background: "none", color: tab === t ? cm.color : T.textLight, fontWeight: tab === t ? 600 : 400, borderBottom: tab === t ? `2px solid ${cm.color}` : "2px solid transparent", cursor: "pointer", textTransform: "capitalize", whiteSpace: "nowrap", fontSize: 13 }}>
         {t === "current" ? "Current Step" : t === "allsteps" ? "All 39 Steps" : t === "sitevisits" ? "📍 Site Visits & Follow-up" : t === "comm" ? "Communication" : t === "docchecklist" ? "📋 Docs" : t === "aidocs" ? "🤖 AI Analysis" : t === "detailsheet" ? "🧧 Detail Sheet" : t === "financials" ? "💰 Financials" : t === "logins" ? "🏦 Bank Logins" : t === "notes" ? "Notes" : t === "history" ? "History" : t}
       </button>)}
     </div>
@@ -1487,17 +1541,17 @@ function LeadDetail({ lead, store, onBack, onUpdate, onDelete, isAdmin, fieldOnl
           </div>
         )}
         <div style={{ background: cm.bg, border: `1px solid ${cm.border}`, borderRadius: 16, padding: 20, marginBottom: 14, boxShadow: `0 4px 20px ${cm.color}18` }}>
-          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 12 }}>
+          <div className="responsive-row" style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 12 }}>
             <div>
               <div style={{ fontSize: 10, color: cm.color, fontWeight: 700, textTransform: "uppercase", letterSpacing: 1.2, marginBottom: 3 }}>Step {step.id} of {maxStep} · {cm.label}</div>
-              <div style={{ fontFamily: "'Playfair Display',serif", fontSize: 18, fontWeight: 700, color: cm.color }}>{step.label}</div>
+              <div style={{ fontFamily: "var(--font-display)", fontSize: 18, fontWeight: 700, color: cm.color }}>{step.label}</div>
             </div>
             {allDone && <div style={{ background: T.green, color: "#fff", borderRadius: 10, padding: "6px 14px", fontSize: 12, fontWeight: 700 }}>✓ Complete</div>}
           </div>
           <div style={{ fontSize: 13, color: T.text, lineHeight: 1.8, marginBottom: 16, paddingBottom: 14, borderBottom: `1px solid ${cm.border}` }}>{step.desc}</div>
-          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 10 }}>
+          <div className="responsive-row" style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 10 }}>
             <div style={{ fontWeight: 700, fontSize: 12, color: cm.color, textTransform: "uppercase", letterSpacing: 0.8 }}>Actions to complete</div>
-            <div onClick={selectAll} style={{ display: "flex", alignItems: "center", gap: 6, cursor: "pointer", userSelect: "none" }}>
+            <div role="button" tabIndex={0} onKeyDown={e => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); selectAll(); } }} onClick={selectAll} style={{ display: "flex", alignItems: "center", gap: 6, cursor: "pointer", userSelect: "none" }}>
               <div style={{ width: 18, height: 18, borderRadius: 5, border: `2px solid ${allDone ? T.green : cm.color}`, background: allDone ? T.green : "transparent", display: "flex", alignItems: "center", justifyContent: "center", transition: "all 0.15s" }}>
                 {allDone && <svg width="10" height="8"><path d="M1 4l3 3 5-6" stroke="#fff" strokeWidth="2" fill="none" strokeLinecap="round" /></svg>}
               </div>
@@ -1506,7 +1560,7 @@ function LeadDetail({ lead, store, onBack, onUpdate, onDelete, isAdmin, fieldOnl
           </div>
           {step.actions.map((a, i) => {
             const isDone = !!(lead.stepsCompleted?.[step.id]?.[a]);
-            return (<div key={i} onClick={() => toggleA(a)} style={{ display: "flex", gap: 12, alignItems: "flex-start", padding: "10px 0", borderTop: `0.5px solid ${cm.border}`, cursor: "pointer" }}>
+            return (<div role="checkbox" aria-checked={isDone} tabIndex={0} onKeyDown={e => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); toggleA(a); } }} key={i} onClick={() => toggleA(a)} style={{ display: "flex", gap: 12, alignItems: "flex-start", padding: "10px 0", borderTop: `0.5px solid ${cm.border}`, cursor: "pointer" }}>
               <div style={{ minWidth: 22, height: 22, borderRadius: 7, border: `2px solid ${isDone ? T.green : T.border}`, background: isDone ? T.green : T.white, display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0, marginTop: 1, transition: "all 0.15s", boxShadow: isDone ? `0 2px 8px ${T.green}40` : "none" }}>
                 {isDone && <svg width="12" height="10"><path d="M1 5l4 4 6-7" stroke="#fff" strokeWidth="2" fill="none" strokeLinecap="round" /></svg>}
               </div>
@@ -1704,7 +1758,7 @@ function DocChecklistTab({ lead, onUpdate }) {
   return (
     <div className="fade">
       <div style={{ background: T.white, border: `1px solid ${T.border}`, borderRadius: 12, padding: 16, marginBottom: 14 }}>
-        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 8 }}>
+        <div className="responsive-row" style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 8 }}>
           <div style={{ fontWeight: 600, fontSize: 14, color: T.text }}>Documents — {empType}</div>
           <div style={{ fontSize: 13, fontWeight: 700, color: checkedCount === allDocs.length ? T.green : T.amber }}>{checkedCount} / {allDocs.length} collected</div>
         </div>
@@ -1719,7 +1773,7 @@ function DocChecklistTab({ lead, onUpdate }) {
           {docs.map((doc, i) => {
             const done = !!received[doc];
             return (
-              <div key={i} onClick={() => toggleDoc(doc)} style={{ display: "flex", gap: 10, alignItems: "center", padding: "8px 0", borderTop: `0.5px solid ${T.border}`, cursor: "pointer" }}>
+              <div role="checkbox" aria-checked={done} tabIndex={0} onKeyDown={e => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); toggleDoc(doc); } }} key={i} onClick={() => toggleDoc(doc)} style={{ display: "flex", gap: 10, alignItems: "center", padding: "8px 0", borderTop: `0.5px solid ${T.border}`, cursor: "pointer" }}>
                 <div style={{ minWidth: 20, height: 20, borderRadius: 5, border: `1.5px solid ${done ? T.green : T.border}`, background: done ? T.green : "transparent", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0, transition: "all 0.15s" }}>
                   {done && <svg width="11" height="9"><path d="M1 4.5l3 3 6-6" stroke="#fff" strokeWidth="2" fill="none" strokeLinecap="round" /></svg>}
                 </div>
@@ -1874,7 +1928,7 @@ function AiDocsTab({ lead }) {
       {result && (
         <div className="fade">
           <div style={{ background: T.white, border: `1px solid ${T.border}`, borderRadius: 12, padding: 16, marginBottom: 10 }}>
-            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 8 }}>
+            <div className="responsive-row" style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 8 }}>
               <div style={{ fontWeight: 600, fontSize: 14, color: T.text }}>Document Readiness Score</div>
               <div style={{ fontSize: 26, fontWeight: 700, color: result.score >= 80 ? T.green : result.score >= 50 ? T.amber : T.red }}>{result.score}%</div>
             </div>
@@ -1921,13 +1975,13 @@ function LeadTable({ leads, users, onSelect, onDelete }) {
     return ms && mst && msrc;
   });
   return (<div>
-    <div style={{ display: "flex", gap: 8, marginBottom: 12, flexWrap: "wrap" }}>
-      <input value={q} onChange={e => setQ(e.target.value)} placeholder="Search name or phone..." style={{ flex: 1, minWidth: 140 }} />
-      <select value={src} onChange={e => setSrc(e.target.value)} style={{ minWidth: 160 }}>
+    <div className="lead-filters" style={{ display: "flex", gap: 8, marginBottom: 12, flexWrap: "wrap" }}>
+      <input aria-label="Search name or phone" type="search" value={q} onChange={e => setQ(e.target.value)} placeholder="Search name or phone..." style={{ flex: 1, minWidth: 140 }} />
+      <select aria-label="Filter by source" value={src} onChange={e => setSrc(e.target.value)} style={{ minWidth: 160 }}>
         <option value="all">All sources</option>
         {LEAD_SOURCES.map(s => <option key={s}>{s}</option>)}
       </select>
-      <select value={fs} onChange={e => setFs(e.target.value)} style={{ minWidth: 170 }}>
+      <select aria-label="Filter by step" value={fs} onChange={e => setFs(e.target.value)} style={{ minWidth: 170 }}>
         <option value="all">All steps</option>
         {STEPS.map(s => <option key={s.id} value={s.id}>Step {s.id}: {s.label}</option>)}
       </select>
@@ -1936,7 +1990,7 @@ function LeadTable({ leads, users, onSelect, onDelete }) {
     <div style={{ display: "flex", flexDirection: "column", gap: 7 }}>
       {fl.map(l => {
         const step = STEPS.find(s => s.id === l.currentStep); const cm = CAT_META[step?.cat] || {}; const asgn = users?.find(u => u.id === l.assignedTo);
-        return (<div key={l.id} onClick={() => onSelect(l.id)} style={{ background: T.white, border: `1px solid ${T.border}`, borderLeft: `3px solid ${cm.color || T.border}`, borderRadius: 10, padding: "11px 15px", cursor: "pointer", display: "flex", justifyContent: "space-between", alignItems: "center", gap: 12 }}>
+        return (<div className="lead-row" role="button" tabIndex={0} aria-label={`Open ${l.name}`} onKeyDown={e => { if (e.target === e.currentTarget && (e.key === "Enter" || e.key === " ")) { e.preventDefault(); onSelect(l.id); } }} key={l.id} onClick={() => onSelect(l.id)} style={{ background: T.white, border: `1px solid ${T.border}`, borderLeft: `3px solid ${cm.color || T.border}`, borderRadius: 10, padding: "11px 15px", cursor: "pointer", display: "flex", justifyContent: "space-between", alignItems: "center", gap: 12 }}>
           <div>
             <div style={{ fontWeight: 500, fontSize: 14, color: T.text }}>{l.name}</div>
             <div style={{ fontSize: 12, color: T.textLight, marginTop: 1 }}>{l.phone} · {l.loanType}{asgn ? ` · ${asgn.name}` : ""}</div>
@@ -2066,22 +2120,22 @@ function StepGuide() {
   return (<div className="fade">
     <ST>Process Guide — All 38 Steps</ST>
     <div style={{ display: "flex", gap: 14, flexWrap: "wrap" }}>
-      <div style={{ minWidth: 190, flex: "0 0 190px", maxHeight: "75vh", overflowY: "auto" }}>
+      <div className="process-navigation" style={{ minWidth: 190, flex: "0 0 190px", maxHeight: "75vh", overflowY: "auto" }}>
         {cats.map(cat => {
           const cm2 = CAT_META[cat]; return (<div key={cat} style={{ marginBottom: 12 }}>
             <div style={{ fontSize: 11, fontWeight: 600, color: cm2.color, textTransform: "uppercase", letterSpacing: 0.8, marginBottom: 4, paddingLeft: 4 }}>{cm2.label}</div>
             {STEPS.filter(s => s.cat === cat).map(s => (
-              <button key={s.id} onClick={() => setSel(s.id)} style={{ display: "block", width: "100%", textAlign: "left", padding: "6px 10px", border: "none", borderRadius: 7, background: sel === s.id ? cm2.bg : "transparent", color: sel === s.id ? cm2.color : T.textMid, fontSize: 13, fontWeight: sel === s.id ? 600 : 400, cursor: "pointer", marginBottom: 2 }}>
+              <button aria-pressed={sel === s.id} key={s.id} onClick={() => setSel(s.id)} style={{ display: "block", width: "100%", textAlign: "left", padding: "6px 10px", border: "none", borderRadius: 7, background: sel === s.id ? cm2.bg : "transparent", color: sel === s.id ? cm2.color : T.textMid, fontSize: 13, fontWeight: sel === s.id ? 600 : 400, cursor: "pointer", marginBottom: 2 }}>
                 <span style={{ color: T.textLight, fontSize: 11 }}>{s.id}. </span>{s.label}
               </button>
             ))}
           </div>);
         })}
       </div>
-      <div style={{ flex: 1, minWidth: 240 }}>
+      <div className="process-content" style={{ flex: 1, minWidth: 240 }}>
         <div style={{ background: cm.bg, border: `1px solid ${cm.border}`, borderRadius: 14, padding: 20, marginBottom: 12 }}>
           <div style={{ fontSize: 11, color: cm.color, fontWeight: 600, textTransform: "uppercase", letterSpacing: 0.8, marginBottom: 3 }}>Step {step.id} · {cm.label}</div>
-          <div style={{ fontFamily: "'Playfair Display',serif", fontSize: 17, fontWeight: 700, color: cm.color, marginBottom: 10 }}>{step.label}</div>
+          <div style={{ fontFamily: "var(--font-display)", fontSize: 17, fontWeight: 700, color: cm.color, marginBottom: 10 }}>{step.label}</div>
           <div style={{ fontSize: 13, color: T.text, lineHeight: 1.75 }}>{step.desc}</div>
           {step.portalCheck && <div style={{ marginTop: 10, fontSize: 12, color: T.blue, background: T.blueBg, padding: "6px 10px", borderRadius: 8 }}>🏦 Daily bank portal check required at this step</div>}
           {step.docStage && <div style={{ marginTop: 6, fontSize: 12, color: T.blue, background: T.blueBg, padding: "6px 10px", borderRadius: 8 }}>📁 {DOC_STAGE_LABELS[step.docStage]}</div>}
@@ -2162,7 +2216,7 @@ function EMICalculator() {
   function Stat({ label, value, sub, color, big }) {
     return (
       <div style={{ textAlign: "center", padding: "16px 10px" }}>
-        <div style={{ fontSize: big ? 32 : 22, fontWeight: 700, color: color || T.navy, fontFamily: "'Playfair Display',serif", lineHeight: 1.1 }}>{value}</div>
+        <div style={{ fontSize: big ? 32 : 22, fontWeight: 700, color: color || T.navy, fontFamily: "var(--font-display)", lineHeight: 1.1 }}>{value}</div>
         <div style={{ fontSize: 11, fontWeight: 600, color: T.textLight, textTransform: "uppercase", letterSpacing: 0.8, marginTop: 4 }}>{label}</div>
         {sub && <div style={{ fontSize: 11, color: T.textLight, marginTop: 2 }}>{sub}</div>}
       </div>
@@ -2184,20 +2238,20 @@ function EMICalculator() {
   return (
     <div className="fade">
       <style>{GS}</style>
-      <div style={{ fontFamily: "'Playfair Display',serif", fontSize: 22, fontWeight: 700, color: T.navy, marginBottom: 6 }}>🧮 Loan Calculator</div>
+      <div style={{ fontFamily: "var(--font-display)", fontSize: 22, fontWeight: 700, color: T.navy, marginBottom: 6 }}>🧮 Loan Calculator</div>
       <div style={{ fontSize: 13, color: T.textLight, marginBottom: 20 }}>Calculate EMI, check loan eligibility, and verify LTV for any client.</div>
 
       {/* Tab bar */}
-      <div style={{ display: "flex", gap: 4, marginBottom: 20, background: T.creamDark, borderRadius: 12, padding: 4 }}>
+      <div className="calculator-tabs" role="group" aria-label="Calculator type" style={{ display: "flex", gap: 4, marginBottom: 20, background: T.creamDark, borderRadius: 12, padding: 4 }}>
         {tabs.map(t => (
-          <button key={t.id} onClick={() => setTab(t.id)} style={{ flex: 1, padding: "9px 0", border: "none", borderRadius: 9, background: tab === t.id ? T.navy : "transparent", color: tab === t.id ? T.gold : T.textMid, fontWeight: tab === t.id ? 600 : 400, fontSize: 13, cursor: "pointer", transition: "all 0.2s" }}>{t.label}</button>
+          <button aria-pressed={tab === t.id} key={t.id} onClick={() => setTab(t.id)} style={{ flex: 1, padding: "9px 0", border: "none", borderRadius: 9, background: tab === t.id ? T.navy : "transparent", color: tab === t.id ? T.gold : T.textMid, fontWeight: tab === t.id ? 600 : 400, fontSize: 13, cursor: "pointer", transition: "all 0.2s" }}>{t.label}</button>
         ))}
       </div>
 
       {/* ── EMI TAB ── */}
       {tab === "emi" && (
         <div className="calc-in">
-          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10, marginBottom: 14 }}>
+          <div className="responsive-grid" style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10, marginBottom: 14 }}>
             {inp("Loan Amount (₹)", loan, setLoan, "e.g. 5000000", "₹")}
             {inp("Annual Interest Rate (%)", rate, setRate, "e.g. 8.75")}
             {inp("Tenure (months)", tenure, setTenure, "240 = 20 years")}
@@ -2207,11 +2261,11 @@ function EMICalculator() {
               {/* Hero EMI card */}
               <div style={{ background: `linear-gradient(135deg, ${T.navy} 0%, ${T.navyLight} 100%)`, borderRadius: 18, padding: "28px 24px", marginBottom: 14, textAlign: "center", boxShadow: "0 12px 40px rgba(11,20,55,0.25)" }}>
                 <div style={{ fontSize: 12, color: "rgba(255,255,255,0.55)", textTransform: "uppercase", letterSpacing: 2, marginBottom: 8 }}>Monthly EMI</div>
-                <div style={{ fontSize: 44, fontWeight: 700, color: T.gold, fontFamily: "'Playfair Display',serif", letterSpacing: -1 }}>₹{emi.toLocaleString("en-IN")}</div>
+                <div style={{ fontSize: 44, fontWeight: 700, color: T.gold, fontFamily: "var(--font-display)", letterSpacing: -1 }}>₹{emi.toLocaleString("en-IN")}</div>
                 <div style={{ fontSize: 12, color: "rgba(255,255,255,0.4)", marginTop: 6 }}>for {tenure} months · ₹{(+loan).toLocaleString("en-IN")} @ {rate}%</div>
               </div>
               {/* Breakdown row */}
-              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 10, marginBottom: 14 }}>
+              <div className="responsive-grid" style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 10, marginBottom: 14 }}>
                 {[
                   { l: "Principal", v: `₹${(+loan).toLocaleString("en-IN")}`, c: T.blue },
                   { l: "Total Interest", v: `₹${totalInt.toLocaleString("en-IN")}`, c: T.amber },
@@ -2244,7 +2298,7 @@ function EMICalculator() {
       {/* ── FOIR TAB ── */}
       {tab === "foir" && (
         <div className="calc-in">
-          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10, marginBottom: 14 }}>
+          <div className="responsive-grid" style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10, marginBottom: 14 }}>
             {inp("Monthly Income (₹)", income, setIncome, "e.g. 80000", "₹")}
             {inp("Existing EMIs (₹)", existEMI, setExistEMI, "0 if none", "₹")}
             {inp("Expected Interest Rate (%)", fRate, setFRate, "e.g. 8.75")}
@@ -2254,10 +2308,10 @@ function EMICalculator() {
             <div className="calc-in">
               <div style={{ background: `linear-gradient(135deg, #0F6E56 0%, #1A7A4A 100%)`, borderRadius: 18, padding: "28px 24px", marginBottom: 14, textAlign: "center", boxShadow: "0 12px 40px rgba(26,122,74,0.25)" }}>
                 <div style={{ fontSize: 12, color: "rgba(255,255,255,0.55)", textTransform: "uppercase", letterSpacing: 2, marginBottom: 8 }}>Maximum Eligible Loan</div>
-                <div style={{ fontSize: 44, fontWeight: 700, color: "#FFE57F", fontFamily: "'Playfair Display',serif", letterSpacing: -1 }}>₹{maxLoan.toLocaleString("en-IN")}</div>
+                <div style={{ fontSize: 44, fontWeight: 700, color: "#FFE57F", fontFamily: "var(--font-display)", letterSpacing: -1 }}>₹{maxLoan.toLocaleString("en-IN")}</div>
                 <div style={{ fontSize: 12, color: "rgba(255,255,255,0.4)", marginTop: 6 }}>Based on 50% FOIR at {fRate}% for {fTenure} months</div>
               </div>
-              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 10, marginBottom: 14 }}>
+              <div className="responsive-grid" style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 10, marginBottom: 14 }}>
                 {[
                   { l: "Max New EMI", v: `₹${Math.max(0, maxEMI).toLocaleString("en-IN")}`, c: T.green },
                   { l: "Existing FOIR", v: `${foirUsed}%`, c: foirUsed > 40 ? T.red : T.amber },
@@ -2271,7 +2325,7 @@ function EMICalculator() {
               </div>
               {/* FOIR gauge */}
               <div style={{ background: T.white, border: `1px solid ${T.border}`, borderRadius: 12, padding: 16 }}>
-                <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 8 }}>
+                <div className="responsive-row" style={{ display: "flex", justifyContent: "space-between", marginBottom: 8 }}>
                   <span style={{ fontSize: 13, fontWeight: 600, color: T.text }}>FOIR Gauge</span>
                   <span style={{ fontSize: 12, color: foirUsed > 45 ? T.red : T.green, fontWeight: 600 }}>{foirUsed}% used (limit: 50%)</span>
                 </div>
@@ -2289,7 +2343,7 @@ function EMICalculator() {
       {/* ── LTV TAB ── */}
       {tab === "ltv" && (
         <div className="calc-in">
-          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10, marginBottom: 14 }}>
+          <div className="responsive-grid" style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10, marginBottom: 14 }}>
             {inp("Property Value (₹)", propVal, setPropVal, "e.g. 8000000", "₹")}
             <div>
               <label style={{ fontSize: 11, fontWeight: 600, color: T.textMid, textTransform: "uppercase", letterSpacing: 0.8, display: "block", marginBottom: 5 }}>Property Type</label>
@@ -2305,7 +2359,7 @@ function EMICalculator() {
             <div className="calc-in">
               <div style={{ background: `linear-gradient(135deg, #4A148C 0%, #6A1B9A 100%)`, borderRadius: 18, padding: "28px 24px", marginBottom: 14, textAlign: "center", boxShadow: "0 12px 40px rgba(106,27,154,0.25)" }}>
                 <div style={{ fontSize: 12, color: "rgba(255,255,255,0.55)", textTransform: "uppercase", letterSpacing: 2, marginBottom: 8 }}>Max Loan by LTV ({ltvPct}%)</div>
-                <div style={{ fontSize: 44, fontWeight: 700, color: "#E1BEE7", fontFamily: "'Playfair Display',serif", letterSpacing: -1 }}>₹{maxByLTV.toLocaleString("en-IN")}</div>
+                <div style={{ fontSize: 44, fontWeight: 700, color: "#E1BEE7", fontFamily: "var(--font-display)", letterSpacing: -1 }}>₹{maxByLTV.toLocaleString("en-IN")}</div>
                 <div style={{ fontSize: 12, color: "rgba(255,255,255,0.4)", marginTop: 6 }}>Property value ₹{(+propVal).toLocaleString("en-IN")} × {ltvPct}%</div>
               </div>
               <div style={{ background: T.white, border: `1px solid ${T.border}`, borderRadius: 12, padding: 16 }}>
@@ -2345,7 +2399,7 @@ function DSSection({ title, accent, children }) {
     <div className="posh-card" style={{ marginBottom: 16 }}>
       <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 18, paddingBottom: 14, borderBottom: `1px solid ${T.border}` }}>
         <div style={{ width: 4, height: 28, borderRadius: 2, background: accent || T.gold }} />
-        <div style={{ fontFamily: "'Playfair Display',serif", fontSize: 16, fontWeight: 700, color: T.navy }}>{title}</div>
+        <div style={{ fontFamily: "var(--font-display)", fontSize: 16, fontWeight: 700, color: T.navy }}>{title}</div>
       </div>
       {children}
     </div>
@@ -2402,7 +2456,7 @@ function SiteVisitsTab({ lead, onUpdate }) {
 
   return (
     <div className="fade">
-      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 16 }}>
+      <div className="responsive-row" style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 16 }}>
         <ST>📍 Site Visits & Follow-Up</ST>
         {!showForm && <Btn c={T.navy} onClick={() => setShowForm(true)}>+ Schedule New Visit</Btn>}
       </div>
@@ -2439,7 +2493,7 @@ function SiteVisitsTab({ lead, onUpdate }) {
       <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
         {visits.map(v => (
           <Card key={v.id} accent={v.status === "scheduled" ? T.amber : T.green}>
-            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 12 }}>
+            <div className="responsive-row" style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 12 }}>
               <div>
                 <div style={{ fontSize: 16, fontWeight: 700, color: T.navy }}>{v.building} <span style={{ fontSize: 13, color: T.textLight, fontWeight: 400 }}>({v.wing})</span></div>
                 <div style={{ fontSize: 13, color: T.text, marginTop: 4 }}>📅 {v.date} at {v.time || "TBD"}</div>
@@ -2864,9 +2918,9 @@ function DetailSheetTab({ lead, onUpdate }) {
 
   return (
     <div className="fade print-page">
-      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 20 }} className="no-print">
+      <div className="responsive-row no-print" style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 20 }}>
         <div>
-          <div style={{ fontFamily: "'Playfair Display',serif", fontSize: 20, fontWeight: 700, color: T.navy }}>Client Detail Sheet</div>
+          <div style={{ fontFamily: "var(--font-display)", fontSize: 20, fontWeight: 700, color: T.navy }}>Client Detail Sheet</div>
           <div style={{ fontSize: 12, color: T.textLight, marginTop: 2 }}>Auto-filled from lead. Complete additional fields below.</div>
         </div>
         <div style={{ display: "flex", gap: 10 }}>
@@ -2875,7 +2929,7 @@ function DetailSheetTab({ lead, onUpdate }) {
         </div>
       </div>
 
-      <div style={{ display: "flex", gap: 4, marginBottom: 20, background: T.creamDark, borderRadius: 12, padding: 4 }} className="no-print">
+      <div className="calculator-tabs no-print" role="group" aria-label="Detail sheet sections" style={{ display: "flex", gap: 4, marginBottom: 20, background: T.creamDark, borderRadius: 12, padding: 4 }}>
         {subTabs.map(t => (
           <button 
             key={t.id} 
@@ -2998,27 +3052,27 @@ function InventoryModule() {
     const gst = agreementValue * 0.05; // 5%
     const total = agreementValue + stampDuty + gst;
 
-    return (<div style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.5)", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 9999 }}>
+    return (<Dialog title="Ghar Kar Cost Sheet" onClose={() => setCostSheet(x => ({ ...x, show: false }))}>
       <div style={{ background: T.white, padding: 30, borderRadius: 16, width: 450, boxShadow: "0 10px 40px rgba(0,0,0,0.2)" }}>
         <ST>Ghar Kar Cost Sheet</ST>
         <div style={{ fontSize: 13, color: T.textLight, marginBottom: 16 }}>Unit {costSheet.unit} · {proj}</div>
         <div style={{ border: `1px solid ${T.border}`, borderRadius: 8, padding: 16, marginBottom: 20 }}>
-          <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 8, fontSize: 13 }}><span>Base Price</span><span style={{ fontWeight: 600 }}>₹{bp.toLocaleString()}</span></div>
-          <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 8, fontSize: 13 }}><span>Additional Charges</span><span style={{ fontWeight: 600 }}>₹{add.toLocaleString()}</span></div>
+          <div className="responsive-row" style={{ display: "flex", justifyContent: "space-between", marginBottom: 8, fontSize: 13 }}><span>Base Price</span><span style={{ fontWeight: 600 }}>₹{bp.toLocaleString()}</span></div>
+          <div className="responsive-row" style={{ display: "flex", justifyContent: "space-between", marginBottom: 8, fontSize: 13 }}><span>Additional Charges</span><span style={{ fontWeight: 600 }}>₹{add.toLocaleString()}</span></div>
           <div style={{ height: 1, background: T.border, margin: "8px 0" }} />
-          <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 8, fontSize: 13 }}><span>Agreement Value</span><span style={{ fontWeight: 700 }}>₹{agreementValue.toLocaleString()}</span></div>
+          <div className="responsive-row" style={{ display: "flex", justifyContent: "space-between", marginBottom: 8, fontSize: 13 }}><span>Agreement Value</span><span style={{ fontWeight: 700 }}>₹{agreementValue.toLocaleString()}</span></div>
           <div style={{ height: 1, background: T.border, margin: "8px 0" }} />
-          <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 8, fontSize: 13, color: T.textLight }}><span>Stamp Duty (6%)</span><span>₹{stampDuty.toLocaleString()}</span></div>
-          <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 8, fontSize: 13, color: T.textLight }}><span>GST (5%)</span><span>₹{gst.toLocaleString()}</span></div>
+          <div className="responsive-row" style={{ display: "flex", justifyContent: "space-between", marginBottom: 8, fontSize: 13, color: T.textLight }}><span>Stamp Duty (6%)</span><span>₹{stampDuty.toLocaleString()}</span></div>
+          <div className="responsive-row" style={{ display: "flex", justifyContent: "space-between", marginBottom: 8, fontSize: 13, color: T.textLight }}><span>GST (5%)</span><span>₹{gst.toLocaleString()}</span></div>
           <div style={{ height: 1, background: T.border, margin: "8px 0" }} />
-          <div style={{ display: "flex", justifyContent: "space-between", fontSize: 16, color: T.navy, fontWeight: 800 }}><span>Grand Total</span><span>₹{total.toLocaleString()}</span></div>
+          <div className="responsive-row" style={{ display: "flex", justifyContent: "space-between", fontSize: 16, color: T.navy, fontWeight: 800 }}><span>Grand Total</span><span>₹{total.toLocaleString()}</span></div>
         </div>
         <div style={{ display: "flex", gap: 10 }}>
           <Btn full c={T.navy} onClick={() => alert("Cost Sheet printed.")}>🖨️ Print</Btn>
           <Btn full c={T.red} onClick={() => setCostSheet(x => ({ ...x, show: false }))}>Close</Btn>
         </div>
       </div>
-    </div>);
+    </Dialog>);
   }
 
   return (<div className="fade">
@@ -3037,11 +3091,11 @@ function InventoryModule() {
         <span style={{ color: T.amber }}><span style={{ display: "inline-block", width: 10, height: 10, background: "#FFF8E1", marginRight: 4, borderRadius: 2 }} />Blocked</span>
         <span style={{ color: T.red }}><span style={{ display: "inline-block", width: 10, height: 10, background: "#FFEBEE", marginRight: 4, borderRadius: 2 }} />Sold</span>
       </div>
-      <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(60px, 1fr))", gap: 8 }}>
+      <div className="responsive-grid" style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(60px, 1fr))", gap: 8 }}>
         {units.map(u => (
-          <div key={u.id} onClick={() => toggleUnit(u.id)} style={{ padding: "10px 4px", textAlign: "center", borderRadius: 8, fontSize: 12, fontWeight: 700, cursor: "pointer", border: `1px solid ${u.status === "available" ? T.green : u.status === "blocked" ? T.amber : T.red}40`, background: u.status === "available" ? T.greenBg : u.status === "blocked" ? "#FFF8E1" : "#FFEBEE", color: u.status === "available" ? T.green : u.status === "blocked" ? T.amber : T.red }}>
+          <button type="button" aria-label={`${u.id}, ${u.status}. Change status`} key={u.id} onClick={() => toggleUnit(u.id)} style={{ padding: "10px 4px", textAlign: "center", borderRadius: 8, fontSize: 12, fontWeight: 700, cursor: "pointer", border: `1px solid ${u.status === "available" ? T.green : u.status === "blocked" ? T.amber : T.red}40`, background: u.status === "available" ? T.greenBg : u.status === "blocked" ? "#FFF8E1" : "#FFEBEE", color: u.status === "available" ? T.green : u.status === "blocked" ? T.amber : T.red }}>
             {u.id}
-          </div>
+          </button>
         ))}
       </div>
     </Card>
@@ -3069,14 +3123,23 @@ function InventoryModule() {
 }
 
 // ─── PRIMITIVES ───────────────────────────────────────────────────────────────
-const LBL = { fontSize: 11, fontWeight: 700, color: T.textMid, textTransform: "uppercase", letterSpacing: 0.9, display: "block", marginBottom: 6 };
-function ST({ children }) { return <div style={{ fontFamily: "'Playfair Display',serif", fontSize: 22, fontWeight: 700, color: T.navy, marginBottom: 20, paddingBottom: 12, borderBottom: `2px solid ${T.gold}40`, display: "flex", alignItems: "center", gap: 10 }}>{children}</div>; }
-function Card({ title, children, accent }) { return <div className="posh-card">{accent && <div style={{ height: 3, background: `linear-gradient(90deg,${accent},${accent}30)`, borderRadius: "4px 4px 0 0", margin: "-20px -22px 16px" }} />}{title && <div style={{ fontWeight: 700, fontSize: 15, color: T.navy, marginBottom: 14, display: "flex", alignItems: "center", gap: 8 }}>{title}</div>}{children}</div>; }
-function Alrt({ c, bg, title, children }) { return <div style={{ background: bg, border: `1px solid ${c}35`, borderRadius: 14, padding: "14px 18px", marginBottom: 14, borderLeft: `4px solid ${c}` }}><div style={{ fontWeight: 700, fontSize: 13, color: c, marginBottom: 8 }}>{title}</div>{children}</div>; }
-function Tg({ c, children }) { return <span style={{ fontSize: 11, background: `${c}15`, color: c, padding: "3px 10px", borderRadius: 20, fontWeight: 700, display: "inline-block", border: `1px solid ${c}25` }}>{children}</span>; }
-function Btn({ onClick, c, children, full }) { return <button onClick={onClick} className="posh-btn" style={{ background: c, color: "#fff", width: full ? "100%" : undefined, justifyContent: full ? "center" : undefined }}>{children}</button>; }
-function Grid({ cols, gap, mb, children }) { return <div style={{ display: "grid", gridTemplateColumns: cols, gap, marginBottom: mb }}>{children}</div>; }
-function F({ l, children }) { return <div style={{ marginBottom: 2 }}><label style={LBL}>{l}</label>{children}</div>; }
+const LBL = { fontSize: 12, fontWeight: 600, color: T.textMid, display: "block", marginBottom: 7 };
+function ST({ children }) { return <h1 className="section-title">{children}</h1>; }
+function Card({ title, children, accent }) {
+  return <section className="posh-card" style={accent ? { "--card-accent": accent } : undefined}>
+    {title && <h2 className="card-title">{accent && <span className="card-accent" aria-hidden="true" />}{title}</h2>}
+    {children}
+  </section>;
+}
+function Alrt({ c, bg, title, children }) { return <section className="alert-panel" style={{ background: bg, borderColor: `${c}35`, borderLeftColor: c }}><h2 style={{ color: c }}>{title}</h2>{children}</section>; }
+function Tg({ c, children }) { return <span className="status-tag" style={{ background: `${c}10`, color: c, borderColor: `${c}25` }}>{children}</span>; }
+function Btn({ onClick, c, children, full }) { return <button type="button" onClick={onClick} className="posh-btn" style={{ background: c, color: "#fff", width: full ? "100%" : undefined, justifyContent: full ? "center" : undefined }}>{children}</button>; }
+function Grid({ cols, gap, mb, children }) { return <div className={`ui-grid${cols?.includes("auto-fit") ? " ui-grid--metrics" : ""}`} style={{ "--grid-columns": cols, gap: gap ? Math.max(gap, 14) : 14, marginBottom: mb }}>{children}</div>; }
+function F({ l, children }) {
+  const id = useId();
+  const field = isValidElement(children) && ["input", "select", "textarea"].includes(children.type);
+  return <div className="form-field"><label htmlFor={field ? children.props.id || id : undefined} style={LBL}>{l}</label>{field ? cloneElement(children, { id: children.props.id || id }) : children}</div>;
+}
 
 // ─── BANK MATRIX ─────────────────────────────────────────────────────────────
 const BANK_CRITERIA = [
@@ -3118,7 +3181,7 @@ function BankMatrix() {
 
       <Card title="Bank-wise Comparison Matrix">
         <div style={{ overflowX: "auto" }}>
-          <table style={{ width: "100%", textAlign: "left", fontSize: 13, borderCollapse: "collapse" }}>
+          <div className="table-scroll" role="region" aria-label="Scrollable data table" tabIndex={0}><table style={{ width: "100%", textAlign: "left", fontSize: 13, borderCollapse: "collapse" }}>
             <thead>
               <tr style={{ borderBottom: `2px solid ${T.border}` }}>
                 <th style={{ padding: "10px 8px", color: T.navy }}>Bank Name</th>
@@ -3155,7 +3218,7 @@ function BankMatrix() {
                 );
               })}
             </tbody>
-          </table>
+          </table></div>
         </div>
       </Card>
     </div>
@@ -3208,13 +3271,13 @@ function ProjectDirectory() {
   return (
     <div className="fade">
       <ST>🏗️ Builder & Project Pre-Approval (APF) Directory</ST>
-      <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 16, gap: 10 }}>
+      <div className="responsive-row" style={{ display: "flex", justifyContent: "space-between", marginBottom: 16, gap: 10 }}>
         <input value={search} onChange={e => setSearch(e.target.value)} placeholder="Search projects by name, builder, or location..." style={{ maxWidth: 400 }} />
         <Btn c={T.navy} onClick={() => setShowAddModal(true)}>+ Add Project</Btn>
       </div>
 
       <Card title="Pre-Approved Projects List">
-        <table style={{ width: "100%", textAlign: "left", fontSize: 13, borderCollapse: "collapse" }}>
+        <div className="table-scroll" role="region" aria-label="Scrollable data table" tabIndex={0}><table style={{ width: "100%", textAlign: "left", fontSize: 13, borderCollapse: "collapse" }}>
           <thead>
             <tr style={{ borderBottom: `2px solid ${T.border}` }}>
               <th style={{ padding: 10, color: T.navy }}>Project</th>
@@ -3259,13 +3322,13 @@ function ProjectDirectory() {
               </tr>
             ))}
           </tbody>
-        </table>
+        </table></div>
       </Card>
 
       {showAddModal && (
-        <div style={{ position: "fixed", top: 0, left: 0, right: 0, bottom: 0, background: "rgba(11,20,55,0.55)", zIndex: 999, display: "flex", alignItems: "center", justifyContent: "center", padding: "1rem" }}>
+        <Dialog title="Add Pre-Approved Project" onClose={() => setShowAddModal(false)}>
           <div style={{ background: T.white, borderRadius: 18, padding: 28, maxWidth: 450, width: "100%" }}>
-            <div style={{ fontFamily: "'Playfair Display',serif", fontSize: 18, fontWeight: 700, color: T.navy, marginBottom: 16 }}>Add Pre-Approved Project</div>
+            <div style={{ fontFamily: "var(--font-display)", fontSize: 18, fontWeight: 700, color: T.navy, marginBottom: 16 }}>Add Pre-Approved Project</div>
             <Grid cols="1fr 1fr" gap={10} mb={10}>
               <F l="Project Name *"><input value={newProj.name} onChange={e => setNewProj({ ...newProj, name: e.target.value })} placeholder="Project name" /></F>
               <F l="Builder Name *"><input value={newProj.builder} onChange={e => setNewProj({ ...newProj, builder: e.target.value })} placeholder="Builder name" /></F>
@@ -3289,7 +3352,7 @@ function ProjectDirectory() {
               <button onClick={() => setShowAddModal(false)} style={{ flex: 1, padding: "11px", background: "transparent", color: T.textMid, border: `1px solid ${T.border}`, borderRadius: 10, fontWeight: 600, cursor: "pointer" }}>Cancel</button>
             </div>
           </div>
-        </div>
+        </Dialog>
       )}
     </div>
   );
@@ -3338,7 +3401,7 @@ function BankLoginsTab({ lead, onUpdate }) {
 
   return (
     <div className="fade">
-      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 16 }}>
+      <div className="responsive-row" style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 16 }}>
         <div style={{ fontSize: 14, color: T.textLight }}>Track parallel submissions to multiple banks.</div>
         <Btn c={T.navy} onClick={() => setShowAdd(true)}>+ New Bank Submission</Btn>
       </div>
@@ -3370,7 +3433,7 @@ function BankLoginsTab({ lead, onUpdate }) {
 
       {logins.map(l => (
         <Card key={l.id} title={`${l.bank}`} accent={T.gold}>
-          <div style={{ display: "flex", justifyContent: "space-between", flexWrap: "wrap", borderBottom: `1px solid ${T.border}`, paddingBottom: 12, marginBottom: 12 }}>
+          <div className="responsive-row" style={{ display: "flex", justifyContent: "space-between", flexWrap: "wrap", borderBottom: `1px solid ${T.border}`, paddingBottom: 12, marginBottom: 12 }}>
             <div style={{ fontSize: 13 }}>
               <strong>File Ref:</strong> {l.refNo || "—"} · <strong>Logged on:</strong> {l.date}
             </div>
