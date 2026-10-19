@@ -1,18 +1,222 @@
-import { useState, useEffect, useCallback, useRef, useId, cloneElement, isValidElement } from "react";
+import { useState, useEffect, useCallback, useRef, useId, cloneElement, isValidElement, createContext, useContext, useLayoutEffect } from "react";
 import "./App.css";
 
 const T = {
-  navy: "#14233B", navyMid: "#1C3150", navyLight: "#284566",
-  gold: "#C59B55", goldLight: "#E9CA92", goldDim: "#8B672F",
-  cream: "#F4F6F8", creamDark: "#E8ECF1",
-  green: "#237653", greenBg: "#EDF7F1",
-  red: "#BB433D", redBg: "#FFF1EF",
-  blue: "#356CAA", blueBg: "#EEF4FC",
-  amber: "#97651F", amberBg: "#FCF5E8",
-  purple: "#79559F", purpleBg: "#F4EFF8",
-  text: "#1D2B40", textMid: "#526175", textLight: "#65758B",
-  white: "#FFFFFF", border: "#E1E6ED",
+  navy: "var(--navy)",
+  navyMid: "var(--brand-mid)",
+  navyLight: "var(--brand-light)",
+  gold: "var(--gold)",
+  goldLight: "var(--gold-light)",
+  goldDim: "var(--gold-dim)",
+  cream: "var(--canvas)",
+  creamDark: "var(--surface-soft)",
+  green: "var(--green)",
+  greenBg: "var(--green-bg)",
+  red: "var(--red)",
+  redBg: "var(--red-bg)",
+  blue: "var(--blue)",
+  blueBg: "var(--blue-bg)",
+  amber: "var(--amber)",
+  amberBg: "var(--amber-bg)",
+  purple: "var(--purple)",
+  purpleBg: "var(--purple-bg)",
+  text: "var(--text)",
+  textMid: "var(--text-mid)",
+  textLight: "var(--text-muted)",
+  white: "var(--surface)",
+  border: "var(--border)",
+  primary: "var(--primary)",
+  onDark: "#FFFFFF",
 };
+
+
+// CSS variables let every existing screen react to theme changes without remounting.
+function alpha(color, opacity) {
+  return `color-mix(in srgb, ${color || T.border} ${Math.round(opacity * 10000) / 100}%, transparent)`;
+}
+function fillColor(color) {
+  if (color === T.navy) return T.primary;
+  if (color === T.textLight || color === T.textMid) return "#546780";
+  const match = typeof color === "string" && color.match(/^var\(--(green|red|blue|amber|purple|gold|violet|teal|brown|analysis)\)$/);
+  return match ? `var(--${match[1]}-solid)` : color;
+}
+
+const THEME_KEY = "gharkar-crm-theme";
+function readThemePreference() {
+  if (typeof window === "undefined") return "system";
+  try { const value = window.localStorage.getItem(THEME_KEY); return value === "light" || value === "dark" ? value : "system"; }
+  catch { return "system"; }
+}
+function systemTheme() {
+  return typeof window !== "undefined" && window.matchMedia?.("(prefers-color-scheme: dark)").matches ? "dark" : "light";
+}
+function applyTheme(theme) {
+  if (typeof document !== "undefined") {
+    document.documentElement.dataset.theme = theme;
+    document.documentElement.style.colorScheme = theme;
+  }
+}
+// Apply the saved preference as the module loads, before React paints its first screen.
+if (typeof document !== "undefined") {
+  const preference = readThemePreference();
+  applyTheme(preference === "system" ? systemTheme() : preference);
+}
+const ThemeContext = createContext({ theme: "light", preference: "system", setPreference: () => {} });
+const useThemeLayoutEffect = typeof window === "undefined" ? useEffect : useLayoutEffect;
+function ThemeProvider({ children }) {
+  const [preference, setMode] = useState(readThemePreference);
+  const [system, setSystem] = useState(systemTheme);
+  const theme = preference === "system" ? system : preference;
+  useThemeLayoutEffect(() => { applyTheme(theme); }, [theme]);
+  useEffect(() => {
+    const media = window.matchMedia?.("(prefers-color-scheme: dark)");
+    const change = () => setSystem(media?.matches ? "dark" : "light");
+    const storage = event => { if (event.key === THEME_KEY || event.key === null) setMode(readThemePreference()); };
+    change(); media?.addEventListener("change", change); window.addEventListener("storage", storage);
+    return () => { media?.removeEventListener("change", change); window.removeEventListener("storage", storage); };
+  }, []);
+  function setPreference(next) {
+    if (!["light", "dark", "system"].includes(next)) return;
+    setMode(next);
+    try { if (next === "system") window.localStorage.removeItem(THEME_KEY); else window.localStorage.setItem(THEME_KEY, next); } catch { /* The switch still works when storage is unavailable. */ }
+  }
+  return <ThemeContext.Provider value={{ theme, preference, setPreference }}>{children}</ThemeContext.Provider>;
+}
+function ThemeToggle({ label = false }) {
+  const { theme, setPreference } = useContext(ThemeContext);
+  const dark = theme === "dark";
+  return <button type="button" className={`theme-toggle${label ? " theme-toggle--label" : ""}`} aria-label={`Switch to ${dark ? "light" : "dark"} theme`} aria-pressed={dark} title={`Switch to ${dark ? "light" : "dark"} theme`} onClick={() => setPreference(dark ? "light" : "dark")}>
+    <span className="theme-icon"><UIIcon name={dark ? "moon" : "sun"} size={18} /></span>{label && <span>{dark ? "Dark" : "Light"}</span>}
+  </button>;
+}
+function ThemePreference() {
+  const { preference, setPreference } = useContext(ThemeContext);
+  return <div className="theme-preferences" role="group" aria-label="Color theme">{["light", "dark", "system"].map(mode => <button key={mode} type="button" aria-pressed={preference === mode} aria-label={`Use ${mode} theme`} title={`Use ${mode} theme`} onClick={() => setPreference(mode)}><UIIcon name={mode === "light" ? "sun" : mode === "dark" ? "moon" : "monitor"} size={15} /><span>{mode[0].toUpperCase() + mode.slice(1)}</span></button>)}</div>;
+}
+
+// Pointer effects are delegated and batched once per animation frame. No CRM state is involved.
+const EFFECTS_KEY = "gharkar-crm-effects";
+const MotionContext = createContext({ enabled: true, reduced: false, toggle: () => {} });
+function readEffectsPreference() {
+  try { return typeof window === "undefined" || window.localStorage.getItem(EFFECTS_KEY) !== "off"; }
+  catch { return true; }
+}
+function installSurfaceEffects(root, host) {
+  const finePointer = host.matchMedia("(hover: hover) and (pointer: fine)");
+  const selector = ".portal-card, .metric-card, .stat-card, .posh-card, .lead-row, .posh-btn, .nav-item, .login-brand";
+  const properties = ["--pointer-x", "--pointer-y", "--tilt-x", "--tilt-y", "--magnet-x", "--magnet-y"];
+  let active = null, pending = null, frame = 0;
+  function resetElement() {
+    if (!active) return;
+    active.removeAttribute("data-surface-active");
+    properties.forEach(property => active.style.removeProperty(property));
+    active = null;
+  }
+  function clear() {
+    if (frame) host.cancelAnimationFrame(frame);
+    frame = 0; pending = null; resetElement();
+  }
+  function paint() {
+    frame = 0;
+    if (!pending || !active?.isConnected) { clear(); return; }
+    const bounds = active.getBoundingClientRect();
+    if (!bounds.width || !bounds.height) { clear(); return; }
+    const x = Math.max(0, Math.min(1, (pending.x - bounds.left) / bounds.width));
+    const y = Math.max(0, Math.min(1, (pending.y - bounds.top) / bounds.height));
+    active.style.setProperty("--pointer-x", `${(x * 100).toFixed(2)}%`);
+    active.style.setProperty("--pointer-y", `${(y * 100).toFixed(2)}%`);
+    active.style.setProperty("--tilt-x", `${((.5 - y) * 5).toFixed(2)}deg`);
+    active.style.setProperty("--tilt-y", `${((x - .5) * 6).toFixed(2)}deg`);
+    active.style.setProperty("--magnet-x", `${((x - .5) * 5).toFixed(2)}px`);
+    active.style.setProperty("--magnet-y", `${((y - .5) * 4).toFixed(2)}px`);
+  }
+  function move(event) {
+    if (!finePointer.matches || event.pointerType === "touch") { clear(); return; }
+    const next = event.target?.closest?.(selector);
+    if (!next || next.disabled || !root.contains(next)) { clear(); return; }
+    if (next !== active) { resetElement(); active = next; active.setAttribute("data-surface-active", "true"); }
+    pending = { x: event.clientX, y: event.clientY };
+    if (!frame) frame = host.requestAnimationFrame(paint);
+  }
+  function leave(event) { if (!event.relatedTarget) clear(); }
+  function visibility() { if (root.visibilityState === "hidden") clear(); }
+  root.addEventListener("pointermove", move, { passive: true });
+  root.addEventListener("pointerout", leave);
+  root.addEventListener("visibilitychange", visibility);
+  host.addEventListener("blur", clear);
+  host.addEventListener("scroll", clear, true);
+  finePointer.addEventListener?.("change", clear);
+  return () => {
+    clear();
+    root.removeEventListener("pointermove", move);
+    root.removeEventListener("pointerout", leave);
+    root.removeEventListener("visibilitychange", visibility);
+    host.removeEventListener("blur", clear);
+    host.removeEventListener("scroll", clear, true);
+    finePointer.removeEventListener?.("change", clear);
+  };
+}
+function MotionProvider({ children }) {
+  const [wanted, setWanted] = useState(readEffectsPreference);
+  const [reduced, setReduced] = useState(() => typeof window !== "undefined" && !!window.matchMedia?.("(prefers-reduced-motion: reduce)").matches);
+  const enabled = wanted && !reduced;
+  useThemeLayoutEffect(() => { document.documentElement.dataset.motion = enabled ? "on" : "off"; }, [enabled]);
+  useEffect(() => {
+    const media = window.matchMedia?.("(prefers-reduced-motion: reduce)");
+    const update = () => setReduced(!!media?.matches);
+    const storage = event => { if (event.key === EFFECTS_KEY || event.key === null) setWanted(readEffectsPreference()); };
+    update(); media?.addEventListener("change", update); window.addEventListener("storage", storage);
+    return () => { media?.removeEventListener("change", update); window.removeEventListener("storage", storage); };
+  }, []);
+  useEffect(() => { if (enabled) return installSurfaceEffects(document, window); }, [enabled]);
+  function toggle() {
+    if (reduced) return;
+    const next = !wanted;
+    setWanted(next);
+    try { window.localStorage.setItem(EFFECTS_KEY, next ? "on" : "off"); } catch { /* Effects still toggle without storage. */ }
+  }
+  return <MotionContext.Provider value={{ enabled, reduced, toggle }}>{children}</MotionContext.Provider>;
+}
+function MotionToggle() {
+  const { enabled, reduced, toggle } = useContext(MotionContext);
+  return <button type="button" className="motion-toggle" onClick={toggle} disabled={reduced} aria-pressed={enabled} aria-label={reduced ? "Visual effects off: reduced motion is enabled on your device" : `Turn ${enabled ? "off" : "on"} visual effects`} title={reduced ? "Your device requests reduced motion" : `Visual effects ${enabled ? "on" : "off"}`}><UIIcon name="spark" size={17} /><span>Effects</span><span className="motion-state" aria-hidden="true" /></button>;
+}
+function ArchitecturalScene() {
+  const id = useId().replace(/:/g, "");
+  return <div className="architecture-art" aria-hidden="true">
+    <div className="scene-halo scene-halo--gold" /><div className="scene-halo scene-halo--blue" />
+    <svg className="architectural-scene" viewBox="0 0 620 440" fill="none" focusable="false">
+      <defs>
+        <linearGradient id={`${id}-glass`} x1="170" y1="120" x2="350" y2="370" gradientUnits="userSpaceOnUse"><stop stopColor="#B5C9EC" stopOpacity=".38" /><stop offset=".48" stopColor="#283C5C" stopOpacity=".8" /><stop offset="1" stopColor="#101722" /></linearGradient>
+        <linearGradient id={`${id}-gold`} x1="295" y1="65" x2="420" y2="310" gradientUnits="userSpaceOnUse"><stop stopColor="#F4DFB9" /><stop offset=".28" stopColor="#A58A61" /><stop offset=".7" stopColor="#3E3B39" /><stop offset="1" stopColor="#141C2A" /></linearGradient>
+        <linearGradient id={`${id}-edge`} x1="130" y1="50" x2="490" y2="400" gradientUnits="userSpaceOnUse"><stop stopColor="#EBD7B4" stopOpacity=".12" /><stop offset=".4" stopColor="#F8DFB3" /><stop offset="1" stopColor="#7C9DDA" stopOpacity=".1" /></linearGradient>
+        <radialGradient id={`${id}-ground`}><stop stopColor="#BDA174" stopOpacity=".2" /><stop offset="1" stopColor="#BDA174" stopOpacity="0" /></radialGradient>
+      </defs>
+      <ellipse cx="315" cy="341" rx="268" ry="84" fill={`url(#${id}-ground)`} />
+      <g className="scene-grid" stroke="#7A8DAC" strokeOpacity=".16" strokeWidth=".7">
+        {[0, 1, 2, 3, 4, 5, 6].map(i => <path key={i} d={`M${80 + i * 35} ${280 - i * 18}l255 130M${80 + i * 42} ${280 + i * 21}l210 -108`} />)}
+      </g>
+      <ellipse className="scene-orbit" cx="314" cy="265" rx="253" ry="94" stroke={`url(#${id}-edge)`} strokeOpacity=".48" transform="rotate(-18 314 265)" />
+      <g className="scene-tower scene-tower--back">
+        <path d="M299 76L365 38L452 83L385 121Z" fill="#C6B18F" fillOpacity=".25" stroke={`url(#${id}-edge)`} />
+        <path d="M299 76L385 121V302L299 257Z" fill={`url(#${id}-gold)`} stroke={`url(#${id}-edge)`} />
+        <path d="M385 121L452 83V264L385 302Z" fill="#172236" stroke={`url(#${id}-edge)`} />
+        {[1, 2, 3, 4, 5, 6, 7].map(i => <path key={i} d={`M299 ${76 + i * 23}l86 45 67 -38`} stroke="#E9CCA0" strokeOpacity=".19" />)}
+        <path d="M327 91v180m29-165v180m51-177v181m22-193v181" stroke="#E4CCA6" strokeOpacity=".18" />
+      </g>
+      <g className="scene-tower scene-tower--front">
+        <path d="M170 157L252 111L367 171L285 218Z" fill="#697A96" fillOpacity=".27" stroke={`url(#${id}-edge)`} />
+        <path d="M170 157L285 218V374L170 312Z" fill={`url(#${id}-glass)`} stroke={`url(#${id}-edge)`} />
+        <path d="M285 218L367 171V327L285 374Z" fill="#152237" stroke={`url(#${id}-edge)`} />
+        {[1, 2, 3, 4, 5, 6].map(i => <path key={i} d={`M170 ${157 + i * 22}l115 61 82 -47`} stroke="#B4C6E2" strokeOpacity=".23" />)}
+        <path d="M199 173v155m29-140v156m29-140v156m56-158v156m27-172v156" stroke="#B4C6E2" strokeOpacity=".2" />
+        <path d="M170 157L285 218V374" stroke="#E7D2AF" strokeOpacity=".75" />
+        <path d="M199 239l29 15v21l-29-15Z" fill="#E8C792" fillOpacity=".48" /><path d="M314 268l26-15v21l-26 15Z" fill="#91B5F7" fillOpacity=".3" />
+      </g>
+      <g className="scene-satellite"><circle cx="96" cy="305" r="5" fill="#E7C68E" /><circle cx="96" cy="305" r="13" stroke="#E7C68E" strokeOpacity=".2" /><path d="M489 150h16m-8-8v16" stroke="#B2C7EE" strokeOpacity=".6" /></g>
+    </svg>
+  </div>;
+}
 
 const STEPS = [
   { id: 1, cat: "lead", label: "Lead Generation", desc: "Identify and source potential home loan clients from referrals, online portals, builders, DSAs, and walk-ins.", actions: ["Record lead source (referral / portal / builder / walk-in / DSA)", "Note referral person name if applicable", "Log initial details immediately", "Assign to team member"], portalCheck: false },
@@ -57,14 +261,14 @@ const STEPS = [
 ];
 
 const CAT_META = {
-  lead: { label: "Lead & Enquiry", color: T.navy, bg: "#EEF0FB", border: "#C5CAE9" },
-  analysis: { label: "Analysis", color: "#7B3F00", bg: "#FFF3E0", border: "#FFCC80" },
-  documents: { label: "Documents", color: T.blue, bg: T.blueBg, border: "#90CAF9" },
-  login: { label: "Login", color: T.green, bg: T.greenBg, border: "#A5D6A7" },
-  property: { label: "Property", color: T.purple, bg: T.purpleBg, border: "#CE93D8" },
-  sanction: { label: "Sanction", color: T.amber, bg: T.amberBg, border: "#FFD54F" },
-  disbursement: { label: "Disbursement", color: T.red, bg: T.redBg, border: "#EF9A9A" },
-  closing: { label: "Closing", color: T.green, bg: T.greenBg, border: "#A5D6A7" },
+  lead: { label: "Lead & Enquiry", color: T.navy, bg: "var(--lead-bg)", border: "var(--lead-border)" },
+  analysis: { label: "Analysis", color: "var(--analysis)", bg: "var(--analysis-bg)", border: "var(--analysis-border)" },
+  documents: { label: "Documents", color: T.blue, bg: T.blueBg, border: "var(--blue-border)" },
+  login: { label: "Login", color: T.green, bg: T.greenBg, border: "var(--green-border)" },
+  property: { label: "Property", color: T.purple, bg: T.purpleBg, border: "var(--purple-border)" },
+  sanction: { label: "Sanction", color: T.amber, bg: T.amberBg, border: "var(--amber-border)" },
+  disbursement: { label: "Disbursement", color: T.red, bg: T.redBg, border: "var(--red-border)" },
+  closing: { label: "Closing", color: T.green, bg: T.greenBg, border: "var(--green-border)" },
 };
 
 const DOC_STAGE_LABELS = { round1: "Round 1 – Loan Approval Docs", round2: "Round 2 – Property Evaluation Docs", round3: "Round 3 – Disbursement Docs" };
@@ -286,7 +490,7 @@ function ReminderPopup({ popup, onDismiss }) {
           {popup.type === "portal" ? "Portal Check Reminder" : "Task Reminder"}
         </div>
         <div style={{ fontSize: 14, color: T.textMid, lineHeight: 1.7, textAlign: "center", marginBottom: 20 }}>{popup.msg}</div>
-        <button onClick={onDismiss} style={{ width: "100%", padding: "11px", background: T.navy, color: T.white, border: "none", borderRadius: 10, fontWeight: 600, fontSize: 14, cursor: "pointer" }}>Got it — checking now</button>
+        <button onClick={onDismiss} style={{ width: "100%", padding: "11px", background: fillColor(T.navy), color: T.onDark, border: "none", borderRadius: 10, fontWeight: 600, fontSize: 14, cursor: "pointer" }}>Got it — checking now</button>
       </div>
     </Dialog>
   );
@@ -298,6 +502,10 @@ function NotifBell({ count, onClick, expanded }) {
 }
 
 export default function App() {
+  return <ThemeProvider><MotionProvider><CRMApp /></MotionProvider></ThemeProvider>;
+}
+
+function CRMApp() {
   const [store, setStore] = useState(init());
   const [loading, setLoading] = useState(true);
   const [session, setSession] = useState(null);
@@ -415,10 +623,10 @@ export default function App() {
   function logout() { setSession(null); }
 
   if (loading) return (
-    <div style={{ height: '100vh', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', background: `linear-gradient(135deg,${T.navy} 0%,${T.navyMid} 60%,${T.navyLight} 100%)` }}>
-      <div style={{ fontFamily: "var(--font-display)", fontSize: 28, fontWeight: 700, color: T.gold, marginBottom: 12 }}>Ghar Kar CRM</div>
+    <div style={{ height: '100vh', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', background: `linear-gradient(135deg,${T.primary} 0%,${T.navyMid} 60%,${T.navyLight} 100%)` }}>
+      <div style={{ fontFamily: "var(--font-display)", fontSize: 28, fontWeight: 700, color: T.goldLight, marginBottom: 12 }}>Ghar Kar CRM</div>
       <div style={{ display: 'flex', gap: 6, marginBottom: 16 }}>
-        {[0, 1, 2].map(i => <div key={i} className="pulse" style={{ width: 8, height: 8, borderRadius: '50%', background: T.gold, animationDelay: `${i * 0.2}s` }} />)}
+        {[0, 1, 2].map(i => <div key={i} className="pulse" style={{ width: 8, height: 8, borderRadius: '50%', background: fillColor(T.gold), animationDelay: `${i * 0.2}s` }} />)}
       </div>
       <div style={{ color: 'rgba(255,255,255,0.5)', fontSize: 14 }}>Connecting to database…</div>
     </div>
@@ -457,6 +665,11 @@ function UIIcon({ name = "home", size = 20, ...props }) {
     eye: "M2 12s3-7 10-7 10 7 10 7-3 7-10 7S2 12 2 12Zm13 0a3 3 0 1 1-6 0 3 3 0 0 1 6 0",
     logout: "M9 4H4v16h5M9 12h12m-5-5 5 5-5 5",
     check: "m5 12 4 4L19 6",
+    sun: "M12 3V1m0 22v-2M3 12H1m22 0h-2M4.2 4.2 2.8 2.8m18.4 18.4-1.4-1.4M4.2 19.8l-1.4 1.4M21.2 2.8l-1.4 1.4M17 12a5 5 0 1 1-10 0 5 5 0 0 1 10 0",
+    moon: "M20.9 13.1A9 9 0 0 1 10.9 3a9 9 0 1 0 10 10.1Z",
+    monitor: "M3 3h18v13H3zM8 21h8m-4-5v5",
+    wallet: "M20 8V4H4a2 2 0 0 0-2 2v13a2 2 0 0 0 2 2h16V8H4a2 2 0 0 1 0-4M20 12h-5v5h5m-3-2.5h.1",
+    spark: "m12 3 2.5 6.5L21 12l-6.5 2.5L12 21l-2.5-6.5L3 12l6.5-2.5Z",
   };
   const alias = { log: "logs", inventory: "apf_directory", postsales: "home", mystatus: "leads" };
   return <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.65" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true" focusable="false" {...props}><path d={paths[alias[name] || name] || paths.home} /></svg>;
@@ -508,13 +721,14 @@ function LoginPage({ onLogin }) {
       <aside className="login-brand">
         <div className="brand-lockup"><span className="brand-mark"><UIIcon name="home" size={24} /></span><span>Ghar Kar CRM</span></div>
         <div className="login-brand-copy"><span className="gold-rule" /><h1>Ghar Kar CRM — Home Loan Processing Software</h1></div>
-        <div className="architecture-art" aria-hidden="true"><div className="architecture-ring" /><div className="architecture-building architecture-building--back" /><div className="architecture-building architecture-building--front" /><div className="architecture-floor" /></div>
+        <ArchitecturalScene />
       </aside>
       <main className="login-content">
+        <div className="login-theme-control"><MotionToggle /><ThemeToggle label /></div>
         {!mode ? (
           <div className="portal-picker fade">
             <p className="login-heading">Select your login type</p>
-            <div className="portal-grid">{portals.map((portal, i) => <button ref={i === 0 ? firstRole : undefined} key={portal.id} type="button" onClick={() => { setMode(portal.id); setShowPassword(false); }} className={`portal-card${i === 0 ? " portal-card--primary" : ""}`}>
+            <div className="portal-grid">{portals.map((portal, i) => <button ref={i === 0 ? firstRole : undefined} key={portal.id} type="button" onClick={() => { setMode(portal.id); setShowPassword(false); }} className={`portal-card${i === 0 ? " portal-card--primary" : ""}`} style={{ "--entry-delay": `${i * 65}ms` }}>
               <span className="portal-icon"><UIIcon name={portal.icon} size={23} /></span>
               <span className="portal-title">{portal.title}</span><span className="portal-description">{portal.desc}</span><span className="portal-arrow"><UIIcon name="arrow" size={18} /></span>
             </button>)}</div>
@@ -605,7 +819,7 @@ function Shell({ session, onLogout, navItems, children, activeNav, setActiveNav,
                 <strong>{e.leadName}</strong> — {e.step} ({e.hours}h pending)
               </div>
             ))}
-            <button onClick={() => setEscalationAlert(null)} style={{ width: "100%", marginTop: 14, padding: "11px", background: T.red, color: T.white, border: "none", borderRadius: 10, fontWeight: 600, cursor: "pointer" }}>Acknowledged — will resolve now</button>
+            <button onClick={() => setEscalationAlert(null)} style={{ width: "100%", marginTop: 14, padding: "11px", background: fillColor(T.red), color: T.onDark, border: "none", borderRadius: 10, fontWeight: 600, cursor: "pointer" }}>Acknowledged — will resolve now</button>
           </div>
         </Dialog>
       )}
@@ -628,12 +842,14 @@ function Shell({ session, onLogout, navItems, children, activeNav, setActiveNav,
       <aside ref={navPanel} className={`app-sidebar no-print${mobileNav ? " is-open" : ""}`} id="primary-navigation" role={mobileNav ? "dialog" : undefined} aria-modal={mobileNav || undefined} aria-label="Main navigation">
         <div className="sidebar-brand"><span className="brand-mark"><UIIcon name="home" size={23} /></span><span>Ghar Kar CRM</span><button type="button" className="sidebar-close icon-button" aria-label="Close navigation" onClick={() => setMobileNav(false)}><UIIcon name="close" /></button></div>
         <nav className="sidebar-nav" aria-label="Main">{navItems.map(n => <button key={n.id} type="button" onClick={() => navigate(n.id)} className={`nav-item${activeNav === n.id ? " is-active" : ""}`} aria-current={activeNav === n.id ? "page" : undefined}><UIIcon name={n.id} size={19} /><span>{n.label.replace(/^[^A-Za-z]+/, "")}</span>{activeNav === n.id && <span className="nav-active-dot" aria-hidden="true" />}</button>)}</nav>
+        <ThemePreference />
         <div className="sidebar-account"><span className="account-avatar" aria-hidden="true">{session.name.split(" ").map(x => x[0]).filter(Boolean).slice(0, 2).join("")}</span><div><strong>{session.name}</strong><span>{role}</span></div><button type="button" className="sidebar-logout" title="Sign out" onClick={onLogout}><UIIcon name="logout" size={17} /><span>Out</span></button></div>
       </aside>
       <div ref={workspaceRef} className="app-workspace">
         <header ref={headerRef} className="app-header">
           <div className="header-context"><button ref={menuButton} type="button" className="icon-button menu-toggle" aria-label="Open navigation" aria-expanded={mobileNav} aria-controls="primary-navigation" onClick={() => setMobileNav(true)}><UIIcon name="menu" /></button><span className="header-breadcrumb">Ghar Kar CRM</span><span className="breadcrumb-divider" aria-hidden="true">/</span><span className="header-page">{navItems.find(n => n.id === activeNav)?.label.replace(/^[^A-Za-z]+/, "")}</span></div>
           <div className="header-actions">
+            <MotionToggle /><ThemeToggle />
             {session.role === "field" && <button type="button" className="punch-button" onClick={() => alert(`✅ Punched in successfully at ${new Date().toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' })}.\nLocation captured.`)}>Punch In</button>}
             <NotifBell count={myNotifs.length} onClick={() => setShowNotifs(v => !v)} expanded={showNotifs} />
             <span className="header-account" title={`${session.name} · ${role}`} aria-label={`${session.name}, ${role}`}>{session.name.split(" ").map(x => x[0]).filter(Boolean).slice(0, 2).join("")}</span>
@@ -728,7 +944,7 @@ function KPFDashboard({ store, onSel }) {
   const srcCounts = {};
   leads.forEach(l => { const s = l.source || "Other"; srcCounts[s] = (srcCounts[s] || 0) + 1; });
   const srcTotal = leads.length || 1;
-  const srcColors = [T.navy, T.blue, T.purple, T.amber, T.green, T.red, "#6D4C41", T.textMid];
+  const srcColors = [T.navy, T.blue, T.purple, T.amber, T.green, T.red, "var(--brown)", T.textMid];
 
   // Staff performance
   const staffPerf = users.map(u => {
@@ -748,7 +964,7 @@ function KPFDashboard({ store, onSel }) {
   const maxLeads = Math.max(...staffPerf.map(s => s.total), 1);
 
   const KPICard = ({ label, value, color, bg, sub }) => (
-    <div className="stat-card" style={{ background: bg || T.white, border: `1px solid ${color}22`, padding: "18px 14px" }}>
+    <div className="stat-card" style={{ "--metric-color": color, background: bg || T.white, border: `1px solid ${alpha(color, 0.1333)}`, padding: "18px 14px" }}>
       <div style={{ fontSize: 30, fontWeight: 800, color, fontFamily: "var(--font-display)", lineHeight: 1 }}>{value}</div>
       <div style={{ fontSize: 10, fontWeight: 700, color, textTransform: "uppercase", letterSpacing: 0.9, marginTop: 6, opacity: 0.8 }}>{label}</div>
       {sub && <div style={{ fontSize: 10, color: T.textLight, marginTop: 3 }}>{sub}</div>}
@@ -762,7 +978,7 @@ function KPFDashboard({ store, onSel }) {
 
       {/* KPI Cards */}
       <div className="responsive-grid" style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit,minmax(120px,1fr))", gap: 10, marginBottom: 20 }}>
-        <KPICard label="Total Leads" value={leads.length} color={T.navy} bg="#EEF0FB" />
+        <KPICard label="Total Leads" value={leads.length} color={T.navy} bg="var(--lead-bg)" />
         <KPICard label="Active Pipeline" value={active.length} color={T.blue} bg={T.blueBg} />
         <KPICard label="Disbursed" value={disbursed.length} color={T.green} bg={T.greenBg} />
         <KPICard label="This Month" value={thisMonth.length} color={T.purple} bg={T.purpleBg} sub="disbursals" />
@@ -787,7 +1003,7 @@ function KPFDashboard({ store, onSel }) {
                   <span style={{ fontSize: 11, color: T.textMid, fontWeight: 600 }}>{count} &nbsp;<span style={{ color: T.textLight, fontWeight: 400 }}>{pct}%</span></span>
                 </div>
                 <div style={{ background: T.creamDark, borderRadius: 6, height: 9, overflow: "hidden" }}>
-                  <div style={{ width: `${Math.max(pct, 2)}%`, height: "100%", background: `linear-gradient(90deg,${meta.color},${meta.color}80)`, borderRadius: 6, transition: "width 0.8s ease" }} />
+                  <div style={{ width: `${Math.max(pct, 2)}%`, height: "100%", background: `linear-gradient(90deg,${meta.color},${alpha(meta.color, 0.5020)})`, borderRadius: 6, transition: "width 0.8s ease" }} />
                 </div>
               </div>
             );
@@ -807,7 +1023,7 @@ function KPFDashboard({ store, onSel }) {
                   <span style={{ fontSize: 11, color: T.textMid, fontWeight: 600 }}>{cnt} &nbsp;<span style={{ color: T.textLight, fontWeight: 400 }}>{pct}%</span></span>
                 </div>
                 <div style={{ background: T.creamDark, borderRadius: 6, height: 9, overflow: "hidden" }}>
-                  <div style={{ width: `${Math.max(pct, 2)}%`, height: "100%", background: `linear-gradient(90deg,${c},${c}80)`, borderRadius: 6, transition: "width 0.8s ease" }} />
+                  <div style={{ width: `${Math.max(pct, 2)}%`, height: "100%", background: `linear-gradient(90deg,${c},${alpha(c, 0.5020)})`, borderRadius: 6, transition: "width 0.8s ease" }} />
                 </div>
               </div>
             );
@@ -826,14 +1042,14 @@ function KPFDashboard({ store, onSel }) {
           const pct = Math.round((count / maxStepCount) * 100);
           return (
             <div key={step.id} style={{ marginBottom: 12, display: "flex", alignItems: "center", gap: 12 }}>
-              <div style={{ width: 32, height: 32, borderRadius: 8, background: `${meta.color}15`, display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0, fontSize: 12, fontWeight: 700, color: meta.color }}>{step.id}</div>
+              <div style={{ width: 32, height: 32, borderRadius: 8, background: `${alpha(meta.color, 0.0824)}`, display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0, fontSize: 12, fontWeight: 700, color: meta.color }}>{step.id}</div>
               <div style={{ flex: 1 }}>
                 <div className="responsive-row" style={{ display: "flex", justifyContent: "space-between", marginBottom: 4 }}>
                   <span style={{ fontSize: 12, fontWeight: 600, color: T.text }}>{step.label}</span>
                   <span style={{ fontSize: 11, fontWeight: 700, color: meta.color }}>{count} lead{count > 1 ? "s" : ""}</span>
                 </div>
                 <div style={{ background: T.creamDark, borderRadius: 5, height: 8, overflow: "hidden" }}>
-                  <div style={{ width: `${pct}%`, height: "100%", background: `linear-gradient(90deg,${meta.color},${meta.color}70)`, borderRadius: 5, transition: "width 0.7s ease" }} />
+                  <div style={{ width: `${pct}%`, height: "100%", background: `linear-gradient(90deg,${meta.color},${alpha(meta.color, 0.4392)})`, borderRadius: 5, transition: "width 0.7s ease" }} />
                 </div>
               </div>
             </div>
@@ -860,7 +1076,7 @@ function KPFDashboard({ store, onSel }) {
                   <tr key={s.user.id} style={{ borderBottom: `1px solid ${T.border}` }}>
                     <td style={{ padding: "10px 10px" }}>
                       <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-                        <div style={{ width: 32, height: 32, borderRadius: "50%", background: `linear-gradient(135deg,${T.navy},${T.navyLight})`, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 13, fontWeight: 700, color: T.gold, flexShrink: 0 }}>
+                        <div style={{ width: 32, height: 32, borderRadius: "50%", background: `linear-gradient(135deg,${T.primary},${T.navyLight})`, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 13, fontWeight: 700, color: T.goldLight, flexShrink: 0 }}>
                           {s.user.name.charAt(0).toUpperCase()}
                         </div>
                         <div>
@@ -872,7 +1088,7 @@ function KPFDashboard({ store, onSel }) {
                     <td style={{ padding: "10px 10px" }}>
                       <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
                         <div style={{ width: 50, background: T.creamDark, borderRadius: 4, height: 6, overflow: "hidden" }}>
-                          <div style={{ width: `${Math.round((s.total / maxLeads) * 100)}%`, height: "100%", background: T.navy, borderRadius: 4 }} />
+                          <div style={{ width: `${Math.round((s.total / maxLeads) * 100)}%`, height: "100%", background: fillColor(T.navy), borderRadius: 4 }} />
                         </div>
                         <span style={{ fontWeight: 700, color: T.navy }}>{s.total}</span>
                       </div>
@@ -902,6 +1118,9 @@ function KPFDashboard({ store, onSel }) {
   );
 }
 
+function metricIcon(label) {
+  return ({ "Total Leads": "leads", "Total": "leads", "Active": "spark", "Sanction": "check", "Disbursed": "wallet", "Today's Calls": "today", "Overdue": "followups", "Escalations": "escalations", "Staff": "users" })[label] || "kpf";
+}
 function AdminDash({ store, onSel }) {
   const leads = store.leads || [];
   const users = store.users.filter(u => u.role !== "admin");
@@ -914,46 +1133,53 @@ function AdminDash({ store, onSel }) {
   // Lead source breakdown
   const srcBreakdown = {};
   leads.forEach(l => { const src = l.source || "Other"; srcBreakdown[src] = (srcBreakdown[src] || 0) + 1; });
+  const sourceColors = [T.gold, T.blue, T.purple, T.green, T.amber, T.navy];
+  let sourcePosition = 0;
+  const sourceStops = Object.entries(srcBreakdown).map(([, count], i) => { const start = sourcePosition; sourcePosition += count / leads.length * 100; return `${sourceColors[i % sourceColors.length]} ${start}% ${sourcePosition}%`; });
 
   return (<div className="fade admin-dashboard">
-    <ST>Admin Dashboard</ST>
+    <div className="dashboard-heading"><ST>Admin Dashboard</ST><div className="dashboard-date"><UIIcon name="today" size={16} /><time dateTime={td()}>{new Date().toLocaleDateString("en-IN", { day: "numeric", month: "short", year: "numeric" })}</time></div></div>
     <Grid cols="repeat(auto-fit,minmax(120px,1fr))" gap={10} mb={20}>
       {[{ l: "Total Leads", v: leads.length, c: T.navy }, { l: "Active", v: active.length, c: T.blue }, { l: "Sanction", v: leads.filter(l => STEPS.find(s => s.id === l.currentStep)?.cat === "sanction").length, c: T.purple }, { l: "Disbursed", v: done.length, c: T.green }, { l: "Today's Calls", v: todayCalls.length, c: T.amber }, { l: "Overdue", v: overdue.length, c: overdue.length > 0 ? T.red : T.textLight }, { l: "Escalations", v: newEscs, c: newEscs > 0 ? T.red : T.textLight }, { l: "Staff", v: users.length, c: T.navy }].map(m => (
         <div className="metric-card" key={m.l} style={{ "--metric-color": m.c, background: T.white, borderRadius: 12, padding: "12px 14px", border: `1px solid ${T.border}` }}>
-          <div style={{ fontSize: 11, color: T.textLight }}>{m.l}</div>
-          <div style={{ fontSize: 24, fontWeight: 600, color: m.c, marginTop: 2 }}>{m.v}</div>
+          <div className="metric-label">{m.l}<span className="metric-icon" aria-hidden="true"><UIIcon name={metricIcon(m.l)} size={18} /></span></div>
+          <div className="metric-value" style={{ fontSize: 24, fontWeight: 600, color: m.c, marginTop: 2 }}>{m.v}</div>
+          <span className="metric-watermark" aria-hidden="true"><UIIcon name={metricIcon(m.l)} size={78} /></span>
         </div>
       ))}
     </Grid>
 
-    {/* Lead Source Breakdown */}
-    <Card title="Lead Sources">
-      <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
-        {Object.entries(srcBreakdown).map(([src, cnt]) => (
-          <div key={src} style={{ background: T.cream, borderRadius: 8, padding: "6px 14px", fontSize: 13 }}>
-            <span style={{ color: T.textLight }}>{src}: </span><strong style={{ color: T.navy }}>{cnt}</strong>
-          </div>
-        ))}
-        {Object.keys(srcBreakdown).length === 0 && <div style={{ fontSize: 13, color: T.textLight }}>No leads yet.</div>}
+    {overdue.length > 0 && <Alrt c={T.red} bg={T.redBg} title={`${overdue.length} overdue follow-up(s) — action needed`}>
+      {overdue.map(l => { const s = STEPS.find(x => x.id === l.currentStep); return (<div key={l.id} role="button" tabIndex={0} onClick={() => onSel(l.id)} onKeyDown={e => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); onSel(l.id); } }} style={{ fontSize: 13, padding: "6px 0", borderTop: `0.5px solid ${T.border}`, cursor: "pointer", color: T.red }}>{l.name} · {l.phone} · Step {l.currentStep}: {s?.label} · Due: {l.followUp}</div>); })}
+    </Alrt>}
+
+    <div className="dashboard-overview">
+    <Card title="Lead Sources" className="source-card">
+      <div className="source-composition">
+        <div className="source-orbit" aria-hidden="true" style={{ "--source-gradient": sourceStops.length ? `conic-gradient(${sourceStops.join(",")})` : T.border }}><div className="source-orbit-center"><strong>{leads.length}</strong><span>Total Leads</span></div></div>
+        <div className="source-legend">
+          {Object.entries(srcBreakdown).map(([src, cnt], i) => <div key={src} className="source-item"><span className="source-dot" style={{ background: sourceColors[i % sourceColors.length] }} aria-hidden="true" /><span>{src}: </span><strong>{cnt}</strong></div>)}
+          {Object.keys(srcBreakdown).length === 0 && <div style={{ fontSize: 13, color: T.textLight }}>No leads yet.</div>}
+        </div>
       </div>
     </Card>
 
-    {overdue.length > 0 && <Alrt c={T.red} bg={T.redBg} title={`${overdue.length} overdue follow-up(s) — action needed`}>
-      {overdue.map(l => { const s = STEPS.find(x => x.id === l.currentStep); return (<div key={l.id} onClick={() => onSel(l.id)} style={{ fontSize: 13, padding: "6px 0", borderTop: `0.5px solid ${T.border}`, cursor: "pointer", color: T.red }}>{l.name} · {l.phone} · Step {l.currentStep}: {s?.label} · Due: {l.followUp}</div>); })}
-    </Alrt>}
 
-    <Card title="Staff Performance">
+
+    <Card title="Staff Performance" className="staff-card">
       {users.length === 0 && <div style={{ fontSize: 13, color: T.textLight }}>No staff yet. Create logins in Users tab.</div>}
       {users.map(u => {
         const ml = leads.filter(l => l.assignedTo === u.id); const log = (store.dailyLogs || {})[u.id]?.[td()];
         const myEsc = (store.escalations || []).filter(e => e.staffId === u.id && e.date === td()).length;
-        return (<div key={u.id} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "10px 0", borderTop: `0.5px solid ${T.border}`, opacity: u.active === false ? 0.45 : 1 }}>
-          <div><div style={{ fontWeight: 500, fontSize: 14, color: T.text }}>{u.name} <Tg c={u.role === "field" ? "#5C6BC0" : u.role === "partner" ? "#0F6E56" : u.role === "developer" ? T.amber : u.role === "agent" ? T.purple : T.navy}>{u.role === "field" ? "Field" : u.role === "partner" ? "Partner" : u.role === "developer" ? "Developer" : u.role === "agent" ? "Agent" : "Executive"}</Tg>{u.active === false && <Tg c={T.red}>Inactive</Tg>}</div>
+        return (<div key={u.id} className="staff-row" style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "10px 0", borderTop: `0.5px solid ${T.border}`, opacity: u.active === false ? 0.45 : 1 }}>
+          <span className="staff-avatar" aria-hidden="true">{String(u.name || "").split(" ").map(x => x[0]).filter(Boolean).slice(0, 2).join("")}</span>
+          <div className="staff-person"><div style={{ fontWeight: 500, fontSize: 14, color: T.text }}>{u.name} <Tg c={u.role === "field" ? "var(--violet)" : u.role === "partner" ? "var(--teal)" : u.role === "developer" ? T.amber : u.role === "agent" ? T.purple : T.navy}>{u.role === "field" ? "Field" : u.role === "partner" ? "Partner" : u.role === "developer" ? "Developer" : u.role === "agent" ? "Agent" : "Executive"}</Tg>{u.active === false && <Tg c={T.red}>Inactive</Tg>}</div>
             <div style={{ fontSize: 12, color: T.textLight }}>@{u.username} · {ml.length} leads · {ml.filter(l => l.currentStep < 38).length} active{myEsc > 0 ? ` · ⚠️ ${myEsc} escalation` : ""}</div></div>
-          <div style={{ fontSize: 12, color: log ? T.green : T.textLight }}>{log ? "✓ Log submitted today" : "No log today"}</div>
+          <div className={`staff-log${log ? " is-submitted" : ""}`} style={{ fontSize: 12, color: log ? T.green : T.textLight }}>{log ? "✓ Log submitted today" : "No log today"}</div>
         </div>);
       })}
     </Card>
+    </div>
   </div>);
 }
 
@@ -1008,7 +1234,7 @@ function ManageUsers({ store, persist }) {
       {users.map(u => (
         <div key={u.id} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "12px 0", borderTop: `0.5px solid ${T.border}`, opacity: u.active === false ? 0.5 : 1 }}>
           <div>
-            <div style={{ fontWeight: 500, fontSize: 14, color: T.text }}>{u.name} <Tg c={u.role === "field" ? "#5C6BC0" : u.role === "partner" ? "#0F6E56" : u.role === "developer" ? T.amber : u.role === "agent" ? T.purple : T.navy}>{u.role === "field" ? "Field Agent" : u.role === "partner" ? "Channel Partner" : u.role === "developer" ? "Developer" : u.role === "agent" ? "Agent" : "Executive"}</Tg></div>
+            <div style={{ fontWeight: 500, fontSize: 14, color: T.text }}>{u.name} <Tg c={u.role === "field" ? "var(--violet)" : u.role === "partner" ? "var(--teal)" : u.role === "developer" ? T.amber : u.role === "agent" ? T.purple : T.navy}>{u.role === "field" ? "Field Agent" : u.role === "partner" ? "Channel Partner" : u.role === "developer" ? "Developer" : u.role === "agent" ? "Agent" : "Executive"}</Tg></div>
             <div style={{ fontSize: 12, color: T.textLight }}>@{u.username}{u.partnerCode ? ` · Code: ${u.partnerCode}` : ""} · Created {u.createdAt} · {(store.leads || []).filter(l => l.assignedTo === u.id).length} leads</div>
           </div>
           <div style={{ display: "flex", gap: 6 }}>
@@ -1124,8 +1350,8 @@ function EscalationView({ store, persist }) {
             <div style={{ fontSize: 12, color: T.textLight }}>{e.date}</div>
           </div>
           <div style={{ display: "flex", gap: 8 }}>
-            <button onClick={() => onDone(e.id)} style={{ background: T.greenBg, border: `1px solid ${T.green}50`, color: T.green, borderRadius: 6, padding: "4px 8px", fontSize: 12, cursor: "pointer", fontWeight: 600 }}>✅ Mark Done</button>
-            <button onClick={() => onDone(e.id)} style={{ background: T.redBg, border: `1px solid ${T.red}50`, color: T.red, borderRadius: 6, padding: "4px 8px", fontSize: 12, cursor: "pointer", fontWeight: 600 }}>🗑️ Delete</button>
+            <button onClick={() => onDone(e.id)} style={{ background: T.greenBg, border: `1px solid ${alpha(T.green, 0.3137)}`, color: T.green, borderRadius: 6, padding: "4px 8px", fontSize: 12, cursor: "pointer", fontWeight: 600 }}>✅ Mark Done</button>
+            <button onClick={() => onDone(e.id)} style={{ background: T.redBg, border: `1px solid ${alpha(T.red, 0.3137)}`, color: T.red, borderRadius: 6, padding: "4px 8px", fontSize: 12, cursor: "pointer", fontWeight: 600 }}>🗑️ Delete</button>
           </div>
         </div>
         {e.items.map((item, i) => (
@@ -1203,7 +1429,7 @@ function ExternalFollowups({ store, persist }) {
             <div style={{ fontSize: 13, fontWeight: 600, color: T.green, marginBottom: 8 }}>Completed ({done.length})</div>
             {done.slice(0, 5).map(f => {
               const lead = leads.find(l => l.id === f.leadId);
-              return (<div key={f.id} style={{ background: T.greenBg, border: `1px solid #A5D6A7`, borderRadius: 10, padding: "10px 14px", marginBottom: 6, fontSize: 13, color: T.green, display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+              return (<div key={f.id} style={{ background: T.greenBg, border: `1px solid var(--green-border)`, borderRadius: 10, padding: "10px 14px", marginBottom: 6, fontSize: 13, color: T.green, display: "flex", justifyContent: "space-between", alignItems: "center" }}>
                 <span>{f.type}: <strong>{f.name}</strong> · {lead?.name || "—"}</span><Tg c={T.green}>✓ Done</Tg>
               </div>);
             })}
@@ -1381,7 +1607,7 @@ function TodayView({ leads, session, onSel }) {
     <div style={{ fontSize: 13, color: T.textLight, marginBottom: 18 }}>{new Date().toLocaleDateString("en-IN", { weekday: "long", year: "numeric", month: "long", day: "numeric" })}</div>
 
     {needsPortal && (
-      <div style={{ background: "#E8F0FB", border: "1px solid #90CAF9", borderRadius: 10, padding: "10px 14px", marginBottom: 14, display: "flex", gap: 10, alignItems: "center" }}>
+      <div style={{ background: "var(--blue-bg)", border: "1px solid var(--blue-border)", borderRadius: 10, padding: "10px 14px", marginBottom: 14, display: "flex", gap: 10, alignItems: "center" }}>
         <span style={{ fontSize: 18 }}>🏦</span>
         <div>
           <div style={{ fontWeight: 600, fontSize: 13, color: T.blue }}>Daily Portal Check Required</div>
@@ -1393,8 +1619,9 @@ function TodayView({ leads, session, onSel }) {
     <Grid cols="repeat(auto-fit,minmax(110px,1fr))" gap={10} mb={18}>
       {[{ l: "Total", v: leads.length, c: T.navy }, { l: "Active", v: active.length, c: T.blue }, { l: "Sanction", v: leads.filter(l => STEPS.find(s => s.id === l.currentStep)?.cat === "sanction").length, c: T.purple }, { l: "Today's Calls", v: todayCalls.length, c: T.green }, { l: "Overdue", v: overdue.length, c: overdue.length > 0 ? T.red : T.textLight }].map(m => (
         <div className="metric-card" key={m.l} style={{ "--metric-color": m.c, background: T.white, borderRadius: 12, padding: "12px 14px", border: `1px solid ${T.border}` }}>
-          <div style={{ fontSize: 11, color: T.textLight }}>{m.l}</div>
-          <div style={{ fontSize: 22, fontWeight: 600, color: m.c, marginTop: 2 }}>{m.v}</div>
+          <div className="metric-label">{m.l}<span className="metric-icon" aria-hidden="true"><UIIcon name={metricIcon(m.l)} size={18} /></span></div>
+          <div className="metric-value" style={{ fontSize: 22, fontWeight: 600, color: m.c, marginTop: 2 }}>{m.v}</div>
+          <span className="metric-watermark" aria-hidden="true"><UIIcon name={metricIcon(m.l)} size={78} /></span>
         </div>
       ))}
     </Grid>
@@ -1403,13 +1630,13 @@ function TodayView({ leads, session, onSel }) {
     {todayVisits.length > 0 && (
       <Alrt c={T.amber} bg={T.amberBg} title={`Today's Site Visits (${todayVisits.length})`}>
         {todayVisits.map(tv => (
-          <div key={tv.visit.id} onClick={() => onSel(tv.lead.id)} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "8px 0", borderTop: `0.5px solid ${T.amber}40`, cursor: "pointer", gap: 10 }}>
+          <div key={tv.visit.id} onClick={() => onSel(tv.lead.id)} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "8px 0", borderTop: `0.5px solid ${alpha(T.amber, 0.2510)}`, cursor: "pointer", gap: 10 }}>
             <div>
               <div style={{ fontWeight: 600, fontSize: 14, color: T.navy }}>{tv.lead.name} <span style={{ fontSize: 12, color: T.textLight, fontWeight: 400 }}>· {tv.lead.phone}</span></div>
               <div style={{ fontSize: 12, color: T.amber }}>📍 {tv.visit.building} ({tv.visit.wing}) at {tv.visit.time || "TBD"}</div>
             </div>
             <div style={{ fontSize: 11, color: T.amber, whiteSpace: "nowrap" }}>
-              <span style={{ background: T.amber, color: "#fff", padding: "2px 6px", borderRadius: 4, fontWeight: 600 }}>Reminders Active</span>
+              <span style={{ background: fillColor(T.amber), color: "#fff", padding: "2px 6px", borderRadius: 4, fontWeight: 600 }}>Reminders Active</span>
             </div>
           </div>
         ))}
@@ -1512,7 +1739,7 @@ function LeadDetail({ lead, store, onBack, onUpdate, onDelete, isAdmin, fieldOnl
       </div>
       <div style={{ display: "flex", gap: 6, alignItems: "center", marginTop: 12 }}>
         <div style={{ flex: 1, background: T.creamDark, borderRadius: 4, height: 5, overflow: "hidden" }}>
-          <div style={{ width: `${pct}%`, height: "100%", background: cm.color, borderRadius: 4, transition: "width 0.4s" }} />
+          <div style={{ width: `${pct}%`, height: "100%", background: fillColor(cm.color), borderRadius: 4, transition: "width 0.4s" }} />
         </div>
         <div style={{ fontSize: 11, color: T.textLight }}>{pct}%</div>
       </div>
@@ -1526,33 +1753,33 @@ function LeadDetail({ lead, store, onBack, onUpdate, onDelete, isAdmin, fieldOnl
     {tab === "current" && (
       <div>
         {step.portalCheck && (
-          <div style={{ background: "#E8F0FB", border: "1px solid #90CAF9", borderRadius: 10, padding: "10px 14px", marginBottom: 12, fontSize: 13, color: T.blue, display: "flex", gap: 8, alignItems: "center" }}>
+          <div style={{ background: "var(--blue-bg)", border: "1px solid var(--blue-border)", borderRadius: 10, padding: "10px 14px", marginBottom: 12, fontSize: 13, color: T.blue, display: "flex", gap: 8, alignItems: "center" }}>
             <span>🏦</span><span><strong>Portal check required for this step.</strong> Log in to the bank portal daily to check for queries or updates.</span>
           </div>
         )}
         {step.advocateCheck && (
-          <div style={{ background: T.purpleBg, border: "1px solid #CE93D8", borderRadius: 10, padding: "10px 14px", marginBottom: 12, fontSize: 13, color: T.purple, display: "flex", gap: 8, alignItems: "center" }}>
+          <div style={{ background: T.purpleBg, border: "1px solid var(--purple-border)", borderRadius: 10, padding: "10px 14px", marginBottom: 12, fontSize: 13, color: T.purple, display: "flex", gap: 8, alignItems: "center" }}>
             <span>⚖️</span><span><strong>Legal advocate follow-up required.</strong> Ensure advocate provides report within 2–3 days.</span>
           </div>
         )}
         {step.valuationCheck && (
-          <div style={{ background: T.amberBg, border: "1px solid #FFD54F", borderRadius: 10, padding: "10px 14px", marginBottom: 12, fontSize: 13, color: T.amber, display: "flex", gap: 8, alignItems: "center" }}>
+          <div style={{ background: T.amberBg, border: "1px solid var(--amber-border)", borderRadius: 10, padding: "10px 14px", marginBottom: 12, fontSize: 13, color: T.amber, display: "flex", gap: 8, alignItems: "center" }}>
             <span>🏠</span><span><strong>Valuation follow-up required.</strong> Ensure valuer provides report within 2–3 days.</span>
           </div>
         )}
-        <div style={{ background: cm.bg, border: `1px solid ${cm.border}`, borderRadius: 16, padding: 20, marginBottom: 14, boxShadow: `0 4px 20px ${cm.color}18` }}>
+        <div style={{ background: cm.bg, border: `1px solid ${cm.border}`, borderRadius: 16, padding: 20, marginBottom: 14, boxShadow: `0 4px 20px ${alpha(cm.color, 0.0941)}` }}>
           <div className="responsive-row" style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 12 }}>
             <div>
               <div style={{ fontSize: 10, color: cm.color, fontWeight: 700, textTransform: "uppercase", letterSpacing: 1.2, marginBottom: 3 }}>Step {step.id} of {maxStep} · {cm.label}</div>
               <div style={{ fontFamily: "var(--font-display)", fontSize: 18, fontWeight: 700, color: cm.color }}>{step.label}</div>
             </div>
-            {allDone && <div style={{ background: T.green, color: "#fff", borderRadius: 10, padding: "6px 14px", fontSize: 12, fontWeight: 700 }}>✓ Complete</div>}
+            {allDone && <div style={{ background: fillColor(T.green), color: "#fff", borderRadius: 10, padding: "6px 14px", fontSize: 12, fontWeight: 700 }}>✓ Complete</div>}
           </div>
           <div style={{ fontSize: 13, color: T.text, lineHeight: 1.8, marginBottom: 16, paddingBottom: 14, borderBottom: `1px solid ${cm.border}` }}>{step.desc}</div>
           <div className="responsive-row" style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 10 }}>
             <div style={{ fontWeight: 700, fontSize: 12, color: cm.color, textTransform: "uppercase", letterSpacing: 0.8 }}>Actions to complete</div>
             <div role="button" tabIndex={0} onKeyDown={e => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); selectAll(); } }} onClick={selectAll} style={{ display: "flex", alignItems: "center", gap: 6, cursor: "pointer", userSelect: "none" }}>
-              <div style={{ width: 18, height: 18, borderRadius: 5, border: `2px solid ${allDone ? T.green : cm.color}`, background: allDone ? T.green : "transparent", display: "flex", alignItems: "center", justifyContent: "center", transition: "all 0.15s" }}>
+              <div style={{ width: 18, height: 18, borderRadius: 5, border: `2px solid ${allDone ? T.green : cm.color}`, background: fillColor(allDone ? T.green : "transparent"), display: "flex", alignItems: "center", justifyContent: "center", transition: "all 0.15s" }}>
                 {allDone && <svg width="10" height="8"><path d="M1 4l3 3 5-6" stroke="#fff" strokeWidth="2" fill="none" strokeLinecap="round" /></svg>}
               </div>
               <span style={{ fontSize: 12, fontWeight: 600, color: allDone ? T.green : cm.color }}>Select All</span>
@@ -1561,14 +1788,14 @@ function LeadDetail({ lead, store, onBack, onUpdate, onDelete, isAdmin, fieldOnl
           {step.actions.map((a, i) => {
             const isDone = !!(lead.stepsCompleted?.[step.id]?.[a]);
             return (<div role="checkbox" aria-checked={isDone} tabIndex={0} onKeyDown={e => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); toggleA(a); } }} key={i} onClick={() => toggleA(a)} style={{ display: "flex", gap: 12, alignItems: "flex-start", padding: "10px 0", borderTop: `0.5px solid ${cm.border}`, cursor: "pointer" }}>
-              <div style={{ minWidth: 22, height: 22, borderRadius: 7, border: `2px solid ${isDone ? T.green : T.border}`, background: isDone ? T.green : T.white, display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0, marginTop: 1, transition: "all 0.15s", boxShadow: isDone ? `0 2px 8px ${T.green}40` : "none" }}>
+              <div style={{ minWidth: 22, height: 22, borderRadius: 7, border: `2px solid ${isDone ? T.green : T.border}`, background: fillColor(isDone ? T.green : T.white), display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0, marginTop: 1, transition: "all 0.15s", boxShadow: isDone ? `0 2px 8px ${alpha(T.green, 0.2510)}` : "none" }}>
                 {isDone && <svg width="12" height="10"><path d="M1 5l4 4 6-7" stroke="#fff" strokeWidth="2" fill="none" strokeLinecap="round" /></svg>}
               </div>
               <span style={{ fontSize: 13, color: isDone ? T.textLight : T.text, textDecoration: isDone ? "line-through" : "none", lineHeight: 1.7, transition: "all 0.15s" }}>{a}</span>
             </div>);
           })}
           {allDone && lead.currentStep < maxStep && (
-            <div style={{ marginTop: 14, padding: "10px 14px", background: `${T.green}15`, borderRadius: 10, fontSize: 13, color: T.green, fontWeight: 600, textAlign: "center", border: `1px solid ${T.green}30` }}>
+            <div style={{ marginTop: 14, padding: "10px 14px", background: `${alpha(T.green, 0.0824)}`, borderRadius: 10, fontSize: 13, color: T.green, fontWeight: 600, textAlign: "center", border: `1px solid ${alpha(T.green, 0.1882)}` }}>
               ✓ All done! Advancing to next step automatically…
             </div>
           )}
@@ -1596,8 +1823,8 @@ function LeadDetail({ lead, store, onBack, onUpdate, onDelete, isAdmin, fieldOnl
             <div style={{ fontSize: 11, fontWeight: 600, color: cm2.color, textTransform: "uppercase", letterSpacing: 0.8, marginBottom: 6 }}>{cm2.label}</div>
             {STEPS.filter(s => s.cat === cat).map(s => {
               const isCur = s.id === lead.currentStep, isPast = s.id < lead.currentStep;
-              return (<div key={s.id} style={{ display: "flex", gap: 10, alignItems: "center", padding: "7px 10px", borderRadius: 8, marginBottom: 3, background: isCur ? cm2.bg : isPast ? T.greenBg : T.white, border: `0.5px solid ${isCur ? cm2.border : isPast ? "#C8E6C9" : T.border}` }}>
-                <div style={{ width: 24, height: 24, borderRadius: "50%", background: isCur ? cm2.color : isPast ? T.green : T.creamDark, color: isCur || isPast ? "#fff" : T.textLight, fontSize: 11, display: "flex", alignItems: "center", justifyContent: "center", fontWeight: 600, flexShrink: 0 }}>{isPast ? "✓" : s.id}</div>
+              return (<div key={s.id} style={{ display: "flex", gap: 10, alignItems: "center", padding: "7px 10px", borderRadius: 8, marginBottom: 3, background: isCur ? cm2.bg : isPast ? T.greenBg : T.white, border: `0.5px solid ${isCur ? cm2.border : isPast ? "var(--green-border)" : T.border}` }}>
+                <div style={{ width: 24, height: 24, borderRadius: "50%", background: fillColor(isCur ? cm2.color : isPast ? T.green : T.creamDark), color: isCur || isPast ? "#fff" : T.textLight, fontSize: 11, display: "flex", alignItems: "center", justifyContent: "center", fontWeight: 600, flexShrink: 0 }}>{isPast ? "✓" : s.id}</div>
                 <div style={{ fontSize: 13, color: isCur ? cm2.color : isPast ? T.green : T.textMid, fontWeight: isCur ? 600 : 400, flex: 1 }}>{s.label}</div>
                 {s.portalCheck && <span style={{ fontSize: 10, color: T.blue, background: T.blueBg, padding: "2px 6px", borderRadius: 10 }}>Portal</span>}
               </div>);
@@ -1608,15 +1835,15 @@ function LeadDetail({ lead, store, onBack, onUpdate, onDelete, isAdmin, fieldOnl
     )}
 
     {tab === "comm" && !fieldOnly && (
-      <div className="fade" style={{ background: "#efeae2", border: `1px solid ${T.border}`, borderRadius: 16, overflow: "hidden", display: "flex", flexDirection: "column", height: 600, position: "relative" }}>
+      <div className="fade" style={{ background: "var(--chat-canvas)", border: `1px solid ${T.border}`, borderRadius: 16, overflow: "hidden", display: "flex", flexDirection: "column", height: 600, position: "relative" }}>
         {/* Chat Header */}
-        <div style={{ background: "#f0f2f5", padding: "10px 16px", display: "flex", alignItems: "center", gap: 14, borderBottom: "1px solid #d1d7db", zIndex: 2 }}>
-          <div style={{ width: 40, height: 40, borderRadius: "50%", background: "#dfe5e7", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 20 }}>👤</div>
+        <div style={{ background: "var(--chat-toolbar)", padding: "10px 16px", display: "flex", alignItems: "center", gap: 14, borderBottom: "1px solid var(--chat-border)", zIndex: 2 }}>
+          <div style={{ width: 40, height: 40, borderRadius: "50%", background: "var(--chat-avatar)", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 20 }}>👤</div>
           <div style={{ flex: 1 }}>
-            <div style={{ fontSize: 15, fontWeight: 600, color: "#111b21", marginBottom: 2 }}>{lead.name}</div>
-            <div style={{ fontSize: 12, color: "#667781" }}>{lead.phone}</div>
+            <div style={{ fontSize: 15, fontWeight: 600, color: "var(--chat-text)", marginBottom: 2 }}>{lead.name}</div>
+            <div style={{ fontSize: 12, color: "var(--chat-muted)" }}>{lead.phone}</div>
           </div>
-          <div style={{ display: "flex", gap: 16, color: "#54656f", fontSize: 18, cursor: "pointer" }}>
+          <div style={{ display: "flex", gap: 16, color: "var(--chat-muted)", fontSize: 18, cursor: "pointer" }}>
             <span>📞</span>
             <span>📹</span>
             <span>⋮</span>
@@ -1625,16 +1852,16 @@ function LeadDetail({ lead, store, onBack, onUpdate, onDelete, isAdmin, fieldOnl
 
         {/* Chat History (Scrollable) */}
         <div style={{ flex: 1, padding: "20px 5%", overflowY: "auto", display: "flex", flexDirection: "column", gap: 12 }}>
-          <div style={{ background: "#ffeecd", alignSelf: "center", padding: "6px 12px", borderRadius: 8, fontSize: 11, color: "#54656f", marginBottom: 10, textAlign: "center", boxShadow: "0 1px 1px rgba(0,0,0,0.05)" }}>
+          <div style={{ background: "var(--chat-notice)", alignSelf: "center", padding: "6px 12px", borderRadius: 8, fontSize: 11, color: "var(--chat-muted)", marginBottom: 10, textAlign: "center", boxShadow: "0 1px 1px rgba(0,0,0,0.05)" }}>
             Messages and calls are end-to-end encrypted. No one outside of this chat, not even Ghar Kar, can read or listen to them.
           </div>
           {(lead.commLog || []).map((c, i) => {
             // Treat WhatsApp messages as "sent" (green, right), others as system/notes (white, center/left)
             if (c.type === "WhatsApp") {
               return (
-                <div key={i} style={{ alignSelf: "flex-end", maxWidth: "75%", background: "#d9fdd3", borderRadius: "8px 0 8px 8px", padding: "6px 8px 8px 10px", boxShadow: "0 1px 0.5px rgba(11,20,55,0.13)", position: "relative" }}>
-                  <div style={{ fontSize: 13, color: "#111b21", lineHeight: 1.5, whiteSpace: "pre-wrap", marginBottom: 12 }}>{c.msg}</div>
-                  <div style={{ fontSize: 10, color: "#667781", position: "absolute", bottom: 4, right: 8, display: "flex", alignItems: "center", gap: 4 }}>
+                <div key={i} style={{ alignSelf: "flex-end", maxWidth: "75%", background: "var(--chat-outgoing)", borderRadius: "8px 0 8px 8px", padding: "6px 8px 8px 10px", boxShadow: "0 1px 0.5px rgba(11,20,55,0.13)", position: "relative" }}>
+                  <div style={{ fontSize: 13, color: "var(--chat-text)", lineHeight: 1.5, whiteSpace: "pre-wrap", marginBottom: 12 }}>{c.msg}</div>
+                  <div style={{ fontSize: 10, color: "var(--chat-muted)", position: "absolute", bottom: 4, right: 8, display: "flex", alignItems: "center", gap: 4 }}>
                     {c.time}
                     <svg viewBox="0 0 16 15" width="14" height="13" fill="#53bdeb"><path d="M15.01 3.316l-.478-.372a.365.365 0 0 0-.51.063L8.666 9.879a.32.32 0 0 1-.484.033l-.358-.325a.319.319 0 0 0-.484.032l-.378.483a.418.418 0 0 0 .036.541l1.32 1.266c.143.14.361.125.484-.033l6.272-8.048a.366.366 0 0 0-.064-.512zm-4.1 0l-.478-.372a.365.365 0 0 0-.51.063L4.566 9.879a.32.32 0 0 1-.484.033L1.891 7.769a.366.366 0 0 0-.515.006l-.423.433a.364.364 0 0 0 .006.514l3.258 3.185c.143.14.361.125.484-.033l6.272-8.048a.365.365 0 0 0-.063-.51z" /></svg>
                   </div>
@@ -1642,31 +1869,31 @@ function LeadDetail({ lead, store, onBack, onUpdate, onDelete, isAdmin, fieldOnl
               );
             }
             return (
-              <div key={i} style={{ alignSelf: "flex-start", maxWidth: "75%", background: "#fff", borderRadius: "0 8px 8px 8px", padding: "6px 8px 8px 10px", boxShadow: "0 1px 0.5px rgba(11,20,55,0.13)", position: "relative" }}>
+              <div key={i} style={{ alignSelf: "flex-start", maxWidth: "75%", background: T.white, borderRadius: "0 8px 8px 8px", padding: "6px 8px 8px 10px", boxShadow: "0 1px 0.5px rgba(11,20,55,0.13)", position: "relative" }}>
                 <div style={{ fontSize: 11, fontWeight: 700, color: cm.color, marginBottom: 4 }}>{c.type} {c.by ? `(by ${c.by})` : ""}</div>
-                <div style={{ fontSize: 13, color: "#111b21", lineHeight: 1.5, whiteSpace: "pre-wrap", marginBottom: 12 }}>{c.msg}</div>
-                <div style={{ fontSize: 10, color: "#667781", position: "absolute", bottom: 4, right: 8 }}>{c.date} {c.time}</div>
+                <div style={{ fontSize: 13, color: "var(--chat-text)", lineHeight: 1.5, whiteSpace: "pre-wrap", marginBottom: 12 }}>{c.msg}</div>
+                <div style={{ fontSize: 10, color: "var(--chat-muted)", position: "absolute", bottom: 4, right: 8 }}>{c.date} {c.time}</div>
               </div>
             );
           })}
           {!(lead.commLog || []).length && (
-            <div style={{ textAlign: "center", fontSize: 13, color: "#54656f", marginTop: 40, background: "rgba(255,255,255,0.6)", padding: "10px 20px", borderRadius: 20, alignSelf: "center" }}>No messages yet. Send a WhatsApp to start the conversation.</div>
+            <div style={{ textAlign: "center", fontSize: 13, color: "var(--chat-muted)", marginTop: 40, background: alpha(T.white, 0.8), padding: "10px 20px", borderRadius: 20, alignSelf: "center" }}>No messages yet. Send a WhatsApp to start the conversation.</div>
           )}
         </div>
 
         {/* Quick Templates Drawer */}
-        <div style={{ background: "#f0f2f5", padding: "10px 16px", borderTop: "1px solid #d1d7db", display: "flex", gap: 8, overflowX: "auto" }}>
+        <div style={{ background: "var(--chat-toolbar)", padding: "10px 16px", borderTop: "1px solid var(--chat-border)", display: "flex", gap: 8, overflowX: "auto" }}>
           {WA_TEMPLATES.map(tpl => (
-            <button key={tpl.id} onClick={() => setCommNote(tpl.msg(lead))} style={{ background: "#fff", border: "1px solid #d1d7db", borderRadius: 20, padding: "6px 14px", fontSize: 12, fontWeight: 600, color: "#54656f", cursor: "pointer", whiteSpace: "nowrap", display: "flex", alignItems: "center", gap: 6, transition: "all 0.15s" }}>
+            <button key={tpl.id} onClick={() => setCommNote(tpl.msg(lead))} style={{ background: T.white, border: "1px solid var(--chat-border)", borderRadius: 20, padding: "6px 14px", fontSize: 12, fontWeight: 600, color: "var(--chat-muted)", cursor: "pointer", whiteSpace: "nowrap", display: "flex", alignItems: "center", gap: 6, transition: "all 0.15s" }}>
               <span>{tpl.icon}</span> {tpl.label}
             </button>
           ))}
         </div>
 
         {/* Input Bar */}
-        <div style={{ background: "#f0f2f5", padding: "12px 16px", display: "flex", alignItems: "center", gap: 12 }}>
-          <div style={{ fontSize: 24, color: "#54656f", cursor: "pointer" }}>😊</div>
-          <div style={{ fontSize: 22, color: "#54656f", cursor: "pointer", transform: "rotate(45deg)" }}>📎</div>
+        <div style={{ background: "var(--chat-toolbar)", padding: "12px 16px", display: "flex", alignItems: "center", gap: 12 }}>
+          <div style={{ fontSize: 24, color: "var(--chat-muted)", cursor: "pointer" }}>😊</div>
+          <div style={{ fontSize: 22, color: "var(--chat-muted)", cursor: "pointer", transform: "rotate(45deg)" }}>📎</div>
           <input
             value={commNote}
             onChange={e => setCommNote(e.target.value)}
@@ -1683,7 +1910,7 @@ function LeadDetail({ lead, store, onBack, onUpdate, onDelete, isAdmin, fieldOnl
                 window.open(`https://wa.me/${intlPhone}?text=${encodeURIComponent(msg)}`, "_blank");
               }
             }}
-            style={{ flex: 1, border: "none", borderRadius: 8, padding: "12px 16px", fontSize: 14, background: "#fff", outline: "none", boxShadow: "none", color: "#111b21" }}
+            style={{ flex: 1, border: "none", borderRadius: 8, padding: "12px 16px", fontSize: 14, background: T.white, outline: "none", boxShadow: "none", color: "var(--chat-text)" }}
           />
           <button onClick={() => {
             if (!commNote.trim()) return;
@@ -1729,7 +1956,7 @@ function LeadDetail({ lead, store, onBack, onUpdate, onDelete, isAdmin, fieldOnl
           const s = STEPS.find(x => x.id === h.step); const cm2 = CAT_META[s?.cat] || {};
           return (<div key={i} style={{ display: "flex", gap: 12, marginBottom: 14 }}>
             <div style={{ display: "flex", flexDirection: "column", alignItems: "center" }}>
-              <div style={{ width: 11, height: 11, borderRadius: "50%", background: cm2.color || T.border, flexShrink: 0, marginTop: 3 }} />
+              <div style={{ width: 11, height: 11, borderRadius: "50%", background: fillColor(cm2.color || T.border), flexShrink: 0, marginTop: 3 }} />
               {i < (lead.stageHistory || []).length - 1 && <div style={{ width: 2, flex: 1, background: T.border, marginTop: 3 }} />}
             </div>
             <div style={{ paddingBottom: 6 }}>
@@ -1763,7 +1990,7 @@ function DocChecklistTab({ lead, onUpdate }) {
           <div style={{ fontSize: 13, fontWeight: 700, color: checkedCount === allDocs.length ? T.green : T.amber }}>{checkedCount} / {allDocs.length} collected</div>
         </div>
         <div style={{ background: T.creamDark, borderRadius: 4, height: 7, overflow: "hidden", marginBottom: 4 }}>
-          <div style={{ width: `${Math.round((checkedCount / allDocs.length) * 100)}%`, height: "100%", background: checkedCount === allDocs.length ? T.green : T.amber, borderRadius: 4, transition: "width 0.4s" }} />
+          <div style={{ width: `${Math.round((checkedCount / allDocs.length) * 100)}%`, height: "100%", background: fillColor(checkedCount === allDocs.length ? T.green : T.amber), borderRadius: 4, transition: "width 0.4s" }} />
         </div>
         <div style={{ fontSize: 11, color: T.textLight }}>{Math.round((checkedCount / allDocs.length) * 100)}% complete — tick each document as you receive it</div>
       </div>
@@ -1774,7 +2001,7 @@ function DocChecklistTab({ lead, onUpdate }) {
             const done = !!received[doc];
             return (
               <div role="checkbox" aria-checked={done} tabIndex={0} onKeyDown={e => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); toggleDoc(doc); } }} key={i} onClick={() => toggleDoc(doc)} style={{ display: "flex", gap: 10, alignItems: "center", padding: "8px 0", borderTop: `0.5px solid ${T.border}`, cursor: "pointer" }}>
-                <div style={{ minWidth: 20, height: 20, borderRadius: 5, border: `1.5px solid ${done ? T.green : T.border}`, background: done ? T.green : "transparent", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0, transition: "all 0.15s" }}>
+                <div style={{ minWidth: 20, height: 20, borderRadius: 5, border: `1.5px solid ${done ? T.green : T.border}`, background: fillColor(done ? T.green : "transparent"), display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0, transition: "all 0.15s" }}>
                   {done && <svg width="11" height="9"><path d="M1 4.5l3 3 6-6" stroke="#fff" strokeWidth="2" fill="none" strokeLinecap="round" /></svg>}
                 </div>
                 <span style={{ fontSize: 13, color: done ? T.textLight : T.text, textDecoration: done ? "line-through" : "none", flex: 1 }}>{doc}</span>
@@ -1871,7 +2098,7 @@ function AiDocsTab({ lead }) {
           onDrop={handleDrop}
           style={{
             border: `2px dashed ${dragActive ? T.blue : T.border}`,
-            background: dragActive ? T.blueBg : `${T.cream}33`,
+            background: dragActive ? T.blueBg : `${alpha(T.cream, 0.2000)}`,
             borderRadius: 10,
             padding: "20px 10px",
             textAlign: "center",
@@ -1919,7 +2146,7 @@ function AiDocsTab({ lead }) {
           </div>
         )}
 
-        <button onClick={analyse} disabled={loading || (!text.trim() && images.length === 0)} style={{ padding: "10px 22px", background: loading ? T.textLight : T.navy, color: "#fff", border: "none", borderRadius: 10, fontWeight: 600, fontSize: 14, cursor: loading ? "not-allowed" : "pointer" }}>
+        <button onClick={analyse} disabled={loading || (!text.trim() && images.length === 0)} style={{ padding: "10px 22px", background: fillColor(loading ? T.textLight : T.navy), color: "#fff", border: "none", borderRadius: 10, fontWeight: 600, fontSize: 14, cursor: loading ? "not-allowed" : "pointer" }}>
           {loading ? "Analysing with Vision AI..." : "🤖 Analyse Documents"}
         </button>
         {result && <span style={{ marginLeft: 10, fontSize: 11, color: T.textLight }}>{result.source === "gemini" ? "✨ Powered by Gemini AI" : "⚙️ Rule Engine (Gemini unavailable)"}</span>}
@@ -1933,29 +2160,29 @@ function AiDocsTab({ lead }) {
               <div style={{ fontSize: 26, fontWeight: 700, color: result.score >= 80 ? T.green : result.score >= 50 ? T.amber : T.red }}>{result.score}%</div>
             </div>
             <div style={{ background: T.creamDark, borderRadius: 4, height: 8, overflow: "hidden" }}>
-              <div style={{ width: `${result.score}%`, height: "100%", background: result.score >= 80 ? T.green : result.score >= 50 ? T.amber : T.red, borderRadius: 4, transition: "width 0.5s" }} />
+              <div style={{ width: `${result.score}%`, height: "100%", background: fillColor(result.score >= 80 ? T.green : result.score >= 50 ? T.amber : T.red), borderRadius: 4, transition: "width 0.5s" }} />
             </div>
           </div>
-          <div style={{ background: T.blueBg, border: "1px solid #90CAF9", borderRadius: 10, padding: "12px 16px", marginBottom: 10 }}>
+          <div style={{ background: T.blueBg, border: "1px solid var(--blue-border)", borderRadius: 10, padding: "12px 16px", marginBottom: 10 }}>
             <div style={{ fontWeight: 600, fontSize: 13, color: T.blue, marginBottom: 4 }}>📋 Next Recommended Action</div>
             <div style={{ fontSize: 13, color: T.text }}>{result.nextAction}</div>
           </div>
           {result.confirmed?.length > 0 && (
-            <div style={{ background: T.greenBg, border: "1px solid #A5D6A7", borderRadius: 10, padding: "12px 16px", marginBottom: 10 }}>
+            <div style={{ background: T.greenBg, border: "1px solid var(--green-border)", borderRadius: 10, padding: "12px 16px", marginBottom: 10 }}>
               <div style={{ fontWeight: 600, fontSize: 13, color: T.green, marginBottom: 8 }}>✅ Confirmed ({result.confirmed.length} of {allDocs.length})</div>
-              {result.confirmed.map((d, i) => <div key={i} style={{ fontSize: 13, color: T.green, padding: "3px 0", borderTop: `0.5px solid #A5D6A7` }}>• {d}</div>)}
+              {result.confirmed.map((d, i) => <div key={i} style={{ fontSize: 13, color: T.green, padding: "3px 0", borderTop: `0.5px solid var(--green-border)` }}>• {d}</div>)}
             </div>
           )}
           {result.missing?.length > 0 && (
-            <div style={{ background: T.redBg, border: "1px solid #EF9A9A", borderRadius: 10, padding: "12px 16px", marginBottom: 10 }}>
+            <div style={{ background: T.redBg, border: "1px solid var(--red-border)", borderRadius: 10, padding: "12px 16px", marginBottom: 10 }}>
               <div style={{ fontWeight: 600, fontSize: 13, color: T.red, marginBottom: 8 }}>❌ Missing ({result.missing.length})</div>
-              {result.missing.map((d, i) => <div key={i} style={{ fontSize: 13, color: T.red, padding: "3px 0", borderTop: `0.5px solid #EF9A9A` }}>• {d}</div>)}
+              {result.missing.map((d, i) => <div key={i} style={{ fontSize: 13, color: T.red, padding: "3px 0", borderTop: `0.5px solid var(--red-border)` }}>• {d}</div>)}
             </div>
           )}
           {result.concerns?.length > 0 && (
-            <div style={{ background: T.amberBg, border: "1px solid #FFD54F", borderRadius: 10, padding: "12px 16px", marginBottom: 10 }}>
+            <div style={{ background: T.amberBg, border: "1px solid var(--amber-border)", borderRadius: 10, padding: "12px 16px", marginBottom: 10 }}>
               <div style={{ fontWeight: 600, fontSize: 13, color: T.amber, marginBottom: 8 }}>⚠️ Concerns</div>
-              {result.concerns.map((c, i) => <div key={i} style={{ fontSize: 13, color: T.amber, padding: "3px 0", borderTop: `0.5px solid #FFD54F` }}>• {c}</div>)}
+              {result.concerns.map((c, i) => <div key={i} style={{ fontSize: 13, color: T.amber, padding: "3px 0", borderTop: `0.5px solid var(--amber-border)` }}>• {c}</div>)}
             </div>
           )}
         </div>
@@ -2151,7 +2378,7 @@ function StepGuide() {
         </div>
         <div style={{ display: "flex", gap: 10, marginTop: 12 }}>
           {sel > 1 && <button onClick={() => setSel(sel - 1)} style={{ padding: "9px 18px", border: `1px solid ${T.border}`, borderRadius: 8, background: T.white, color: T.text, fontSize: 13, cursor: "pointer" }}>← Prev</button>}
-          {sel < 38 && <button onClick={() => setSel(sel + 1)} style={{ padding: "9px 18px", background: cm.color, border: "none", borderRadius: 8, color: "#fff", fontSize: 13, fontWeight: 600, cursor: "pointer" }}>Next →</button>}
+          {sel < 38 && <button onClick={() => setSel(sel + 1)} style={{ padding: "9px 18px", background: fillColor(cm.color), border: "none", borderRadius: 8, color: "#fff", fontSize: 13, fontWeight: 600, cursor: "pointer" }}>Next →</button>}
         </div>
       </div>
     </div>
@@ -2244,7 +2471,7 @@ function EMICalculator() {
       {/* Tab bar */}
       <div className="calculator-tabs" role="group" aria-label="Calculator type" style={{ display: "flex", gap: 4, marginBottom: 20, background: T.creamDark, borderRadius: 12, padding: 4 }}>
         {tabs.map(t => (
-          <button aria-pressed={tab === t.id} key={t.id} onClick={() => setTab(t.id)} style={{ flex: 1, padding: "9px 0", border: "none", borderRadius: 9, background: tab === t.id ? T.navy : "transparent", color: tab === t.id ? T.gold : T.textMid, fontWeight: tab === t.id ? 600 : 400, fontSize: 13, cursor: "pointer", transition: "all 0.2s" }}>{t.label}</button>
+          <button aria-pressed={tab === t.id} key={t.id} onClick={() => setTab(t.id)} style={{ flex: 1, padding: "9px 0", border: "none", borderRadius: 9, background: fillColor(tab === t.id ? T.navy : "transparent"), color: tab === t.id ? T.goldLight : T.textMid, fontWeight: tab === t.id ? 600 : 400, fontSize: 13, cursor: "pointer", transition: "all 0.2s" }}>{t.label}</button>
         ))}
       </div>
 
@@ -2259,10 +2486,10 @@ function EMICalculator() {
           {emi && (
             <div className="calc-in">
               {/* Hero EMI card */}
-              <div style={{ background: `linear-gradient(135deg, ${T.navy} 0%, ${T.navyLight} 100%)`, borderRadius: 18, padding: "28px 24px", marginBottom: 14, textAlign: "center", boxShadow: "0 12px 40px rgba(11,20,55,0.25)" }}>
-                <div style={{ fontSize: 12, color: "rgba(255,255,255,0.55)", textTransform: "uppercase", letterSpacing: 2, marginBottom: 8 }}>Monthly EMI</div>
-                <div style={{ fontSize: 44, fontWeight: 700, color: T.gold, fontFamily: "var(--font-display)", letterSpacing: -1 }}>₹{emi.toLocaleString("en-IN")}</div>
-                <div style={{ fontSize: 12, color: "rgba(255,255,255,0.4)", marginTop: 6 }}>for {tenure} months · ₹{(+loan).toLocaleString("en-IN")} @ {rate}%</div>
+              <div style={{ background: `linear-gradient(135deg, ${T.primary} 0%, ${T.navyLight} 100%)`, borderRadius: 18, padding: "28px 24px", marginBottom: 14, textAlign: "center", boxShadow: "0 12px 40px rgba(11,20,55,0.25)" }}>
+                <div style={{ fontSize: 12, color: "rgba(255,255,255,0.78)", textTransform: "uppercase", letterSpacing: 2, marginBottom: 8 }}>Monthly EMI</div>
+                <div style={{ fontSize: 44, fontWeight: 700, color: T.goldLight, fontFamily: "var(--font-display)", letterSpacing: -1 }}>₹{emi.toLocaleString("en-IN")}</div>
+                <div style={{ fontSize: 12, color: "rgba(255,255,255,0.78)", marginTop: 6 }}>for {tenure} months · ₹{(+loan).toLocaleString("en-IN")} @ {rate}%</div>
               </div>
               {/* Breakdown row */}
               <div className="responsive-grid" style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 10, marginBottom: 14 }}>
@@ -2306,10 +2533,10 @@ function EMICalculator() {
           </div>
           {maxLoan !== null && (
             <div className="calc-in">
-              <div style={{ background: `linear-gradient(135deg, #0F6E56 0%, #1A7A4A 100%)`, borderRadius: 18, padding: "28px 24px", marginBottom: 14, textAlign: "center", boxShadow: "0 12px 40px rgba(26,122,74,0.25)" }}>
-                <div style={{ fontSize: 12, color: "rgba(255,255,255,0.55)", textTransform: "uppercase", letterSpacing: 2, marginBottom: 8 }}>Maximum Eligible Loan</div>
+              <div style={{ background: `linear-gradient(135deg, var(--teal) 0%, #1A7A4A 100%)`, borderRadius: 18, padding: "28px 24px", marginBottom: 14, textAlign: "center", boxShadow: "0 12px 40px rgba(26,122,74,0.25)" }}>
+                <div style={{ fontSize: 12, color: "rgba(255,255,255,0.78)", textTransform: "uppercase", letterSpacing: 2, marginBottom: 8 }}>Maximum Eligible Loan</div>
                 <div style={{ fontSize: 44, fontWeight: 700, color: "#FFE57F", fontFamily: "var(--font-display)", letterSpacing: -1 }}>₹{maxLoan.toLocaleString("en-IN")}</div>
-                <div style={{ fontSize: 12, color: "rgba(255,255,255,0.4)", marginTop: 6 }}>Based on 50% FOIR at {fRate}% for {fTenure} months</div>
+                <div style={{ fontSize: 12, color: "rgba(255,255,255,0.78)", marginTop: 6 }}>Based on 50% FOIR at {fRate}% for {fTenure} months</div>
               </div>
               <div className="responsive-grid" style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 10, marginBottom: 14 }}>
                 {[
@@ -2358,9 +2585,9 @@ function EMICalculator() {
           {maxByLTV && (
             <div className="calc-in">
               <div style={{ background: `linear-gradient(135deg, #4A148C 0%, #6A1B9A 100%)`, borderRadius: 18, padding: "28px 24px", marginBottom: 14, textAlign: "center", boxShadow: "0 12px 40px rgba(106,27,154,0.25)" }}>
-                <div style={{ fontSize: 12, color: "rgba(255,255,255,0.55)", textTransform: "uppercase", letterSpacing: 2, marginBottom: 8 }}>Max Loan by LTV ({ltvPct}%)</div>
+                <div style={{ fontSize: 12, color: "rgba(255,255,255,0.78)", textTransform: "uppercase", letterSpacing: 2, marginBottom: 8 }}>Max Loan by LTV ({ltvPct}%)</div>
                 <div style={{ fontSize: 44, fontWeight: 700, color: "#E1BEE7", fontFamily: "var(--font-display)", letterSpacing: -1 }}>₹{maxByLTV.toLocaleString("en-IN")}</div>
-                <div style={{ fontSize: 12, color: "rgba(255,255,255,0.4)", marginTop: 6 }}>Property value ₹{(+propVal).toLocaleString("en-IN")} × {ltvPct}%</div>
+                <div style={{ fontSize: 12, color: "rgba(255,255,255,0.78)", marginTop: 6 }}>Property value ₹{(+propVal).toLocaleString("en-IN")} × {ltvPct}%</div>
               </div>
               <div style={{ background: T.white, border: `1px solid ${T.border}`, borderRadius: 12, padding: 16 }}>
                 <div style={{ fontSize: 13, fontWeight: 600, color: T.text, marginBottom: 10 }}>LTV Breakdown</div>
@@ -2398,7 +2625,7 @@ function DSSection({ title, accent, children }) {
   return (
     <div className="posh-card" style={{ marginBottom: 16 }}>
       <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 18, paddingBottom: 14, borderBottom: `1px solid ${T.border}` }}>
-        <div style={{ width: 4, height: 28, borderRadius: 2, background: accent || T.gold }} />
+        <div style={{ width: 4, height: 28, borderRadius: 2, background: fillColor(accent || T.gold) }} />
         <div style={{ fontFamily: "var(--font-display)", fontSize: 16, fontWeight: 700, color: T.navy }}>{title}</div>
       </div>
       {children}
@@ -2412,7 +2639,7 @@ function DSRadio({ label, value, onChange, options }) {
       <div style={{ display: "flex", gap: 12 }}>
         {options.map(o => (
           <label key={o} style={{ display: "flex", alignItems: "center", gap: 7, cursor: "pointer", fontSize: 13, fontWeight: value === o ? 600 : 400, color: value === o ? T.navy : T.textMid }}>
-            <div style={{ width: 18, height: 18, borderRadius: "50%", border: `2px solid ${value === o ? T.gold : T.border}`, background: value === o ? T.gold : "transparent", display: "flex", alignItems: "center", justifyContent: "center", transition: "all 0.15s" }} onClick={() => onChange(o)}>
+            <div style={{ width: 18, height: 18, borderRadius: "50%", border: `2px solid ${value === o ? T.gold : T.border}`, background: fillColor(value === o ? T.gold : "transparent"), display: "flex", alignItems: "center", justifyContent: "center", transition: "all 0.15s" }} onClick={() => onChange(o)}>
               {value === o && <div style={{ width: 8, height: 8, borderRadius: "50%", background: T.white }} />}
             </div>
             {o}
@@ -2519,7 +2746,7 @@ function SiteVisitsTab({ lead, onUpdate }) {
                 </Grid>
                 <div style={{ marginTop: 10 }}><Btn c={T.green} onClick={() => saveFeedback(v.id)}>Submit Feedback</Btn></div>
 
-                <div style={{ marginTop: 16, background: T.amberBg, padding: 10, borderRadius: 8, border: `1px solid ${T.amber}40` }}>
+                <div style={{ marginTop: 16, background: T.amberBg, padding: 10, borderRadius: 8, border: `1px solid ${alpha(T.amber, 0.2510)}` }}>
                   <div style={{ fontSize: 11, fontWeight: 700, color: T.amber, textTransform: "uppercase", marginBottom: 6 }}>Automated Reminder Schedule Active</div>
                   <div style={{ fontSize: 12, color: T.text }}><span style={{ color: T.green }}>✓</span> 1 Day Before: Agent & Customer SMS</div>
                   <div style={{ fontSize: 12, color: T.text }}><span style={{ color: T.green }}>✓</span> 4 Hours Before: Customer Call Reminder</div>
@@ -2924,8 +3151,8 @@ function DetailSheetTab({ lead, onUpdate }) {
           <div style={{ fontSize: 12, color: T.textLight, marginTop: 2 }}>Auto-filled from lead. Complete additional fields below.</div>
         </div>
         <div style={{ display: "flex", gap: 10 }}>
-          <button onClick={save} className="posh-btn" style={{ background: T.navy, color: T.gold }}>Save Sheet</button>
-          <button onClick={() => window.print()} className="posh-btn" style={{ background: T.gold, color: T.navy }}>🖨️ Print</button>
+          <button onClick={save} className="posh-btn" style={{ background: fillColor(T.navy), color: T.goldLight }}>Save Sheet</button>
+          <button onClick={() => window.print()} className="posh-btn" style={{ background: fillColor(T.gold), color: T.onDark }}>🖨️ Print</button>
         </div>
       </div>
 
@@ -2939,8 +3166,8 @@ function DetailSheetTab({ lead, onUpdate }) {
               padding: "9px 0", 
               border: "none", 
               borderRadius: 9, 
-              background: subTab === t.id ? T.navy : "transparent", 
-              color: subTab === t.id ? T.gold : T.textMid, 
+              background: fillColor(subTab === t.id ? T.navy : "transparent"), 
+              color: subTab === t.id ? T.goldLight : T.textMid, 
               fontWeight: subTab === t.id ? 600 : 400, 
               fontSize: 13, 
               cursor: "pointer", 
@@ -2976,7 +3203,7 @@ function DetailSheetTab({ lead, onUpdate }) {
         <ReferencesBlock form={form} upd={upd} />
       </div>
 
-      <button onClick={save} className="posh-btn no-print" style={{ background: T.navy, color: T.gold, width: "100%", justifyContent: "center", marginTop: 24 }}>Save Detail Sheet</button>
+      <button onClick={save} className="posh-btn no-print" style={{ background: fillColor(T.navy), color: T.goldLight, width: "100%", justifyContent: "center", marginTop: 24 }}>Save Detail Sheet</button>
     </div>
   );
 }
@@ -3088,12 +3315,12 @@ function InventoryModule() {
       <div style={{ fontSize: 13, color: T.textLight, marginBottom: 10 }}>Click a unit to toggle its status: Available ➔ Blocked ➔ Sold</div>
       <div style={{ display: "flex", gap: 14, marginBottom: 16, fontSize: 13 }}>
         <span style={{ color: T.green }}><span style={{ display: "inline-block", width: 10, height: 10, background: T.greenBg, marginRight: 4, borderRadius: 2 }} />Available</span>
-        <span style={{ color: T.amber }}><span style={{ display: "inline-block", width: 10, height: 10, background: "#FFF8E1", marginRight: 4, borderRadius: 2 }} />Blocked</span>
-        <span style={{ color: T.red }}><span style={{ display: "inline-block", width: 10, height: 10, background: "#FFEBEE", marginRight: 4, borderRadius: 2 }} />Sold</span>
+        <span style={{ color: T.amber }}><span style={{ display: "inline-block", width: 10, height: 10, background: "var(--amber-bg)", marginRight: 4, borderRadius: 2 }} />Blocked</span>
+        <span style={{ color: T.red }}><span style={{ display: "inline-block", width: 10, height: 10, background: "var(--red-bg)", marginRight: 4, borderRadius: 2 }} />Sold</span>
       </div>
       <div className="responsive-grid" style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(60px, 1fr))", gap: 8 }}>
         {units.map(u => (
-          <button type="button" aria-label={`${u.id}, ${u.status}. Change status`} key={u.id} onClick={() => toggleUnit(u.id)} style={{ padding: "10px 4px", textAlign: "center", borderRadius: 8, fontSize: 12, fontWeight: 700, cursor: "pointer", border: `1px solid ${u.status === "available" ? T.green : u.status === "blocked" ? T.amber : T.red}40`, background: u.status === "available" ? T.greenBg : u.status === "blocked" ? "#FFF8E1" : "#FFEBEE", color: u.status === "available" ? T.green : u.status === "blocked" ? T.amber : T.red }}>
+          <button type="button" aria-label={`${u.id}, ${u.status}. Change status`} key={u.id} onClick={() => toggleUnit(u.id)} style={{ padding: "10px 4px", textAlign: "center", borderRadius: 8, fontSize: 12, fontWeight: 700, cursor: "pointer", border: `1px solid ${alpha(u.status === "available" ? T.green : u.status === "blocked" ? T.amber : T.red, 0.2510)}`, background: u.status === "available" ? T.greenBg : u.status === "blocked" ? "var(--amber-bg)" : "var(--red-bg)", color: u.status === "available" ? T.green : u.status === "blocked" ? T.amber : T.red }}>
             {u.id}
           </button>
         ))}
@@ -3125,15 +3352,15 @@ function InventoryModule() {
 // ─── PRIMITIVES ───────────────────────────────────────────────────────────────
 const LBL = { fontSize: 12, fontWeight: 600, color: T.textMid, display: "block", marginBottom: 7 };
 function ST({ children }) { return <h1 className="section-title">{children}</h1>; }
-function Card({ title, children, accent }) {
-  return <section className="posh-card" style={accent ? { "--card-accent": accent } : undefined}>
+function Card({ title, children, accent, className = "" }) {
+  return <section className={`posh-card ${className}`} style={accent ? { "--card-accent": accent } : undefined}>
     {title && <h2 className="card-title">{accent && <span className="card-accent" aria-hidden="true" />}{title}</h2>}
     {children}
   </section>;
 }
-function Alrt({ c, bg, title, children }) { return <section className="alert-panel" style={{ background: bg, borderColor: `${c}35`, borderLeftColor: c }}><h2 style={{ color: c }}>{title}</h2>{children}</section>; }
-function Tg({ c, children }) { return <span className="status-tag" style={{ background: `${c}10`, color: c, borderColor: `${c}25` }}>{children}</span>; }
-function Btn({ onClick, c, children, full }) { return <button type="button" onClick={onClick} className="posh-btn" style={{ background: c, color: "#fff", width: full ? "100%" : undefined, justifyContent: full ? "center" : undefined }}>{children}</button>; }
+function Alrt({ c, bg, title, children }) { return <section className="alert-panel" style={{ background: bg, borderColor: `${alpha(c, 0.2078)}`, borderLeftColor: c }}><h2 style={{ color: c }}>{title}</h2>{children}</section>; }
+function Tg({ c, children }) { return <span className="status-tag" style={{ background: `${alpha(c, 0.0627)}`, color: c, borderColor: `${alpha(c, 0.1451)}` }}>{children}</span>; }
+function Btn({ onClick, c, children, full }) { return <button type="button" onClick={onClick} className="posh-btn" style={{ background: fillColor(c), color: "#fff", width: full ? "100%" : undefined, justifyContent: full ? "center" : undefined }}><span className="button-content">{children}</span></button>; }
 function Grid({ cols, gap, mb, children }) { return <div className={`ui-grid${cols?.includes("auto-fit") ? " ui-grid--metrics" : ""}`} style={{ "--grid-columns": cols, gap: gap ? Math.max(gap, 14) : 14, marginBottom: mb }}>{children}</div>; }
 function F({ l, children }) {
   const id = useId();
@@ -3298,7 +3525,7 @@ function ProjectDirectory() {
                 <td style={{ padding: 12 }}>
                   <div style={{ display: "flex", flexWrap: "wrap", gap: 6 }}>
                     {Object.entries(p.apf || {}).map(([bank, code]) => (
-                      <span key={bank} style={{ fontSize: 11, background: T.blueBg, color: T.blue, padding: "2px 8px", borderRadius: 4, border: `1px solid #90CAF9` }}>
+                      <span key={bank} style={{ fontSize: 11, background: T.blueBg, color: T.blue, padding: "2px 8px", borderRadius: 4, border: `1px solid var(--blue-border)` }}>
                         <strong>{bank}</strong>: {code}
                       </span>
                     ))}
@@ -3456,7 +3683,7 @@ function BankLoginsTab({ lead, onUpdate }) {
             {(l.queries || []).length === 0 && <div style={{ fontSize: 12, color: T.textLight, fontStyle: "italic", marginBottom: 8 }}>No queries raised.</div>}
             
             {(l.queries || []).map(q => (
-              <div key={q.id} style={{ display: "flex", justifyContent: "space-between", background: q.status === "Open" ? T.redBg : T.greenBg, border: `1px solid ${q.status === "Open" ? T.red : T.green}20`, borderRadius: 8, padding: 10, marginBottom: 6 }}>
+              <div key={q.id} style={{ display: "flex", justifyContent: "space-between", background: q.status === "Open" ? T.redBg : T.greenBg, border: `1px solid ${alpha(q.status === "Open" ? T.red : T.green, 0.1255)}`, borderRadius: 8, padding: 10, marginBottom: 6 }}>
                 <div>
                   <div style={{ fontSize: 13, color: T.text }}>{q.desc}</div>
                   <div style={{ fontSize: 11, color: T.textLight, marginTop: 4 }}>Raised: {q.dateRaised} {q.status === "Resolved" && `· Resolved: ${q.dateResolved}`}</div>
