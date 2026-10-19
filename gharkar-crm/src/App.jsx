@@ -94,67 +94,12 @@ function ThemePreference() {
   return <div className="theme-preferences" role="group" aria-label="Color theme">{["light", "dark", "system"].map(mode => <button key={mode} type="button" aria-pressed={preference === mode} aria-label={`Use ${mode} theme`} title={`Use ${mode} theme`} onClick={() => setPreference(mode)}><UIIcon name={mode === "light" ? "sun" : mode === "dark" ? "moon" : "monitor"} size={15} /><span>{mode[0].toUpperCase() + mode.slice(1)}</span></button>)}</div>;
 }
 
-// Pointer effects are delegated and batched once per animation frame. No CRM state is involved.
+// Appearance preferences only; existing CRM state and workflows remain independent.
 const EFFECTS_KEY = "gharkar-crm-effects";
 const MotionContext = createContext({ enabled: true, reduced: false, toggle: () => {} });
 function readEffectsPreference() {
   try { return typeof window === "undefined" || window.localStorage.getItem(EFFECTS_KEY) !== "off"; }
   catch { return true; }
-}
-function installSurfaceEffects(root, host) {
-  const finePointer = host.matchMedia("(hover: hover) and (pointer: fine)");
-  const selector = ".portal-card, .metric-card, .stat-card, .posh-card, .lead-row, .posh-btn, .nav-item, .login-brand";
-  const properties = ["--pointer-x", "--pointer-y", "--tilt-x", "--tilt-y", "--magnet-x", "--magnet-y"];
-  let active = null, pending = null, frame = 0;
-  function resetElement() {
-    if (!active) return;
-    active.removeAttribute("data-surface-active");
-    properties.forEach(property => active.style.removeProperty(property));
-    active = null;
-  }
-  function clear() {
-    if (frame) host.cancelAnimationFrame(frame);
-    frame = 0; pending = null; resetElement();
-  }
-  function paint() {
-    frame = 0;
-    if (!pending || !active?.isConnected) { clear(); return; }
-    const bounds = active.getBoundingClientRect();
-    if (!bounds.width || !bounds.height) { clear(); return; }
-    const x = Math.max(0, Math.min(1, (pending.x - bounds.left) / bounds.width));
-    const y = Math.max(0, Math.min(1, (pending.y - bounds.top) / bounds.height));
-    active.style.setProperty("--pointer-x", `${(x * 100).toFixed(2)}%`);
-    active.style.setProperty("--pointer-y", `${(y * 100).toFixed(2)}%`);
-    active.style.setProperty("--tilt-x", `${((.5 - y) * 5).toFixed(2)}deg`);
-    active.style.setProperty("--tilt-y", `${((x - .5) * 6).toFixed(2)}deg`);
-    active.style.setProperty("--magnet-x", `${((x - .5) * 5).toFixed(2)}px`);
-    active.style.setProperty("--magnet-y", `${((y - .5) * 4).toFixed(2)}px`);
-  }
-  function move(event) {
-    if (!finePointer.matches || event.pointerType === "touch") { clear(); return; }
-    const next = event.target?.closest?.(selector);
-    if (!next || next.disabled || !root.contains(next)) { clear(); return; }
-    if (next !== active) { resetElement(); active = next; active.setAttribute("data-surface-active", "true"); }
-    pending = { x: event.clientX, y: event.clientY };
-    if (!frame) frame = host.requestAnimationFrame(paint);
-  }
-  function leave(event) { if (!event.relatedTarget) clear(); }
-  function visibility() { if (root.visibilityState === "hidden") clear(); }
-  root.addEventListener("pointermove", move, { passive: true });
-  root.addEventListener("pointerout", leave);
-  root.addEventListener("visibilitychange", visibility);
-  host.addEventListener("blur", clear);
-  host.addEventListener("scroll", clear, true);
-  finePointer.addEventListener?.("change", clear);
-  return () => {
-    clear();
-    root.removeEventListener("pointermove", move);
-    root.removeEventListener("pointerout", leave);
-    root.removeEventListener("visibilitychange", visibility);
-    host.removeEventListener("blur", clear);
-    host.removeEventListener("scroll", clear, true);
-    finePointer.removeEventListener?.("change", clear);
-  };
 }
 function MotionProvider({ children }) {
   const [wanted, setWanted] = useState(readEffectsPreference);
@@ -168,7 +113,6 @@ function MotionProvider({ children }) {
     update(); media?.addEventListener("change", update); window.addEventListener("storage", storage);
     return () => { media?.removeEventListener("change", update); window.removeEventListener("storage", storage); };
   }, []);
-  useEffect(() => { if (enabled) return installSurfaceEffects(document, window); }, [enabled]);
   function toggle() {
     if (reduced) return;
     const next = !wanted;
@@ -182,38 +126,17 @@ function MotionToggle() {
   return <button type="button" className="motion-toggle" onClick={toggle} disabled={reduced} aria-pressed={enabled} aria-label={reduced ? "Visual effects off: reduced motion is enabled on your device" : `Turn ${enabled ? "off" : "on"} visual effects`} title={reduced ? "Your device requests reduced motion" : `Visual effects ${enabled ? "on" : "off"}`}><UIIcon name="spark" size={17} /><span>Effects</span><span className="motion-state" aria-hidden="true" /></button>;
 }
 function ArchitecturalScene() {
-  const id = useId().replace(/:/g, "");
   return <div className="architecture-art" aria-hidden="true">
-    <div className="scene-halo scene-halo--gold" /><div className="scene-halo scene-halo--blue" />
-    <svg className="architectural-scene" viewBox="0 0 620 440" fill="none" focusable="false">
-      <defs>
-        <linearGradient id={`${id}-glass`} x1="170" y1="120" x2="350" y2="370" gradientUnits="userSpaceOnUse"><stop stopColor="#B5C9EC" stopOpacity=".38" /><stop offset=".48" stopColor="#283C5C" stopOpacity=".8" /><stop offset="1" stopColor="#101722" /></linearGradient>
-        <linearGradient id={`${id}-gold`} x1="295" y1="65" x2="420" y2="310" gradientUnits="userSpaceOnUse"><stop stopColor="#F4DFB9" /><stop offset=".28" stopColor="#A58A61" /><stop offset=".7" stopColor="#3E3B39" /><stop offset="1" stopColor="#141C2A" /></linearGradient>
-        <linearGradient id={`${id}-edge`} x1="130" y1="50" x2="490" y2="400" gradientUnits="userSpaceOnUse"><stop stopColor="#EBD7B4" stopOpacity=".12" /><stop offset=".4" stopColor="#F8DFB3" /><stop offset="1" stopColor="#7C9DDA" stopOpacity=".1" /></linearGradient>
-        <radialGradient id={`${id}-ground`}><stop stopColor="#BDA174" stopOpacity=".2" /><stop offset="1" stopColor="#BDA174" stopOpacity="0" /></radialGradient>
-      </defs>
-      <ellipse cx="315" cy="341" rx="268" ry="84" fill={`url(#${id}-ground)`} />
-      <g className="scene-grid" stroke="#7A8DAC" strokeOpacity=".16" strokeWidth=".7">
-        {[0, 1, 2, 3, 4, 5, 6].map(i => <path key={i} d={`M${80 + i * 35} ${280 - i * 18}l255 130M${80 + i * 42} ${280 + i * 21}l210 -108`} />)}
+    <svg className="home-elevation" viewBox="0 0 520 250" fill="none" focusable="false">
+      <g stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" strokeLinejoin="round">
+        <path d="M26 220h468M48 220V119l85-63 86 63v101M39 121l94-71 96 71" />
+        <path d="M219 220V91h150v129M210 91h167M231 76h126v15M369 220V136l62-40 61 40v84M365 135l66-45 64 45" />
+        <path d="M82 220v-67h45v67M139 153h43v41h-43zM145 104h-25v28h25zM241 117h34v39h-34zM292 117h53v39h-53zM241 177h34v43M292 177h53v43M393 159h28v34h-28zM443 159h28v34h-28z" />
+        <path d="M104 153v67M139 173h43M258 117v39M318 117v39M292 137h53M318 177v43M393 176h28M443 176h28M219 165h150" opacity=".55" />
+        <path d="M109 188h4M48 204h34M127 204h92M369 205h123M35 227h452" opacity=".45" />
+        <path d="M59 48h54M362 50h54M377 40h24" opacity=".25" />
+        <path d="M32 220v-36m0 15c-17-4-17-21-5-24 9-4 19 7 13 16M481 220v-18m0 4c-12-4-14-17-6-22 10-6 21 2 18 12" opacity=".65" />
       </g>
-      <ellipse className="scene-orbit" cx="314" cy="265" rx="253" ry="94" stroke={`url(#${id}-edge)`} strokeOpacity=".48" transform="rotate(-18 314 265)" />
-      <g className="scene-tower scene-tower--back">
-        <path d="M299 76L365 38L452 83L385 121Z" fill="#C6B18F" fillOpacity=".25" stroke={`url(#${id}-edge)`} />
-        <path d="M299 76L385 121V302L299 257Z" fill={`url(#${id}-gold)`} stroke={`url(#${id}-edge)`} />
-        <path d="M385 121L452 83V264L385 302Z" fill="#172236" stroke={`url(#${id}-edge)`} />
-        {[1, 2, 3, 4, 5, 6, 7].map(i => <path key={i} d={`M299 ${76 + i * 23}l86 45 67 -38`} stroke="#E9CCA0" strokeOpacity=".19" />)}
-        <path d="M327 91v180m29-165v180m51-177v181m22-193v181" stroke="#E4CCA6" strokeOpacity=".18" />
-      </g>
-      <g className="scene-tower scene-tower--front">
-        <path d="M170 157L252 111L367 171L285 218Z" fill="#697A96" fillOpacity=".27" stroke={`url(#${id}-edge)`} />
-        <path d="M170 157L285 218V374L170 312Z" fill={`url(#${id}-glass)`} stroke={`url(#${id}-edge)`} />
-        <path d="M285 218L367 171V327L285 374Z" fill="#152237" stroke={`url(#${id}-edge)`} />
-        {[1, 2, 3, 4, 5, 6].map(i => <path key={i} d={`M170 ${157 + i * 22}l115 61 82 -47`} stroke="#B4C6E2" strokeOpacity=".23" />)}
-        <path d="M199 173v155m29-140v156m29-140v156m56-158v156m27-172v156" stroke="#B4C6E2" strokeOpacity=".2" />
-        <path d="M170 157L285 218V374" stroke="#E7D2AF" strokeOpacity=".75" />
-        <path d="M199 239l29 15v21l-29-15Z" fill="#E8C792" fillOpacity=".48" /><path d="M314 268l26-15v21l-26 15Z" fill="#91B5F7" fillOpacity=".3" />
-      </g>
-      <g className="scene-satellite"><circle cx="96" cy="305" r="5" fill="#E7C68E" /><circle cx="96" cy="305" r="13" stroke="#E7C68E" strokeOpacity=".2" /><path d="M489 150h16m-8-8v16" stroke="#B2C7EE" strokeOpacity=".6" /></g>
     </svg>
   </div>;
 }
@@ -724,11 +647,11 @@ function LoginPage({ onLogin }) {
         <ArchitecturalScene />
       </aside>
       <main className="login-content">
-        <div className="login-theme-control"><MotionToggle /><ThemeToggle label /></div>
+        <div className="login-theme-control"><ThemeToggle label /></div>
         {!mode ? (
           <div className="portal-picker fade">
             <p className="login-heading">Select your login type</p>
-            <div className="portal-grid">{portals.map((portal, i) => <button ref={i === 0 ? firstRole : undefined} key={portal.id} type="button" onClick={() => { setMode(portal.id); setShowPassword(false); }} className={`portal-card${i === 0 ? " portal-card--primary" : ""}`} style={{ "--entry-delay": `${i * 65}ms` }}>
+            <div className="portal-grid">{portals.map((portal, i) => <button ref={i === 0 ? firstRole : undefined} key={portal.id} type="button" onClick={() => { setMode(portal.id); setShowPassword(false); }} className={`portal-card${i === 0 ? " portal-card--primary" : ""}`}>
               <span className="portal-icon"><UIIcon name={portal.icon} size={23} /></span>
               <span className="portal-title">{portal.title}</span><span className="portal-description">{portal.desc}</span><span className="portal-arrow"><UIIcon name="arrow" size={18} /></span>
             </button>)}</div>
@@ -761,6 +684,7 @@ function Shell({ session, onLogout, navItems, children, activeNav, setActiveNav,
   const [mobileNav, setMobileNav] = useState(false);
   const menuButton = useRef(null);
   const workspaceRef = useRef(null);
+  const navigationPending = useRef(false);
   useEffect(() => { if (workspaceRef.current) workspaceRef.current.inert = mobileNav; }, [mobileNav]);
   const navPanel = useRef(null);
   const notifsPanel = useRef(null);
@@ -796,7 +720,17 @@ function Shell({ session, onLogout, navItems, children, activeNav, setActiveNav,
     document.addEventListener("keydown", onKey);
     return () => { document.body.style.overflow = overflow; document.removeEventListener("keydown", onKey); if (previous?.isConnected) previous.focus(); };
   }, [mobileNav]);
-  function navigate(id) { setActiveNav(id); setMobileNav(false); setShowNotifs(false); window.scrollTo({ top: 0 }); }
+  useEffect(() => {
+    if (!navigationPending.current || mobileNav) return;
+    navigationPending.current = false;
+    const frame = window.requestAnimationFrame(() => workspaceRef.current?.querySelector("main")?.focus({ preventScroll: true }));
+    return () => window.cancelAnimationFrame(frame);
+  }, [activeNav, mobileNav]);
+  function navigate(id) {
+    navigationPending.current = true;
+    setActiveNav(id); setMobileNav(false); setShowNotifs(false); window.scrollTo({ top: 0 });
+    if (id === activeNav && !mobileNav) { navigationPending.current = false; workspaceRef.current?.querySelector("main")?.focus({ preventScroll: true }); }
+  }
   const myNotifs = (store.notifications || []).filter(n => n.userId === session.id && !n.read);
 
   function markAllRead() {
@@ -841,9 +775,9 @@ function Shell({ session, onLogout, navItems, children, activeNav, setActiveNav,
       {mobileNav && <button type="button" className="nav-scrim no-print" tabIndex={-1} aria-label="Close navigation" onClick={() => setMobileNav(false)} />}
       <aside ref={navPanel} className={`app-sidebar no-print${mobileNav ? " is-open" : ""}`} id="primary-navigation" role={mobileNav ? "dialog" : undefined} aria-modal={mobileNav || undefined} aria-label="Main navigation">
         <div className="sidebar-brand"><span className="brand-mark"><UIIcon name="home" size={23} /></span><span>Ghar Kar CRM</span><button type="button" className="sidebar-close icon-button" aria-label="Close navigation" onClick={() => setMobileNav(false)}><UIIcon name="close" /></button></div>
-        <nav className="sidebar-nav" aria-label="Main">{navItems.map(n => <button key={n.id} type="button" onClick={() => navigate(n.id)} className={`nav-item${activeNav === n.id ? " is-active" : ""}`} aria-current={activeNav === n.id ? "page" : undefined}><UIIcon name={n.id} size={19} /><span>{n.label.replace(/^[^A-Za-z]+/, "")}</span>{activeNav === n.id && <span className="nav-active-dot" aria-hidden="true" />}</button>)}</nav>
+        <nav className="sidebar-nav" aria-label="Main">{navItems.map(n => <div className="nav-entry" key={n.id}>{n.id === "calculator" && <div className="nav-group-label">Tools</div>}<button type="button" onClick={() => navigate(n.id)} className={`nav-item${activeNav === n.id ? " is-active" : ""}`} aria-current={activeNav === n.id ? "page" : undefined}><UIIcon name={n.id} size={19} /><span>{n.label.replace(/^[^A-Za-z]+/, "")}</span>{activeNav === n.id && <span className="nav-active-dot" aria-hidden="true" />}</button></div>)}</nav>
         <ThemePreference />
-        <div className="sidebar-account"><span className="account-avatar" aria-hidden="true">{session.name.split(" ").map(x => x[0]).filter(Boolean).slice(0, 2).join("")}</span><div><strong>{session.name}</strong><span>{role}</span></div><button type="button" className="sidebar-logout" title="Sign out" onClick={onLogout}><UIIcon name="logout" size={17} /><span>Out</span></button></div>
+        <div className="sidebar-account"><span className="account-avatar" aria-hidden="true">{session.name.split(" ").map(x => x[0]).filter(Boolean).slice(0, 2).join("")}</span><div><strong>{session.name}</strong><span>{role}</span></div><button type="button" className="sidebar-logout" title="Sign out" onClick={onLogout}><UIIcon name="logout" size={17} /><span>Sign Out</span></button></div>
       </aside>
       <div ref={workspaceRef} className="app-workspace">
         <header ref={headerRef} className="app-header">
@@ -864,6 +798,7 @@ function Shell({ session, onLogout, navItems, children, activeNav, setActiveNav,
 // ─── ADMIN APP ────────────────────────────────────────────────────────────────
 const AN = [{ id: "dashboard", label: "Dashboard" }, { id: "kpf", label: "📊 KPF" }, { id: "users", label: "Users" }, { id: "leads", label: "All Leads" }, { id: "logs", label: "Daily Logs" }, { id: "pipeline", label: "Pipeline" }, { id: "escalations", label: "Escalations" }, { id: "external", label: "External Follow-Ups" }, { id: "calculator", label: "🧮 Calculator" }, { id: "bank_matrix", label: "🏦 Bank Matrix" }, { id: "apf_directory", label: "🏗️ APF Directory" }];
 function AdminApp({ store, persist, session, onLogout }) {
+  const [leadFilters, setLeadFilters] = useState({ q: "", fs: "all", src: "all" });
   const [nav, setNav] = useState("dashboard");
   const [sel, setSel] = useState(null);
   function updLead(id, upd) { persist({ ...store, leads: (store.leads || []).map(l => l.id === id ? { ...l, ...upd } : l) }); }
@@ -878,7 +813,7 @@ function AdminApp({ store, persist, session, onLogout }) {
     {nav === "dashboard" && <AdminDash store={store} onSel={setSel} />}
     {nav === "kpf" && <KPFDashboard store={store} onSel={setSel} />}
     {nav === "users" && <ManageUsers store={store} persist={persist} />}
-    {nav === "leads" && <div className="fade"><ST>All Leads ({(store.leads || []).length})</ST><LeadTable leads={store.leads || []} users={store.users} onSelect={setSel} onDelete={delLead} /></div>}
+    {nav === "leads" && <div className="fade"><ST>All Leads ({(store.leads || []).length})</ST><LeadTable filters={leadFilters} onFiltersChange={setLeadFilters} leads={store.leads || []} users={store.users} onSelect={setSel} onDelete={delLead} /></div>}
     {nav === "logs" && <AdminLogs store={store} persist={persist} />}
     {nav === "pipeline" && <AdminPipeline store={store} onSel={setSel} />}
     {nav === "escalations" && <EscalationView store={store} persist={persist} />}
@@ -1144,7 +1079,6 @@ function AdminDash({ store, onSel }) {
         <div className="metric-card" key={m.l} style={{ "--metric-color": m.c, background: T.white, borderRadius: 12, padding: "12px 14px", border: `1px solid ${T.border}` }}>
           <div className="metric-label">{m.l}<span className="metric-icon" aria-hidden="true"><UIIcon name={metricIcon(m.l)} size={18} /></span></div>
           <div className="metric-value" style={{ fontSize: 24, fontWeight: 600, color: m.c, marginTop: 2 }}>{m.v}</div>
-          <span className="metric-watermark" aria-hidden="true"><UIIcon name={metricIcon(m.l)} size={78} /></span>
         </div>
       ))}
     </Grid>
@@ -1443,6 +1377,7 @@ function ExternalFollowups({ store, persist }) {
 // ─── EXECUTIVE APP ────────────────────────────────────────────────────────────
 const EN = [{ id: "today", label: "Today" }, { id: "leads", label: "My Leads" }, { id: "add", label: "Add Lead" }, { id: "followups", label: "Follow-Ups" }, { id: "guide", label: "Process Guide" }, { id: "external", label: "External" }, { id: "log", label: "Daily Log" }, { id: "calculator", label: "🧮 Calculator" }, { id: "bank_matrix", label: "🏦 Bank Matrix" }, { id: "apf_directory", label: "🏗️ APF Directory" }];
 function ExecutiveApp({ store, persist, session, onLogout }) {
+  const [leadFilters, setLeadFilters] = useState({ q: "", fs: "all", src: "all" });
   const [nav, setNav] = useState("today"); const [sel, setSel] = useState(null);
   const myLeads = (store.leads || []).filter(l => l.assignedTo === session.id);
   function updLead(id, upd) { persist({ ...store, leads: (store.leads || []).map(l => l.id === id ? { ...l, ...upd } : l) }); }
@@ -1457,6 +1392,7 @@ function ExecutiveApp({ store, persist, session, onLogout }) {
     }
     nl.commLog = commLog;
     persist({ ...store, leads: [nl, ...(store.leads || [])] });
+    setLeadFilters({ q: "", fs: "all", src: "all" });
     setNav("leads");
   }
   function saveLog(text) { const logs = { ...(store.dailyLogs || {}) }; logs[session.id] = { ...(logs[session.id] || {}) }; logs[session.id][td()] = text; persist({ ...store, dailyLogs: logs }); }
@@ -1468,7 +1404,7 @@ function ExecutiveApp({ store, persist, session, onLogout }) {
   }
   return (<Shell session={session} onLogout={onLogout} navItems={EN} activeNav={nav} setActiveNav={setNav} store={store} persist={persist}>
     {nav === "today" && <TodayView leads={myLeads} session={session} onSel={setSel} />}
-    {nav === "leads" && <div className="fade"><ST>My Leads</ST><LeadTable leads={myLeads} users={store.users} onSelect={setSel} onDelete={delLead} /></div>}
+    {nav === "leads" && <div className="fade"><ST>My Leads</ST><LeadTable filters={leadFilters} onFiltersChange={setLeadFilters} leads={myLeads} users={store.users} onSelect={setSel} onDelete={delLead} /></div>}
     {nav === "add" && <AddLeadForm onAdd={addLead} />}
     {nav === "followups" && <FollowUps leads={myLeads} onSel={setSel} onUpdate={updLead} />}
     {nav === "guide" && <StepGuide />}
@@ -1526,6 +1462,7 @@ function ExecExternal({ store, persist, session }) {
 // ─── FIELD APP ────────────────────────────────────────────────────────────────
 const FN = [{ id: "today", label: "Today" }, { id: "leads", label: "My Leads" }, { id: "add", label: "Add Lead" }, { id: "log", label: "Daily Log" }];
 function FieldApp({ store, persist, session, onLogout }) {
+  const [leadFilters, setLeadFilters] = useState({ q: "", fs: "all", src: "all" });
   const [nav, setNav] = useState("today"); const [sel, setSel] = useState(null);
   const myLeads = (store.leads || []).filter(l => l.assignedTo === session.id);
   function addLead(lead) {
@@ -1537,6 +1474,7 @@ function FieldApp({ store, persist, session, onLogout }) {
     }
     nl.commLog = commLog;
     persist({ ...store, leads: [nl, ...(store.leads || [])] });
+    setLeadFilters({ q: "", fs: "all", src: "all" });
     setNav("leads");
   }
   function updLead(id, upd) { persist({ ...store, leads: (store.leads || []).map(l => l.id === id ? { ...l, ...upd } : l) }); }
@@ -1550,7 +1488,7 @@ function FieldApp({ store, persist, session, onLogout }) {
   }
   return (<Shell session={session} onLogout={onLogout} navItems={FN} activeNav={nav} setActiveNav={setNav} store={store} persist={persist}>
     {nav === "today" && <TodayView leads={myLeads} session={session} onSel={setSel} />}
-    {nav === "leads" && <div className="fade"><ST>My Leads</ST><LeadTable leads={myLeads} users={store.users} onSelect={setSel} onDelete={delLead} /></div>}
+    {nav === "leads" && <div className="fade"><ST>My Leads</ST><LeadTable filters={leadFilters} onFiltersChange={setLeadFilters} leads={myLeads} users={store.users} onSelect={setSel} onDelete={delLead} /></div>}
     {nav === "add" && <AddLeadForm onAdd={addLead} />}
     {nav === "log" && <DailyLog session={session} dailyLogs={store.dailyLogs || {}} onSave={saveLog} />}
   </Shell>);
@@ -1621,7 +1559,6 @@ function TodayView({ leads, session, onSel }) {
         <div className="metric-card" key={m.l} style={{ "--metric-color": m.c, background: T.white, borderRadius: 12, padding: "12px 14px", border: `1px solid ${T.border}` }}>
           <div className="metric-label">{m.l}<span className="metric-icon" aria-hidden="true"><UIIcon name={metricIcon(m.l)} size={18} /></span></div>
           <div className="metric-value" style={{ fontSize: 22, fontWeight: 600, color: m.c, marginTop: 2 }}>{m.v}</div>
-          <span className="metric-watermark" aria-hidden="true"><UIIcon name={metricIcon(m.l)} size={78} /></span>
         </div>
       ))}
     </Grid>
@@ -2193,46 +2130,59 @@ function AiDocsTab({ lead }) {
 
 
 // ─── SHARED COMPONENTS ────────────────────────────────────────────────────────
-function LeadTable({ leads, users, onSelect, onDelete }) {
-  const [q, setQ] = useState(""); const [fs, setFs] = useState("all"); const [src, setSrc] = useState("all");
+function LeadTable({ leads, users, onSelect, onDelete, filters, onFiltersChange }) {
+  const [localFilters, setLocalFilters] = useState({ q: "", fs: "all", src: "all" });
+  const { q, fs, src } = filters || localFilters;
+  const setFilters = onFiltersChange || setLocalFilters;
+  const searchRef = useRef(null);
+  const query = q.trim();
+  const hasFilters = !!q || fs !== "all" || src !== "all";
   const fl = leads.filter(l => {
-    const ms = l.name.toLowerCase().includes(q.toLowerCase()) || (l.phone || "").includes(q);
+    const ms = String(l.name || "").toLowerCase().includes(query.toLowerCase()) || (l.phone || "").includes(query);
     const mst = fs === "all" || String(l.currentStep) === fs;
     const msrc = src === "all" || (l.source || "") === src;
     return ms && mst && msrc;
   });
-  return (<div>
-    <div className="lead-filters" style={{ display: "flex", gap: 8, marginBottom: 12, flexWrap: "wrap" }}>
-      <input aria-label="Search name or phone" type="search" value={q} onChange={e => setQ(e.target.value)} placeholder="Search name or phone..." style={{ flex: 1, minWidth: 140 }} />
-      <select aria-label="Filter by source" value={src} onChange={e => setSrc(e.target.value)} style={{ minWidth: 160 }}>
+  function resetFilters() {
+    setFilters({ q: "", fs: "all", src: "all" });
+    searchRef.current?.focus({ preventScroll: true });
+  }
+  return <div className="lead-directory">
+    <div className="lead-filters" role="search" aria-label="Filter leads">
+      <F l="Search name or phone"><input ref={searchRef} type="search" value={q} onChange={e => setFilters(current => ({ ...current, q: e.target.value }))} placeholder="Search name or phone..." /></F>
+      <F l="Source"><select aria-label="Filter by source" value={src} onChange={e => setFilters(current => ({ ...current, src: e.target.value }))}>
         <option value="all">All sources</option>
         {LEAD_SOURCES.map(s => <option key={s}>{s}</option>)}
-      </select>
-      <select aria-label="Filter by step" value={fs} onChange={e => setFs(e.target.value)} style={{ minWidth: 170 }}>
+      </select></F>
+      <F l="Step"><select aria-label="Filter by step" value={fs} onChange={e => setFilters(current => ({ ...current, fs: e.target.value }))}>
         <option value="all">All steps</option>
         {STEPS.map(s => <option key={s.id} value={s.id}>Step {s.id}: {s.label}</option>)}
-      </select>
+      </select></F>
     </div>
-    {fl.length === 0 && <div style={{ fontSize: 13, color: T.textLight, padding: "16px 0" }}>No leads found.</div>}
-    <div style={{ display: "flex", flexDirection: "column", gap: 7 }}>
+    <div className="lead-results-bar"><p role="status" aria-live="polite" aria-atomic="true"><strong>{fl.length}</strong> of {leads.length} leads</p>{hasFilters && <button type="button" className="clear-filters" onClick={resetFilters}><UIIcon name="close" size={14} />Clear filters</button>}</div>
+    {fl.length === 0 && <div className="lead-empty"><h2>No leads found.</h2>{hasFilters && <p>Try another name, phone number, source or step.</p>}</div>}
+    <div className="lead-list" role="list">
       {fl.map(l => {
         const step = STEPS.find(s => s.id === l.currentStep); const cm = CAT_META[step?.cat] || {}; const asgn = users?.find(u => u.id === l.assignedTo);
-        return (<div className="lead-row" role="button" tabIndex={0} aria-label={`Open ${l.name}`} onKeyDown={e => { if (e.target === e.currentTarget && (e.key === "Enter" || e.key === " ")) { e.preventDefault(); onSelect(l.id); } }} key={l.id} onClick={() => onSelect(l.id)} style={{ background: T.white, border: `1px solid ${T.border}`, borderLeft: `3px solid ${cm.color || T.border}`, borderRadius: 10, padding: "11px 15px", cursor: "pointer", display: "flex", justifyContent: "space-between", alignItems: "center", gap: 12 }}>
-          <div>
-            <div style={{ fontWeight: 500, fontSize: 14, color: T.text }}>{l.name}</div>
-            <div style={{ fontSize: 12, color: T.textLight, marginTop: 1 }}>{l.phone} · {l.loanType}{asgn ? ` · ${asgn.name}` : ""}</div>
-            {l.source && <div style={{ fontSize: 11, color: T.textLight }}>Source: {l.source}</div>}
-          </div>
-          <div style={{ textAlign: "right", flexShrink: 0 }}>
-            <Tg c={cm.color || T.textLight}>Step {l.currentStep}</Tg>
-            <div style={{ fontSize: 11, color: T.textLight, marginTop: 3, maxWidth: 130, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{step?.label}</div>
-            {l.followUp && <div style={{ fontSize: 11, color: l.followUp < td() ? T.red : T.textLight, marginTop: 2 }}>↻ {l.followUp}</div>}
-            {onDelete && <button onClick={(e) => { e.stopPropagation(); onDelete(l.id); }} style={{ marginTop: 6, background: T.redBg, border: `1px solid ${T.red}`, color: T.red, fontSize: 10, borderRadius: 4, padding: "3px 8px", cursor: "pointer", fontWeight: 600 }}>Delete</button>}
-          </div>
-        </div>);
+        return <div className="lead-row" role="listitem" key={l.id} style={{ "--lead-stage-color": cm.color || T.border }}>
+          <button type="button" className="lead-open" onClick={() => onSelect(l.id)} aria-label={`Open ${l.name}. Step ${l.currentStep}: ${step?.label || ""}`}>
+            <span className="lead-identity">
+              <strong>{l.name}</strong>
+              <span>{l.phone} · {l.loanType}{asgn ? ` · ${asgn.name}` : ""}</span>
+              {l.source && <span className="lead-source">Source: {l.source}</span>}
+            </span>
+            <span className="lead-stage">
+              <Tg c={cm.color || T.textLight}>Step {l.currentStep}</Tg>
+              <span className="lead-stage-label">{step?.label}</span>
+              {l.followUp && <span className="lead-followup" style={{ color: l.followUp < td() ? T.red : T.textLight }}>↻ {l.followUp}</span>}
+            </span>
+            <UIIcon name="arrow" size={16} />
+          </button>
+          {onDelete && <button type="button" className="lead-delete" aria-label={`Delete ${l.name}`} onClick={() => onDelete(l.id)}>Delete</button>}
+        </div>;
       })}
     </div>
-  </div>);
+  </div>;
 }
 
 
